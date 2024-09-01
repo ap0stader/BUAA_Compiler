@@ -17,7 +17,7 @@ public class Compiler {
             // 打开文件 -> 创建Lexer -> 得到TokenList -> 关闭文件 -> [输出TokenList] -> 尝试继续
             PushbackReader inputFileReader = new PushbackReader(new FileReader(Config.inputFilename));
             Lexer lexer = new Lexer(inputFileReader);
-            TokenStream tokenStream = lexer.generateTokenStream();
+            TokenStream tokenStream = lexer.getTokenStream();
             inputFileReader.close();
             if (Config.dumpTokenList) {
                 DumpTokenList.dump(tokenStream.getArrayListCopy());

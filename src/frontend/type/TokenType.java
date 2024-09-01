@@ -19,15 +19,15 @@ public enum TokenType {
     GETINTTK,   // getint
     PRINTFTK,   // printf
 
-    NOT,        // !
-    AND,        // &&
-    OR,         // ||
-
     PLUS,       // +
     MINU,       // -
     MULT,       // *
     DIV,        // /
     MOD,        // %
+
+    NOT,        // !
+    AND,        // &&
+    OR,         // ||
 
     LSS,        // <
     LEQ,        // <=
