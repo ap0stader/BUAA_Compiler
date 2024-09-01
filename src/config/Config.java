@@ -10,14 +10,14 @@ public class Config {
        1. 词法分析，生成TokenList
        2. 语法分析，生成AST
      */
-    public static int stages = 1;
+    public static int stages = 2;
 
     // 词法分析后，是否输出TokenStream及其输出的文件名
-    public static boolean dumpTokenList = true;
+    public static boolean dumpTokenList = false;
     public static String dumpTokenListFileName = outputFilename;
 
     // 语法分析后，是否输出AST
-    public static boolean dumpAST = false;
+    public static boolean dumpAST = true;
     public static String dumpASTFileName = outputFilename;
 
     // 通过传递的参数设置全局配置
