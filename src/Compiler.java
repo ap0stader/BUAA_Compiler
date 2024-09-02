@@ -1,6 +1,8 @@
 import config.Config;
 import frontend.lexer.TokenStream;
 import frontend.lexer.Lexer;
+import frontend.parser.CompUnit;
+import util.dump.DumpAST;
 import util.dump.DumpTokenList;
 
 import java.io.FileReader;
@@ -24,6 +26,13 @@ public class Compiler {
             }
             tryContinue();
             // Stage2 语法分析
+            // 创建Parser -> 得到CompUnit -> [输出CompUnit] -> 尝试继续
+            CompUnit compUnit = CompUnit.parse(tokenStream);
+            if (Config.dumpAST) {
+                DumpAST.dump(compUnit);
+            }
+            tryContinue();
+            // Stage3 错误处理
             // TODO
         } catch (IOException e) {
             e.printStackTrace();
