@@ -3,30 +3,21 @@ package frontend.parser;
 import frontend.lexer.TokenStream;
 import frontend.type.ASTNode;
 import frontend.parser.declaration.Decl;
-import frontend.parser.declaration.FuncDef;
+import frontend.parser.declaration.function.FuncDef;
 import frontend.parser.declaration.MainFuncDef;
 import frontend.type.TokenType;
 
 import java.util.ArrayList;
 
-public record CompUnit(
-        ArrayList<Decl> decls,
-        ArrayList<FuncDef> funcDefs,
-        MainFuncDef mainFuncDef
-) implements ASTNode {
-    @Override
-    public ArrayList<Object> explore() {
-        ArrayList<Object> ret = new ArrayList<>();
-        ret.addAll(decls);
-        ret.addAll(funcDefs);
-        ret.add(mainFuncDef);
-        return ret;
-    }
+public class CompUnit implements ASTNode {
+    private final ArrayList<Decl> decls;
+    private final ArrayList<FuncDef> funcDefs;
+    private final MainFuncDef mainFuncDef;
 
     // CompUnit → {Decl} {FuncDef} MainFuncDef
-    public static CompUnit parse(TokenStream stream) {
-        ArrayList<Decl> decls = new ArrayList<>();
-        ArrayList<FuncDef> funcDefs = new ArrayList<>();
+    public CompUnit(TokenStream stream) {
+        decls = new ArrayList<>();
+        funcDefs = new ArrayList<>();
         // ConstDecl → 'const' BType ConstDef { ',' ConstDef } ';'
         //                ConstDef → $Ident$ { '[' ConstExp ']' } '=' ConstInitVal
         // VarDecl → BType VarDef { $','$ VarDef } $';'$
@@ -38,9 +29,29 @@ public record CompUnit(
         // FuncDef → FuncType $Ident$ '(' [FuncFParams] ')' Block
         // MainFuncDef → 'int' $'main'$ '(' ')' Block
         while (stream.getNext(1).type() != TokenType.MAINTK) {
-            funcDefs.add(FuncDef.parse(stream));
+            funcDefs.add(new FuncDef(stream));
         }
-        MainFuncDef mainFuncDef = MainFuncDef.parse();
-        return new CompUnit(decls, funcDefs, mainFuncDef);
+        mainFuncDef = new MainFuncDef(stream);
+    }
+
+    @Override
+    public ArrayList<Object> explore() {
+        ArrayList<Object> ret = new ArrayList<>();
+        ret.addAll(decls);
+        ret.addAll(funcDefs);
+        ret.add(mainFuncDef);
+        return ret;
+    }
+
+    public ArrayList<Decl> decls() {
+        return decls;
+    }
+
+    public ArrayList<FuncDef> funcDefs() {
+        return funcDefs;
+    }
+
+    public MainFuncDef mainFuncDef() {
+        return mainFuncDef;
     }
 }

@@ -59,10 +59,13 @@ public class TokenStream {
     // 如果当前指向的Token为types中指定的类型，则返回并且指针向后移动一位
     // 否则根据情况决定是否抛出错误
     public Token consumeOrThrow(String place, TokenType... types) {
+        if (types.length == 0 && Config.parserThrowable) {
+            throw new RuntimeException("When " + place + ", none of type allowed");
+        }
         Token ret = this.consumeOrNull(types);
         if (ret == null) {
             if (Config.parserThrowable) {
-                throw new RuntimeException("When " + place + ", Unexpected token: " + getNow()
+                throw new RuntimeException("When " + place + ", unexpected token: " + getNow()
                         + ". Expected: " + Arrays.toString(types));
             } else {
                 return null;

@@ -26,8 +26,8 @@ public class Compiler {
             }
             tryContinue();
             // Stage2 语法分析
-            // 创建Parser -> 得到CompUnit -> [输出CompUnit] -> 尝试继续
-            CompUnit compUnit = CompUnit.parse(tokenStream);
+            // 创建CompUnit -> [输出CompUnit] -> 尝试继续
+            CompUnit compUnit = new CompUnit(tokenStream);
             if (Config.dumpAST) {
                 DumpAST.dump(compUnit);
             }
