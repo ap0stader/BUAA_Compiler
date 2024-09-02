@@ -27,10 +27,10 @@ public class TokenStream {
         return this.list.get(this.pos);
     }
 
-    // 获取下一个指向的Token
-    public Token getNext() {
-        if (this.hasNext()) {
-            return this.list.get(this.pos + 1);
+    // 获取后offset指向的Token
+    public Token getNext(int offset) {
+        if (this.hasNext() && offset >= 0) {
+            return this.list.get(this.pos + offset);
         } else {
             return null;
         }
