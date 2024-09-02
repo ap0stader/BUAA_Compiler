@@ -1,8 +1,10 @@
 package frontend.lexer;
 
+import config.Config;
 import frontend.type.TokenType;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class TokenStream {
     private final ArrayList<Token> list = new ArrayList<>();
@@ -43,8 +45,8 @@ public class TokenStream {
 
     // 如果当前指向的Token为types中指定的类型，则返回并且指针向后移动一位
     // 否则返回null
-    public Token consume(TokenType... types) {
-        Token nowToken = this.list.get(this.pos);
+    public Token consumeOrNull(TokenType... types) {
+        Token nowToken = this.getNow();
         for (TokenType type : types) {
             if (nowToken.type() == type) {
                 this.pos++;
@@ -52,6 +54,22 @@ public class TokenStream {
             }
         }
         return null;
+    }
+
+    // 如果当前指向的Token为types中指定的类型，则返回并且指针向后移动一位
+    // 否则根据情况决定是否抛出错误
+    public Token consumeOrThrow(String place, TokenType... types) {
+        Token ret = this.consumeOrNull(types);
+        if (ret == null) {
+            if (Config.parserThrowable) {
+                throw new RuntimeException("When " + place + ", Unexpected token: " + getNow()
+                        + ". Expected: " + Arrays.toString(types));
+            } else {
+                return null;
+            }
+        } else {
+            return ret;
+        }
     }
 
     // 获取stream的ArrayList副本

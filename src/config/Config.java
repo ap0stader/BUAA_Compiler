@@ -6,6 +6,12 @@ public class Config {
     // 最终输出文件名
     public static String outputFilename = "output.txt";
 
+    // 遇到未定义的异常情况，抛出运行时错误，在非特殊
+    // 词法分析，如果不允许抛出错误，默认处理方式为ungetc();或无操作
+    public static boolean lexerThrowable = true;
+    // 语法分析，如果不允许抛出错误，默认处理方式为return null;
+    public static boolean parserThrowable = true;
+
     /* 总共进行阶段数
        1. 词法分析，生成TokenList
        2. 语法分析，生成AST
@@ -14,7 +20,7 @@ public class Config {
 
     // 词法分析后，是否输出TokenStream及其输出的文件名
     public static boolean dumpTokenList = false;
-    public static String dumpTokenListFileName = outputFilename;
+    public static String dumpTokenListFileName = "dump_tokenlist.txt";
 
     // 语法分析后，是否输出AST
     public static boolean dumpAST = true;
@@ -24,18 +30,23 @@ public class Config {
     public static void setConfigByArgs(String[] args) {
         for (String arg : args) {
             switch (arg) {
+                // 抛出错误限制
+                case "--no-all-throw" -> {
+                    lexerThrowable = false;
+                    parserThrowable = false;
+                }
+                case "--no-lexer-throw" -> lexerThrowable = false;
+                case "--no-parser-throw" -> parserThrowable = false;
                 // Lexical Analysis: -L
-                case "-L":
+                case "-L" -> {
                     stages = 1;
                     dumpTokenList = true;
-                    break;
+                }
                 // Syntax Analysis: -S
-                case "-S":
+                case "-S" -> {
                     stages = 2;
                     dumpAST = true;
-                    break;
-                default:
-                    break;
+                }
             }
         }
     }

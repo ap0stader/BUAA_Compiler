@@ -2,9 +2,9 @@ package frontend.parser;
 
 import frontend.lexer.TokenStream;
 import frontend.type.ASTNode;
-import frontend.parser.ast.declaration.Decl;
-import frontend.parser.ast.declaration.FuncDef;
-import frontend.parser.ast.declaration.MainFuncDef;
+import frontend.parser.declaration.Decl;
+import frontend.parser.declaration.FuncDef;
+import frontend.parser.declaration.MainFuncDef;
 import frontend.type.TokenType;
 
 import java.util.ArrayList;
@@ -33,7 +33,7 @@ public record CompUnit(
         //        VarDef → Ident { $'['$ ConstExp ']' }
         // FuncDef → FuncType Ident $'('$ [FuncFParams] ')' Block
         while (stream.getNext(2).type() != TokenType.LPARENT) {
-            decls.add(Decl.parse());
+            decls.add(Decl.parse(stream));
         }
         // FuncDef → FuncType $Ident$ '(' [FuncFParams] ')' Block
         // MainFuncDef → 'int' $'main'$ '(' ')' Block

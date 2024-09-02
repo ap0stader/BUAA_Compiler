@@ -1,5 +1,6 @@
 package frontend.lexer;
 
+import config.Config;
 import frontend.type.TokenType;
 
 import java.io.IOException;
@@ -151,8 +152,11 @@ public class Lexer {
                 if (c == '&') {
                     this.stream.addToken(new Token(TokenType.AND, "&&", this.line));
                 } else {
-                    ungetc();
-                    // UNSTABLE 错误
+                    if (Config.lexerThrowable) {
+                        throw new RuntimeException("When Lexer.lexSymbolComment()->case '&', unexpected character: " + c);
+                    } else {
+                        ungetc();
+                    }
                 }
             }
             case '|' -> {
@@ -160,8 +164,11 @@ public class Lexer {
                 if (c == '|') {
                     this.stream.addToken(new Token(TokenType.OR, "||", this.line));
                 } else {
-                    ungetc();
-                    // UNSTABLE 错误
+                    if (Config.lexerThrowable) {
+                        throw new RuntimeException("When Lexer.lexSymbolComment()->case '|', unexpected character: " + c);
+                    } else {
+                        ungetc();
+                    }
                 }
             }
             case '<' -> {
@@ -199,7 +206,11 @@ public class Lexer {
             case ']' -> this.stream.addToken(new Token(TokenType.RBRACK, "]", this.line));
             case '{' -> this.stream.addToken(new Token(TokenType.LBRACE, "{", this.line));
             case '}' -> this.stream.addToken(new Token(TokenType.RBRACE, "}", this.line));
-            // UNSTABLE default -> 错误
+            default -> {
+                if (Config.lexerThrowable) {
+                    throw new RuntimeException("When Lexer.lexSymbolComment()->default, unexpected character: " + c);
+                }
+            }
         }
         fgetc();
     }
@@ -216,7 +227,7 @@ public class Lexer {
             }
         } else if (c == '*') {
             // 多行注释
-            while(c != EOF) {
+            while (c != EOF) {
                 // 多行注释可能跨行，注意维护行号
                 if (c == '\n') {
                     this.line++;
@@ -232,7 +243,11 @@ public class Lexer {
             }
             if (c != EOF) {
                 fgetc();
-            } // else UNSTABLE 错误
+            } else {
+                if (Config.lexerThrowable) {
+                    throw new RuntimeException("When Lexer.lexComment(), unexpected EOF");
+                }
+            }
         }
     }
 }
