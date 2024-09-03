@@ -24,7 +24,7 @@ public class ConstInitVal implements ASTNode {
     //              | '{' [ ConstInitVal { ',' ConstInitVal } ] '}'
     public ConstInitVal(TokenStream stream) {
         String place = "ConstInitVal()";
-        if (stream.getNow().type() == TokenType.LBRACE) {
+        if (stream.isNow(TokenType.LBRACE)) {
             // 该层为数组形式
             constExp = null;
             // '{'
@@ -32,11 +32,11 @@ public class ConstInitVal implements ASTNode {
             // [ ConstInitVal { ',' ConstInitVal } ]
             constInitVals = new ArrayList<>();
             commaTokens = new ArrayList<>();
-            if (stream.getNow().type() != TokenType.RBRACE) {
+            if (stream.isNow(TokenType.RBRACE)) {
                 // ConstInitVal
                 constInitVals.add(new ConstInitVal(stream));
                 // { ',' ConstInitVal }
-                while (stream.getNow().type() == TokenType.COMMA) {
+                while (stream.isNow(TokenType.COMMA)) {
                     commaTokens.add(stream.consume());
                     constInitVals.add(new ConstInitVal(stream));
                 }

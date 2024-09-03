@@ -31,12 +31,12 @@ public class VarDef implements ASTNode {
         lbrackTokens = new ArrayList<>();
         constExps = new ArrayList<>();
         rbrackTokens = new ArrayList<>();
-        while (stream.getNow().type() == TokenType.LBRACK) {
+        while (stream.isNow(TokenType.LBRACK)) {
             lbrackTokens.add(stream.consumeOrThrow(place, TokenType.LBRACK));
             constExps.add(new ConstExp(stream));
             rbrackTokens.add(stream.consumeOrThrow(place, TokenType.RBRACK));
         }
-        if (stream.getNow().type() == TokenType.ASSIGN) {
+        if (stream.isNow(TokenType.ASSIGN)) {
             // '='
             assignToken = stream.consumeOrThrow(place, TokenType.ASSIGN);
             // InitVal

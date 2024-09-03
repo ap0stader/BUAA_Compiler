@@ -13,9 +13,9 @@ public interface Decl extends ASTNode, BlockItem {
     static Decl parse(TokenStream stream) {
         // ConstDecl → $'const'$ 'int' ConstDef { ',' ConstDef } ';'
         // VarDecl → $'int'$ VarDef { ',' VarDef } ';'
-        if (stream.getNow().type() == TokenType.CONSTTK) {
+        if (stream.isNow(TokenType.CONSTTK)) {
             return new ConstDecl(stream);
-        } else if (stream.getNow().type() == TokenType.INTTK) {
+        } else if (stream.isNow(TokenType.INTTK)) {
             return new VarDecl(stream);
         } else {
             if (Config.parserThrowable) {

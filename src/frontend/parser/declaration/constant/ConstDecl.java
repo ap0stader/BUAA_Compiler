@@ -26,7 +26,7 @@ public class ConstDecl implements Decl {
         constDefs.add(new ConstDef(stream));
         // { ',' ConstDef }
         commaTokens = new ArrayList<>();
-        while (stream.getNow().type() == TokenType.COMMA) {
+        while (stream.isNow(TokenType.COMMA)) {
             commaTokens.add(stream.consume());
             constDefs.add(new ConstDef(stream));
         }

@@ -18,7 +18,7 @@ public class FuncFParams implements ASTNode {
         funcFParams.add(new FuncFParam(stream));
         // { ',' FuncFParam }
         commaTokens = new ArrayList<>();
-        while (stream.getNow().type() == TokenType.COMMA) {
+        while (stream.isNow(TokenType.COMMA)) {
             commaTokens.add(stream.consume());
             funcFParams.add(new FuncFParam(stream));
         }

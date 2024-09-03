@@ -28,7 +28,7 @@ public class FuncFParam implements ASTNode {
         // Indet
         ident = stream.consumeOrThrow(place, TokenType.IDENFR);
         // ['[' ']' { '[' ConstExp ']' }]
-        if (stream.getNow().type() == TokenType.LBRACK) {
+        if (stream.isNow(TokenType.LBRACK)) {
             lbrackTokens = new ArrayList<>();
             constExps = new ArrayList<>();
             rbrackTokens = new ArrayList<>();
@@ -37,7 +37,7 @@ public class FuncFParam implements ASTNode {
             // ']'
             lbrackTokens.add(stream.consumeOrThrow(place, TokenType.RBRACK));
             // { '[' ConstExp ']' }
-            while (stream.getNow().type() == TokenType.LBRACK) {
+            while (stream.isNow(TokenType.LBRACK)) {
                 lbrackTokens.add(stream.consumeOrThrow(place, TokenType.LBRACK));
                 constExps.add(new ConstExp(stream));
                 rbrackTokens.add(stream.consumeOrThrow(place, TokenType.RBRACK));

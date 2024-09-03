@@ -23,7 +23,7 @@ public class VarDecl implements Decl {
         varDefs.add(new VarDef(stream));
         // { ',' VarDef }
         commaTokens = new ArrayList<>();
-        while (stream.getNow().type() == TokenType.COMMA) {
+        while (stream.isNow(TokenType.COMMA)) {
             commaTokens.add(stream.consume());
             varDefs.add(new VarDef(stream));
         }

@@ -24,7 +24,7 @@ public class InitVal implements ASTNode {
     //         | '{' [ InitVal { ',' InitVal } ] '}'
     public InitVal(TokenStream stream) {
         String place = "InitVal()";
-        if (stream.getNow().type() == TokenType.LBRACE) {
+        if (stream.isNow(TokenType.LBRACE)) {
             // 该层为数组形式
             exp = null;
             // '{'
@@ -32,11 +32,11 @@ public class InitVal implements ASTNode {
             // [ InitVal { ',' InitVal } ]
             initVals = new ArrayList<>();
             commaTokens = new ArrayList<>();
-            if (stream.getNow().type() != TokenType.RBRACE) {
+            if (stream.isNow(TokenType.RBRACE)) {
                 // InitVal
                 initVals.add(new InitVal(stream));
                 // { ',' InitVal }
-                while (stream.getNow().type() == TokenType.COMMA) {
+                while (stream.isNow(TokenType.COMMA)) {
                     commaTokens.add(stream.consume());
                     initVals.add(new InitVal(stream));
                 }

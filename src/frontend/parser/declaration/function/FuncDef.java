@@ -33,7 +33,7 @@ public class FuncDef implements ASTNode {
         // [FuncFParams]
         // FuncFParams → FuncFParam { ',' FuncFParam }
         //  FuncFParam → 'int' Ident ['[' ']' { '[' ConstExp ']' }]
-        if (stream.getNow().type() == TokenType.INTTK) {
+        if (stream.isNow(TokenType.INTTK)) {
             funcFParams = new FuncFParams(stream);
         } else {
             funcFParams = null;

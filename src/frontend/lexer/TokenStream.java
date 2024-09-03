@@ -5,21 +5,29 @@ import frontend.type.TokenType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 
 public class TokenStream {
     private final ArrayList<Token> list = new ArrayList<>();
     private int pos = 0;
+    private final HashMap<String ,Integer> checkpoints = new HashMap<>();
 
     // 添加Token到TokenStream中，仅同package的Lexer可访问
     void addToken(Token token) {
         this.list.add(token);
     }
 
-    // 重新从头开始读取
-    public void restart() {
-        this.pos = 0;
+    // 添加检查点
+    public void checkpoint(String name) {
+        this.checkpoints.put(name, pos);
     }
 
+    // 恢复检查点
+    public void restore(String checkpoint) {
+        this.pos = checkpoints.get(checkpoint);
+    }
+
+    // 是否还有Token
     public boolean hasNext() {
         return this.list.get(this.pos).type() != TokenType.EOF;
     }
@@ -36,6 +44,17 @@ public class TokenStream {
         } else {
             return null;
         }
+    }
+
+    // 检查当前的Token是否是指定的类型
+    public boolean isNow(TokenType... types) {
+        Token nowToken = this.getNow();
+        for (TokenType type : types) {
+            if (nowToken.type() == type) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // 获取当前指向的Token，并指针向后移动一位

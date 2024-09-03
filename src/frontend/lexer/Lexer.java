@@ -69,7 +69,7 @@ public class Lexer {
             }
         }
         // 加入类型为EOF的Token，表示TokenStream结束
-        stream.addToken(new Token(TokenType.EOF, "", this.line));
+        this.stream.addToken(new Token(TokenType.EOF, "", this.line));
         this.finish = true;
         return this.stream;
     }
