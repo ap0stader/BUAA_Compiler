@@ -9,6 +9,11 @@ import frontend.type.TokenType;
 import java.util.ArrayList;
 
 public class VarDef implements ASTNode {
+    public enum Type {
+        NO_INIT,
+        WITH_INIT,
+    }
+
     private final Token ident;
     private final ArrayList<Token> lbrackTokens;
     private final ArrayList<ConstExp> constExps;
@@ -51,11 +56,15 @@ public class VarDef implements ASTNode {
             ret.add(constExps.get(i));
             ret.add(rbrackTokens.get(i));
         }
-        if (eqlToken != null) {
+        if (getType() == Type.WITH_INIT) {
             ret.add(eqlToken);
             ret.add(initVal);
         }
         return ret;
+    }
+
+    public Type getType() {
+        return eqlToken == null ? Type.NO_INIT : Type.WITH_INIT;
     }
 
     public Token ident() {
@@ -68,9 +77,5 @@ public class VarDef implements ASTNode {
 
     public InitVal initVal() {
         return initVal;
-    }
-
-    public Token eqlToken() {
-        return eqlToken;
     }
 }
