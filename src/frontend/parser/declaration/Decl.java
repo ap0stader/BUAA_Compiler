@@ -4,10 +4,11 @@ import config.Config;
 import frontend.lexer.TokenStream;
 import frontend.parser.declaration.constant.ConstDecl;
 import frontend.parser.declaration.variable.VarDecl;
+import frontend.parser.statement.BlockItem;
 import frontend.type.ASTNode;
 import frontend.type.TokenType;
 
-public interface Decl extends ASTNode {
+public interface Decl extends ASTNode, BlockItem {
     // Decl → ConstDecl | VarDecl
     static Decl parse(TokenStream stream) {
         // ConstDecl → $'const'$ 'int' ConstDef { ',' ConstDef } ';'
