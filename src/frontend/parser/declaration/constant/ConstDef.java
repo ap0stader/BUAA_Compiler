@@ -13,7 +13,7 @@ public class ConstDef implements ASTNode {
     private final ArrayList<Token> lbrackTokens;
     private final ArrayList<ConstExp> constExps;
     private final ArrayList<Token> rbrackTokens;
-    private final Token eqlToken;
+    private final Token assignToken;
     private final ConstInitVal constInitVal;
 
     // ConstDef → Ident { '[' ConstExp ']' } '=' ConstInitVal
@@ -31,7 +31,7 @@ public class ConstDef implements ASTNode {
             rbrackTokens.add(stream.consumeOrThrow(place, TokenType.RBRACK));
         }
         // '='
-        eqlToken = stream.consumeOrThrow(place, TokenType.EQL);
+        assignToken = stream.consumeOrThrow(place, TokenType.ASSIGN);
         // ConstInitVal
         constInitVal = new ConstInitVal(stream);
     }
@@ -45,7 +45,7 @@ public class ConstDef implements ASTNode {
             ret.add(constExps.get(i));
             ret.add(rbrackTokens.get(i));
         }
-        ret.add(eqlToken);
+        ret.add(assignToken);
         ret.add(constInitVal);
         return ret;
     }

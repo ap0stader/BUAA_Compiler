@@ -18,7 +18,7 @@ public class VarDef implements ASTNode {
     private final ArrayList<Token> lbrackTokens;
     private final ArrayList<ConstExp> constExps;
     private final ArrayList<Token> rbrackTokens;
-    private final Token eqlToken;
+    private final Token assignToken;
     private final InitVal initVal;
 
     // VarDef → Ident { '[' ConstExp ']' }
@@ -36,13 +36,13 @@ public class VarDef implements ASTNode {
             constExps.add(new ConstExp(stream));
             rbrackTokens.add(stream.consumeOrThrow(place, TokenType.RBRACK));
         }
-        if (stream.getNow().type() == TokenType.EQL) {
+        if (stream.getNow().type() == TokenType.ASSIGN) {
             // '='
-            eqlToken = stream.consumeOrThrow(place, TokenType.EQL);
+            assignToken = stream.consumeOrThrow(place, TokenType.ASSIGN);
             // InitVal
             initVal = new InitVal(stream);
         } else {
-            eqlToken = null;
+            assignToken = null;
             initVal = null;
         }
     }
@@ -57,14 +57,14 @@ public class VarDef implements ASTNode {
             ret.add(rbrackTokens.get(i));
         }
         if (this.getType() == Type.WITH_INIT) {
-            ret.add(eqlToken);
+            ret.add(assignToken);
             ret.add(initVal);
         }
         return ret;
     }
 
     public Type getType() {
-        return eqlToken == null ? Type.NO_INIT : Type.WITH_INIT;
+        return assignToken == null ? Type.NO_INIT : Type.WITH_INIT;
     }
 
     public Token ident() {
