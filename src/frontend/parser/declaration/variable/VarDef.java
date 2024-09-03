@@ -56,7 +56,7 @@ public class VarDef implements ASTNode {
             ret.add(constExps.get(i));
             ret.add(rbrackTokens.get(i));
         }
-        if (getType() == Type.WITH_INIT) {
+        if (this.getType() == Type.WITH_INIT) {
             ret.add(eqlToken);
             ret.add(initVal);
         }
