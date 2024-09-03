@@ -43,7 +43,7 @@ public class UnaryExp extends ASTNodeWithOption<UnaryExp.UnaryExpOption> {
         private final PrimaryExp primaryExp;
 
         public UnaryExp_PrimaryExp(TokenStream stream) {
-            primaryExp = new PrimaryExp(stream);
+            primaryExp = PrimaryExp.parse(stream);
         }
 
         @Override
