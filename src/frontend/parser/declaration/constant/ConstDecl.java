@@ -3,11 +3,12 @@ package frontend.parser.declaration.constant;
 import frontend.lexer.Token;
 import frontend.lexer.TokenStream;
 import frontend.parser.declaration.Decl;
+import frontend.type.ASTNode;
 import frontend.type.TokenType;
 
 import java.util.ArrayList;
 
-public class ConstDecl implements Decl {
+public class ConstDecl implements ASTNode, Decl {
     private final Token constToken;
     private final Token typeToken;
     private final ArrayList<ConstDef> constDefs;

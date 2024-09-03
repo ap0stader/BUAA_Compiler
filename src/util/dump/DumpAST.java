@@ -4,6 +4,7 @@ import config.Config;
 import frontend.lexer.Token;
 import frontend.parser.CompUnit;
 import frontend.type.ASTNode;
+import frontend.type.ASTNodeWithOption;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -27,6 +28,9 @@ public class DumpAST {
             if (node instanceof ASTNode branchNode) {
                 dump(branchNode.explore());
                 out.write("<" + branchNode.getClass().getSimpleName() + ">" + "\n");
+            } else if (node instanceof ASTNodeWithOption<?> branchNodeWithOption) {
+                dump(branchNodeWithOption.extract().explore());
+                out.write("<" + branchNodeWithOption.getClass().getSimpleName() + ">" + "\n");
             } else if (node instanceof Token leafNode) {
                 out.write(leafNode.type().toString() + " " + leafNode.strVal() + "\n");
             }

@@ -3,11 +3,12 @@ package frontend.parser.declaration.variable;
 import frontend.lexer.Token;
 import frontend.lexer.TokenStream;
 import frontend.parser.declaration.Decl;
+import frontend.type.ASTNode;
 import frontend.type.TokenType;
 
 import java.util.ArrayList;
 
-public class VarDecl implements Decl {
+public class VarDecl implements ASTNode, Decl {
     private final Token typeToken;
     private final ArrayList<VarDef> varDefs;
     private final ArrayList<Token> commaTokens;
