@@ -10,8 +10,8 @@ import java.util.ArrayList;
 
 public class ConstInitVal implements ASTNode {
     public enum Type {
-        SINGLE,
-        MULTIPLE,
+        BASIC,
+        ARRAY,
     }
 
     private final ConstExp constExp;
@@ -57,7 +57,7 @@ public class ConstInitVal implements ASTNode {
     @Override
     public ArrayList<Object> explore() {
         ArrayList<Object> ret = new ArrayList<>();
-        if (this.getType() == Type.SINGLE) {
+        if (this.getType() == Type.BASIC) {
             ret.add(constExp);
         } else {
             ret.add(lbraceToken);
@@ -74,7 +74,7 @@ public class ConstInitVal implements ASTNode {
     }
 
     public Type getType() {
-        return constExp == null ? Type.MULTIPLE : Type.SINGLE;
+        return constExp != null ? Type.BASIC : Type.ARRAY;
     }
 
     public ConstExp constExp() {

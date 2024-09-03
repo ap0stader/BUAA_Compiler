@@ -18,11 +18,11 @@ public class MulExp implements ASTNode {
         unaryExps = new ArrayList<>();
         symbols = new ArrayList<>();
         // UnaryExp
-        unaryExps.add(new UnaryExp(stream));
+        unaryExps.add(UnaryExp.parse(stream));
         // { ('*' | '/' | '%') UnaryExp }
         while (stream.isNow(TokenType.MULT, TokenType.DIV, TokenType.MOD)) {
             symbols.add(stream.consume());
-            unaryExps.add(new UnaryExp(stream));
+            unaryExps.add(UnaryExp.parse(stream));
         }
     }
 

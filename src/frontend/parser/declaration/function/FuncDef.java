@@ -9,11 +9,6 @@ import frontend.type.TokenType;
 import java.util.ArrayList;
 
 public class FuncDef implements ASTNode {
-    public enum Type {
-        NO_FPRAMS,
-        WITH_FPRAMS,
-    }
-
     private final FuncType funcType;
     private final Token ident;
     private final Token lparent;
@@ -33,11 +28,7 @@ public class FuncDef implements ASTNode {
         // [FuncFParams]
         // FuncFParams → FuncFParam { ',' FuncFParam }
         //  FuncFParam → 'int' Ident ['[' ']' { '[' ConstExp ']' }]
-        if (stream.isNow(TokenType.INTTK)) {
-            funcFParams = new FuncFParams(stream);
-        } else {
-            funcFParams = null;
-        }
+        funcFParams = stream.isNow(TokenType.INTTK) ? new FuncFParams(stream) : null;
         // ')'
         rparent = stream.consumeOrThrow(place, TokenType.RPARENT);
         // Block
@@ -50,16 +41,12 @@ public class FuncDef implements ASTNode {
         ret.add(funcType);
         ret.add(ident);
         ret.add(lparent);
-        if (this.getType() == Type.WITH_FPRAMS) {
+        if (funcFParams != null) {
             ret.add(funcFParams);
         }
         ret.add(rparent);
         ret.add(block);
         return ret;
-    }
-
-    public Type getType() {
-        return funcFParams == null ? Type.NO_FPRAMS : Type.WITH_FPRAMS;
     }
 
     public FuncType funcType() {

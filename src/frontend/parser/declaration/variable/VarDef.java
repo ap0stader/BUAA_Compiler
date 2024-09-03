@@ -9,11 +9,6 @@ import frontend.type.TokenType;
 import java.util.ArrayList;
 
 public class VarDef implements ASTNode {
-    public enum Type {
-        NO_INIT,
-        WITH_INIT,
-    }
-
     private final Token ident;
     private final ArrayList<Token> lbrackTokens;
     private final ArrayList<ConstExp> constExps;
@@ -21,8 +16,7 @@ public class VarDef implements ASTNode {
     private final Token assignToken;
     private final InitVal initVal;
 
-    // VarDef → Ident { '[' ConstExp ']' }
-    //        | Ident { '[' ConstExp ']' } '=' InitVal
+    // VarDef → Ident { '[' ConstExp ']' } [ '=' InitVal ]
     public VarDef(TokenStream stream) {
         String place = "VarDef()";
         // Ident
@@ -36,15 +30,8 @@ public class VarDef implements ASTNode {
             constExps.add(new ConstExp(stream));
             rbrackTokens.add(stream.consumeOrThrow(place, TokenType.RBRACK));
         }
-        if (stream.isNow(TokenType.ASSIGN)) {
-            // '='
-            assignToken = stream.consumeOrThrow(place, TokenType.ASSIGN);
-            // InitVal
-            initVal = new InitVal(stream);
-        } else {
-            assignToken = null;
-            initVal = null;
-        }
+        assignToken = stream.consumeOrNull(TokenType.ASSIGN);
+        initVal = assignToken != null ? new InitVal(stream) : null;
     }
 
     @Override
@@ -56,15 +43,11 @@ public class VarDef implements ASTNode {
             ret.add(constExps.get(i));
             ret.add(rbrackTokens.get(i));
         }
-        if (this.getType() == Type.WITH_INIT) {
+        if (initVal != null) {
             ret.add(assignToken);
             ret.add(initVal);
         }
         return ret;
-    }
-
-    public Type getType() {
-        return assignToken == null ? Type.NO_INIT : Type.WITH_INIT;
     }
 
     public Token ident() {

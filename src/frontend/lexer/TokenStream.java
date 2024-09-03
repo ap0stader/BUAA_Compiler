@@ -10,7 +10,7 @@ import java.util.HashMap;
 public class TokenStream {
     private final ArrayList<Token> list = new ArrayList<>();
     private int pos = 0;
-    private final HashMap<String ,Integer> checkpoints = new HashMap<>();
+    private final HashMap<String, Integer> checkpoints = new HashMap<>();
 
     // 添加Token到TokenStream中，仅同package的Lexer可访问
     void addToken(Token token) {
@@ -39,18 +39,32 @@ public class TokenStream {
 
     // 获取后offset指向的Token
     public Token getNext(int offset) {
-        if (this.hasNext() && offset >= 0) {
+        if (offset < 0) {
+            throw new UnsupportedOperationException("When getNext(), offset < 0. See traceback for more information.");
+        }
+        if (this.hasNext()) {
             return this.list.get(this.pos + offset);
         } else {
             return null;
         }
     }
 
-    // 检查当前的Token是否是指定的类型
+    // 检查当前指向的Token是否是指定的类型
     public boolean isNow(TokenType... types) {
         Token nowToken = this.getNow();
         for (TokenType type : types) {
             if (nowToken.type() == type) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // 检查后offset指向的Token是否是指定的类型
+    public boolean isNext(int offset, TokenType... types) {
+        Token aheadToken = this.getNext(offset);
+        for (TokenType type : types) {
+            if (aheadToken.type() == type) {
                 return true;
             }
         }

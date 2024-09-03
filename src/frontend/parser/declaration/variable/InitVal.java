@@ -10,8 +10,8 @@ import java.util.ArrayList;
 
 public class InitVal implements ASTNode {
     public enum Type {
-        SINGLE,
-        MULTIPLE,
+        BASIC,
+        ARRAY,
     }
 
     private final Exp exp;
@@ -57,7 +57,7 @@ public class InitVal implements ASTNode {
     @Override
     public ArrayList<Object> explore() {
         ArrayList<Object> ret = new ArrayList<>();
-        if (this.getType() == Type.SINGLE) {
+        if (this.getType() == Type.BASIC) {
             ret.add(exp);
         } else {
             ret.add(lbraceToken);
@@ -74,7 +74,7 @@ public class InitVal implements ASTNode {
     }
 
     public Type getType() {
-        return exp == null ? Type.MULTIPLE : Type.SINGLE;
+        return exp != null ? Type.BASIC : Type.ARRAY;
     }
 
     public Exp exp() {

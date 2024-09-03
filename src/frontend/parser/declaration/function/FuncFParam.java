@@ -10,7 +10,7 @@ import java.util.ArrayList;
 
 public class FuncFParam implements ASTNode {
     public enum Type {
-        SINGLE,
+        BASIC,
         ARRAY,
     }
 
@@ -67,7 +67,7 @@ public class FuncFParam implements ASTNode {
     }
 
     public Type getType() {
-        return lbrackTokens == null ? Type.SINGLE : Type.ARRAY;
+        return lbrackTokens == null ? Type.BASIC : Type.ARRAY;
     }
 
     public Token ident() {

@@ -8,6 +8,6 @@ public abstract class ASTNodeWithOption<T extends ASTNodeOption> {
     }
 
     public T extract() {
-        return option;
+        return this.option;
     }
 }
