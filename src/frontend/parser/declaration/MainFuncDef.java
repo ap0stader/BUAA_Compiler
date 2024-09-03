@@ -11,8 +11,8 @@ import java.util.ArrayList;
 public class MainFuncDef implements ASTNode {
     private final Token typeToken;
     private final Token mainToken;
-    private final Token lparent;
-    private final Token rparent;
+    private final Token lparentToken;
+    private final Token rparentToken;
     private final Block block;
 
     // MainFuncDef → 'int' 'main' '(' ')' Block
@@ -23,9 +23,9 @@ public class MainFuncDef implements ASTNode {
         // 'main'
         mainToken = stream.consumeOrThrow(place, TokenType.MAINTK);
         // '('
-        lparent = stream.consumeOrThrow(place, TokenType.LPARENT);
+        lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
         // ')'
-        rparent = stream.consumeOrThrow(place, TokenType.RPARENT);
+        rparentToken = stream.consumeOrThrow(place, TokenType.RPARENT);
         // Block
         block = new Block(stream);
     }
@@ -35,8 +35,8 @@ public class MainFuncDef implements ASTNode {
         ArrayList<Object> ret = new ArrayList<>();
         ret.add(typeToken);
         ret.add(mainToken);
-        ret.add(lparent);
-        ret.add(rparent);
+        ret.add(lparentToken);
+        ret.add(rparentToken);
         ret.add(block);
         return ret;
     }

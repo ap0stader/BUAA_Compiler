@@ -11,9 +11,9 @@ import java.util.ArrayList;
 public class FuncDef implements ASTNode {
     private final FuncType funcType;
     private final Token ident;
-    private final Token lparent;
+    private final Token lparentToken;
     private final FuncFParams funcFParams;
-    private final Token rparent;
+    private final Token rparentToken;
     private final Block block;
 
     // FuncDef → FuncType Ident '(' [FuncFParams] ')' Block
@@ -24,13 +24,13 @@ public class FuncDef implements ASTNode {
         // Ident
         ident = stream.consumeOrThrow(place, TokenType.IDENFR);
         // '('
-        lparent = stream.consumeOrThrow(place, TokenType.LPARENT);
+        lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
         // [FuncFParams]
         // FuncFParams → FuncFParam { ',' FuncFParam }
         //  FuncFParam → 'int' Ident ['[' ']' { '[' ConstExp ']' }]
         funcFParams = stream.isNow(TokenType.INTTK) ? new FuncFParams(stream) : null;
         // ')'
-        rparent = stream.consumeOrThrow(place, TokenType.RPARENT);
+        rparentToken = stream.consumeOrThrow(place, TokenType.RPARENT);
         // Block
         block = new Block(stream);
     }
@@ -40,11 +40,11 @@ public class FuncDef implements ASTNode {
         ArrayList<Object> ret = new ArrayList<>();
         ret.add(funcType);
         ret.add(ident);
-        ret.add(lparent);
+        ret.add(lparentToken);
         if (funcFParams != null) {
             ret.add(funcFParams);
         }
-        ret.add(rparent);
+        ret.add(rparentToken);
         ret.add(block);
         return ret;
     }
