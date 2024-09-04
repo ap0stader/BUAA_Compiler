@@ -140,7 +140,6 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         private final Block block;
 
         public Stmt_Block(TokenStream stream) {
-            String place = "Stmt_Block()";
             block = new Block(stream);
         }
 
@@ -227,11 +226,11 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             String place = "Stmt_For()";
             forToken = stream.consumeOrThrow(place, TokenType.FORTK);
             lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
-            initForStmt = new ForStmt(stream);
+            initForStmt = stream.getNow().type() != TokenType.SEMICN ? new ForStmt(stream) : null;
             fisrtSemicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
-            cond = new Cond(stream);
+            cond = stream.getNow().type() != TokenType.SEMICN ? new Cond(stream) : null;
             secondSemicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
-            afterForStmt = new ForStmt(stream);
+            afterForStmt = stream.getNow().type() != TokenType.RPARENT ? new ForStmt(stream) : null;
             rparentToken = stream.consumeOrThrow(place, TokenType.RPARENT);
             stmt = Stmt.parse(stream);
         }
@@ -241,11 +240,17 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             ArrayList<Object> ret = new ArrayList<>();
             ret.add(forToken);
             ret.add(lparentToken);
-            ret.add(initForStmt);
+            if (initForStmt != null) {
+                ret.add(initForStmt);
+            }
             ret.add(fisrtSemicnToken);
-            ret.add(cond);
+            if (cond != null) {
+                ret.add(cond);
+            }
             ret.add(secondSemicnToken);
-            ret.add(afterForStmt);
+            if (afterForStmt != null) {
+                ret.add(afterForStmt);
+            }
             ret.add(rparentToken);
             ret.add(stmt);
             return ret;
@@ -317,7 +322,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         public Stmt_Return(TokenStream stream) {
             String place = "Stmt_Return()";
             returnToken = stream.consumeOrThrow(place, TokenType.RETURNTK);
-            exp = new Exp(stream);
+            exp = stream.getNow().type() != TokenType.SEMICN ? new Exp(stream) : null;
             semicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
         }
 

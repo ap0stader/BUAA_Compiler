@@ -69,7 +69,7 @@ public class UnaryExp extends ASTNodeWithOption<UnaryExp.UnaryExpOption> {
             String place = "UnaryExp_IndetFuncCall()";
             ident = stream.consumeOrThrow(place, TokenType.IDENFR);
             lbrackToken = stream.consumeOrThrow(place, TokenType.LPARENT);
-            funcRParams = new FuncRParams(stream);
+            funcRParams = stream.getNow().type() != TokenType.RPARENT ? new FuncRParams(stream) : null;
             rbrackToken = stream.consumeOrThrow(place, TokenType.RPARENT);
         }
 
