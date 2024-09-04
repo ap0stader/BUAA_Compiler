@@ -10,7 +10,7 @@ import java.util.ArrayList;
 public class Number implements ASTNode {
     private final Token intConst;
 
-    public Number(TokenStream stream) {
+    Number(TokenStream stream) {
         String place = "Number()";
         intConst = stream.consumeOrThrow(place, TokenType.INTCON);
     }

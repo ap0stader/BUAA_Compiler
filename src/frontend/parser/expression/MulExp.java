@@ -14,7 +14,7 @@ public class MulExp implements ASTNode {
 
     // 左递归文法：MulExp → UnaryExp | MulExp ('*' | '/' | '%') UnaryExp
     // EBNF范式： MulExp → UnaryExp { ('*' | '/' | '%') UnaryExp }
-    public MulExp(TokenStream stream) {
+    MulExp(TokenStream stream) {
         unaryExps = new ArrayList<>();
         symbols = new ArrayList<>();
         // UnaryExp

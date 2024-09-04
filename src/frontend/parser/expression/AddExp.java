@@ -14,7 +14,7 @@ public class AddExp implements ASTNode {
 
     // 左递归文法：AddExp → MulExp | AddExp ('+' | '−') MulExp
     // EBNF范式： AddExp → MulExp { ('+' | '−') MulExp }
-    public AddExp(TokenStream stream) {
+    AddExp(TokenStream stream) {
         mulExps = new ArrayList<>();
         symbols = new ArrayList<>();
         // MulExp

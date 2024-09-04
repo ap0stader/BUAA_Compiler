@@ -14,7 +14,7 @@ public class LAndExp implements ASTNode {
 
     // 左递归文法：LAndExp → EqExp | LAndExp '&&' EqExp
     // EBNF范式： LAndExp → EqExp { '&&' EqExp }
-    public LAndExp(TokenStream stream) {
+    LAndExp(TokenStream stream) {
         eqExps = new ArrayList<>();
         symbols = new ArrayList<>();
         // LAndExp

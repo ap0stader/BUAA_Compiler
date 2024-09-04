@@ -21,7 +21,7 @@ public class FuncFParam implements ASTNode {
     private final ArrayList<Token> rbrackTokens;
 
     // FuncFParam → 'int' Ident ['[' ']' { '[' ConstExp ']' }]
-    public FuncFParam(TokenStream stream) {
+    FuncFParam(TokenStream stream) {
         String place = "FuncFParam()";
         // 'int'
         typeToken = stream.consumeOrThrow(place, TokenType.INTTK);

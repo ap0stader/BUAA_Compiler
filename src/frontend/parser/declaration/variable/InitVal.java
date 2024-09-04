@@ -22,7 +22,7 @@ public class InitVal implements ASTNode {
 
     // InitVal → Exp
     //         | '{' [ InitVal { ',' InitVal } ] '}'
-    public InitVal(TokenStream stream) {
+    InitVal(TokenStream stream) {
         String place = "InitVal()";
         if (stream.isNow(TokenType.LBRACE)) {
             // 该层为数组形式

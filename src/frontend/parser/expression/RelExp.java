@@ -14,7 +14,7 @@ public class RelExp implements ASTNode {
 
     // 左递归文法：RelExp → AddExp | RelExp ('<' | '>' | '<=' | '>=') AddExp
     // EBNF范式： RelExp → AddExp { ('<' | '>' | '<=' | '>=') AddExp }
-    public RelExp(TokenStream stream) {
+    RelExp(TokenStream stream) {
         addExps = new ArrayList<>();
         symbols = new ArrayList<>();
         // AddExp

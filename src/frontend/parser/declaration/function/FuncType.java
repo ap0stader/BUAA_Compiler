@@ -10,7 +10,7 @@ import java.util.ArrayList;
 public class FuncType implements ASTNode {
     private final Token typeToken;
 
-    public FuncType(TokenStream stream) {
+    FuncType(TokenStream stream) {
         String place = "FuncType()";
         typeToken = stream.consumeOrThrow(place, TokenType.VOIDTK, TokenType.INTTK);
     }

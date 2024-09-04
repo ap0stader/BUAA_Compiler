@@ -15,7 +15,7 @@ public class ForStmt implements ASTNode {
     private final Exp exp;
 
     // ForStmt → LVal '=' Exp
-    public ForStmt(TokenStream stream) {
+    ForStmt(TokenStream stream) {
         String place = "ForStmt()";
         // LVal
         lVal = new LVal(stream);

@@ -14,7 +14,7 @@ public class LOrExp implements ASTNode {
 
     // 左递归文法：LOrExp → LAndExp | LOrExp '||' LAndExp
     // EBNF范式： LOrExp → LAndExp { '||' LAndExp }
-    public LOrExp(TokenStream stream) {
+    LOrExp(TokenStream stream) {
         lAndExps = new ArrayList<>();
         symbols = new ArrayList<>();
         // LAndExp

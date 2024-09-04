@@ -17,7 +17,7 @@ public class ConstDef implements ASTNode {
     private final ConstInitVal constInitVal;
 
     // ConstDef → Ident { '[' ConstExp ']' } '=' ConstInitVal
-    public ConstDef(TokenStream stream) {
+    ConstDef(TokenStream stream) {
         String place = "ConstDef()";
         // Ident
         ident = stream.consumeOrThrow(place, TokenType.IDENFR);

@@ -22,7 +22,7 @@ public class ConstInitVal implements ASTNode {
 
     // ConstInitVal → ConstExp
     //              | '{' [ ConstInitVal { ',' ConstInitVal } ] '}'
-    public ConstInitVal(TokenStream stream) {
+    ConstInitVal(TokenStream stream) {
         String place = "ConstInitVal()";
         if (stream.isNow(TokenType.LBRACE)) {
             // 该层为数组形式

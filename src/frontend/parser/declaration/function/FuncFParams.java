@@ -12,7 +12,7 @@ public class FuncFParams implements ASTNode {
     private final ArrayList<Token> commaTokens;
 
     // FuncFParams → FuncFParam { ',' FuncFParam }
-    public FuncFParams(TokenStream stream) {
+    FuncFParams(TokenStream stream) {
         // FuncFParam
         funcFParams = new ArrayList<>();
         funcFParams.add(new FuncFParam(stream));

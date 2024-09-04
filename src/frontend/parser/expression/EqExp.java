@@ -14,7 +14,7 @@ public class EqExp implements ASTNode {
 
     // 左递归文法：EqExp → RelExp | EqExp ('==' | '!=') RelExp
     // EBNF范式： EqExp → RelExp { ('==' | '!=') RelExp }
-    public EqExp(TokenStream stream) {
+    EqExp(TokenStream stream) {
         relExps = new ArrayList<>();
         symbols = new ArrayList<>();
         // RelExp

@@ -17,7 +17,7 @@ public class VarDef implements ASTNode {
     private final InitVal initVal;
 
     // VarDef → Ident { '[' ConstExp ']' } [ '=' InitVal ]
-    public VarDef(TokenStream stream) {
+    VarDef(TokenStream stream) {
         String place = "VarDef()";
         // Ident
         ident = stream.consumeOrThrow(place, TokenType.IDENFR);

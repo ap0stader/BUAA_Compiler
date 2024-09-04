@@ -30,7 +30,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             | 'return' [Exp] ';'
             | LVal '=' 'getint' '(' ')' ';'
             | 'printf' '(' FormatString { ',' Exp } ')' ';' */
-    public static Stmt parse(TokenStream stream) {
+    static Stmt parse(TokenStream stream) {
         return switch (stream.getNow().type()) {
             case SEMICN -> new Stmt(new Stmt_Semicn(stream));
             case LBRACE -> new Stmt(new Stmt_Block(stream));
@@ -68,7 +68,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         private final Exp exp;
         private final Token semicnToken;
 
-        public Stmt_LValAssign(TokenStream stream) {
+        private Stmt_LValAssign(TokenStream stream) {
             String place = "Stmt_LValAssign()";
             lval = new LVal(stream);
             assignToken = stream.consumeOrThrow(place, TokenType.ASSIGN);
@@ -99,7 +99,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
     public static class Stmt_Semicn implements StmtOption {
         private final Token semicnToken;
 
-        public Stmt_Semicn(TokenStream stream) {
+        private Stmt_Semicn(TokenStream stream) {
             String place = "Stmt_Semicn()";
             semicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
         }
@@ -117,7 +117,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         private final Exp exp;
         private final Token semicnToken;
 
-        public Stmt_Exp(Exp exp, TokenStream stream) {
+        private Stmt_Exp(Exp exp, TokenStream stream) {
             String place = "Stmt_Exp()";
             this.exp = exp;
             semicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
@@ -140,7 +140,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
     public static class Stmt_Block implements StmtOption {
         private final Block block;
 
-        public Stmt_Block(TokenStream stream) {
+        private Stmt_Block(TokenStream stream) {
             block = new Block(stream);
         }
 
@@ -166,7 +166,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         private final Token elseToken;
         private final Stmt elseStmt;
 
-        public Stmt_If(TokenStream stream) {
+        private Stmt_If(TokenStream stream) {
             String place = "Stmt_If()";
             ifToken = stream.consumeOrThrow(place, TokenType.IFTK);
             lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
@@ -223,7 +223,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         private final Token rparentToken;
         private final Stmt stmt;
 
-        public Stmt_For(TokenStream stream) {
+        private Stmt_For(TokenStream stream) {
             String place = "Stmt_For()";
             forToken = stream.consumeOrThrow(place, TokenType.FORTK);
             lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
@@ -279,7 +279,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         private final Token breakToken;
         private final Token semicnToken;
 
-        public Stmt_Break(TokenStream stream) {
+        private Stmt_Break(TokenStream stream) {
             String place = "Stmt_Break()";
             breakToken = stream.consumeOrThrow(place, TokenType.BREAKTK);
             semicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
@@ -299,7 +299,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         private final Token continueToken;
         private final Token semicnToken;
 
-        public Stmt_Continue(TokenStream stream) {
+        private Stmt_Continue(TokenStream stream) {
             String place = "Stmt_Continue()";
             continueToken = stream.consumeOrThrow(place, TokenType.CONTINUETK);
             semicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
@@ -320,7 +320,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         private final Exp exp;
         private final Token semicnToken;
 
-        public Stmt_Return(TokenStream stream) {
+        private Stmt_Return(TokenStream stream) {
             String place = "Stmt_Return()";
             returnToken = stream.consumeOrThrow(place, TokenType.RETURNTK);
             exp = stream.getNow().type() != TokenType.SEMICN ? new Exp(stream) : null;
@@ -350,7 +350,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         private final Token rparentToken;
         private final Token semicnToken;
 
-        public Stmt_LValGetint(TokenStream stream) {
+        private Stmt_LValGetint(TokenStream stream) {
             String place = "Stmt_LValGetint()";
             lval = new LVal(stream);
             assignToken = stream.consumeOrThrow(place, TokenType.ASSIGN);
@@ -387,7 +387,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         private final Token rparentToken;
         private final Token semicnToken;
 
-        public Stmt_Printf(TokenStream stream) {
+        private Stmt_Printf(TokenStream stream) {
             String place = "Stmt_Printf()";
             printfToken = stream.consumeOrThrow(place, TokenType.PRINTFTK);
             lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);

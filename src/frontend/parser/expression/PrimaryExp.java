@@ -20,7 +20,7 @@ public class PrimaryExp extends ASTNodeWithOption<PrimaryExp.PrimaryExpOption> {
     // PrimaryExp → '(' Exp ')' | LVal | Number
     //                     LVal → Ident {'[' Exp ']'}
     //                          Number → IntConst
-    public static PrimaryExp parse(TokenStream stream) {
+    static PrimaryExp parse(TokenStream stream) {
         if (stream.isNow(TokenType.LPARENT)) {
             return new PrimaryExp(new PrimaryExp_Exp(stream));
         } else if (stream.isNow(TokenType.IDENFR)) {
@@ -42,7 +42,7 @@ public class PrimaryExp extends ASTNodeWithOption<PrimaryExp.PrimaryExpOption> {
         private final Exp exp;
         private final Token rparentToken;
 
-        public PrimaryExp_Exp(TokenStream stream) {
+        private PrimaryExp_Exp(TokenStream stream) {
             String place = "PrimaryExp_Exp()";
             lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
             exp = new Exp(stream);
@@ -67,7 +67,7 @@ public class PrimaryExp extends ASTNodeWithOption<PrimaryExp.PrimaryExpOption> {
     public static class PrimaryExp_LVal implements PrimaryExpOption {
         private final LVal lval;
 
-        public PrimaryExp_LVal(TokenStream stream) {
+        private PrimaryExp_LVal(TokenStream stream) {
             lval = new LVal(stream);
         }
 
@@ -87,7 +87,7 @@ public class PrimaryExp extends ASTNodeWithOption<PrimaryExp.PrimaryExpOption> {
     public static class PrimaryExp_Number implements PrimaryExpOption {
         private final Number number;
 
-        public PrimaryExp_Number(TokenStream stream) {
+        private PrimaryExp_Number(TokenStream stream) {
             number = new Number(stream);
         }
 

@@ -11,7 +11,7 @@ public class UnaryOp implements ASTNode {
     private final Token symbol;
 
     // UnaryOp → '+' | '−' | '!'
-    public UnaryOp(TokenStream stream) {
+    UnaryOp(TokenStream stream) {
         String place = "UnaryOp()";
         symbol = stream.consumeOrThrow(place, TokenType.PLUS, TokenType.MINU, TokenType.NOT);
     }

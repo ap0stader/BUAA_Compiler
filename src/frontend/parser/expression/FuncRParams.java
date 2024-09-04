@@ -12,7 +12,7 @@ public class FuncRParams implements ASTNode {
     private final ArrayList<Exp> exps;
     private final ArrayList<Token> commaTokens;
 
-    public FuncRParams(TokenStream stream) {
+    FuncRParams(TokenStream stream) {
         // Exp
         exps = new ArrayList<>();
         exps.add(new Exp(stream));
