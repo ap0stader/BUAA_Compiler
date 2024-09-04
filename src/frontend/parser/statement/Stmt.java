@@ -11,7 +11,7 @@ import frontend.type.TokenType;
 
 import java.util.ArrayList;
 
-public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> {
+public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockItem {
     private Stmt(StmtOption option) {
         super(option);
     }
