@@ -24,7 +24,7 @@ public class UnaryExp extends ASTNodeWithOption<UnaryExp.UnaryExpOption> {
     // UnaryOp → '+' | '−' | '!'
     public static UnaryExp parse(TokenStream stream) {
         if (stream.isNow(TokenType.PLUS, TokenType.MINU, TokenType.NOT)) {
-            return new UnaryExp(new UnaryExp_UnaryOP(stream));
+            return new UnaryExp(new UnaryExp_UnaryOp(stream));
         } else if (stream.isNow(TokenType.IDENFR) && stream.isNext(1, TokenType.LPARENT)) {
             return new UnaryExp(new UnaryExp_IndetFuncCall(stream));
         } else if (stream.isNow(TokenType.LPARENT, TokenType.IDENFR, TokenType.INTCON)) {
@@ -95,25 +95,25 @@ public class UnaryExp extends ASTNodeWithOption<UnaryExp.UnaryExpOption> {
     }
 
     // UnaryExp → UnaryOp UnaryExp
-    public static class UnaryExp_UnaryOP implements UnaryExpOption {
-        private final UnaryOP unaryOP;
+    public static class UnaryExp_UnaryOp implements UnaryExpOption {
+        private final UnaryOp unaryOp;
         private final UnaryExp unaryExp;
 
-        public UnaryExp_UnaryOP(TokenStream stream) {
-            unaryOP = new UnaryOP(stream);
+        public UnaryExp_UnaryOp(TokenStream stream) {
+            unaryOp = new UnaryOp(stream);
             unaryExp = UnaryExp.parse(stream);
         }
 
         @Override
         public ArrayList<Object> explore() {
             ArrayList<Object> ret = new ArrayList<>();
-            ret.add(unaryOP);
+            ret.add(unaryOp);
             ret.add(unaryExp);
             return ret;
         }
 
-        public UnaryOP unaryOP() {
-            return unaryOP;
+        public UnaryOp unaryOp() {
+            return unaryOp;
         }
 
         public UnaryExp unaryExp() {

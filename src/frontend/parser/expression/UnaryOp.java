@@ -7,12 +7,12 @@ import frontend.type.TokenType;
 
 import java.util.ArrayList;
 
-public class UnaryOP implements ASTNode {
+public class UnaryOp implements ASTNode {
     private final Token symbol;
 
     // UnaryOp → '+' | '−' | '!'
-    public UnaryOP(TokenStream stream) {
-        String place = "UnaryOP()";
+    public UnaryOp(TokenStream stream) {
+        String place = "UnaryOp()";
         symbol = stream.consumeOrThrow(place, TokenType.PLUS, TokenType.MINU, TokenType.NOT);
     }
 
