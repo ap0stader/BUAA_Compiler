@@ -18,11 +18,12 @@ public class Config {
      */
     public static int stages = 2;
 
-    // 词法分析后，是否输出TokenStream及其输出的文件名
+    // 词法分析后，是否输出TokenStream、输出的文件名是否输出行号等信息
     public static boolean dumpTokenList = false;
     public static final String dumpTokenListFileName = "dump_tokenlist.txt";
+    public static final boolean dumpTokenListLineNumber = true;
 
-    // 语法分析后，是否输出AST
+    // 语法分析后，是否输出AST、输出的文件名
     public static boolean dumpAST = true;
     public static final String dumpASTFileName = outputFilename;
 

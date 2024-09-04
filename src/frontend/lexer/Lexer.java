@@ -221,10 +221,6 @@ public class Lexer {
             while (c != '\n' && c != EOF) {
                 fgetc();
             }
-            // 如果是换行符说明后续还有内容，需要预读。如果已经是EOF，则保持EOF无需预读
-            if (c != EOF) {
-                fgetc();
-            }
         } else if (c == '*') {
             // 多行注释
             while (c != EOF) {

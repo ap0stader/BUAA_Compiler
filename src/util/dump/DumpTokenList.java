@@ -14,7 +14,11 @@ public class DumpTokenList {
         BufferedWriter out = new BufferedWriter(new FileWriter(Config.dumpTokenListFileName));
         for (Token token : tokens) {
             if (token.type() != TokenType.EOF) {
-                out.write(token.type().toString() + " " + token.strVal() + "\n");
+                if (Config.dumpTokenListLineNumber) {
+                    out.write(token.type().toString() + " " + token.strVal() + " " + token.line() + "\n");
+                } else {
+                    out.write(token.type().toString() + " " + token.strVal() + "\n");
+                }
             }
         }
         out.close();
