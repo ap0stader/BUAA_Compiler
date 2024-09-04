@@ -26,7 +26,7 @@ public class UnaryExp extends ASTNodeWithOption<UnaryExp.UnaryExpOption> {
         if (stream.isNow(TokenType.PLUS, TokenType.MINU, TokenType.NOT)) {
             return new UnaryExp(new UnaryExp_UnaryOP(stream));
         } else if (stream.isNow(TokenType.IDENFR) && stream.isNext(1, TokenType.LPARENT)) {
-            return new UnaryExp(new UnaryExp_FuncIndet(stream));
+            return new UnaryExp(new UnaryExp_IndetFuncCall(stream));
         } else if (stream.isNow(TokenType.LPARENT, TokenType.IDENFR, TokenType.INTCON)) {
             return new UnaryExp(new UnaryExp_PrimaryExp(stream));
         } else {
@@ -59,14 +59,14 @@ public class UnaryExp extends ASTNodeWithOption<UnaryExp.UnaryExpOption> {
     }
 
     // UnaryExp → Ident '(' [FuncRParams] ')'
-    public static class UnaryExp_FuncIndet implements UnaryExpOption {
+    public static class UnaryExp_IndetFuncCall implements UnaryExpOption {
         private final Token ident;
         private final Token lbrackToken;
         private final FuncRParams funcRParams;
         private final Token rbrackToken;
 
-        public UnaryExp_FuncIndet(TokenStream stream) {
-            String place = "UnaryExp_FuncIndet()";
+        public UnaryExp_IndetFuncCall(TokenStream stream) {
+            String place = "UnaryExp_IndetFuncCall()";
             ident = stream.consumeOrThrow(place, TokenType.IDENFR);
             lbrackToken = stream.consumeOrThrow(place, TokenType.LPARENT);
             funcRParams = new FuncRParams(stream);
