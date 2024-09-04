@@ -9,12 +9,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 
-public class DumpTokenList {
+public class DumpTokenStream {
     public static void dump(ArrayList<Token> tokens) throws IOException {
-        BufferedWriter out = new BufferedWriter(new FileWriter(Config.dumpTokenListFileName));
+        BufferedWriter out = new BufferedWriter(new FileWriter(Config.dumpTokenStreamFileName));
         for (Token token : tokens) {
             if (token.type() != TokenType.EOF) {
-                if (Config.dumpTokenListLineNumber) {
+                if (Config.dumpTokenStreamLineNumber) {
                     out.write(token.type().toString() + " " + token.strVal() + " " + token.line() + "\n");
                 } else {
                     out.write(token.type().toString() + " " + token.strVal() + "\n");

@@ -3,7 +3,7 @@ import frontend.lexer.TokenStream;
 import frontend.lexer.Lexer;
 import frontend.parser.CompUnit;
 import util.dump.DumpAST;
-import util.dump.DumpTokenList;
+import util.dump.DumpTokenStream;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -16,17 +16,17 @@ public class Compiler {
         Config.setConfigByArgs(args);
         try {
             // Stage1 词法分析
-            // 打开文件 -> 创建Lexer -> 得到TokenList -> 关闭文件 -> [输出TokenList] -> 尝试继续
+            // 打开文件 -> 创建Lexer -> 得到TokenStream -> 关闭文件 -> [输出TokenStream] -> 尝试继续
             PushbackReader inputFileReader = new PushbackReader(new FileReader(Config.inputFilename));
             Lexer lexer = new Lexer(inputFileReader);
             TokenStream tokenStream = lexer.getTokenStream();
             inputFileReader.close();
-            if (Config.dumpTokenList) {
-                DumpTokenList.dump(tokenStream.getArrayListCopy());
+            if (Config.dumpTokenStream) {
+                DumpTokenStream.dump(tokenStream.getArrayListCopy());
             }
             tryContinue();
             // Stage2 语法分析
-            // 创建CompUnit -> [输出CompUnit] -> 尝试继续
+            // 创建CompUnit(AST) -> [输出CompUnit(AST)] -> 尝试继续
             CompUnit compUnit = new CompUnit(tokenStream);
             if (Config.dumpAST) {
                 DumpAST.dump(compUnit);
