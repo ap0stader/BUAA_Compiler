@@ -32,7 +32,7 @@ public class InitVal implements ASTNode {
             // [ InitVal { ',' InitVal } ]
             initVals = new ArrayList<>();
             commaTokens = new ArrayList<>();
-            if (stream.isNow(TokenType.RBRACE)) {
+            if (stream.getNow().type() != TokenType.RBRACE) {
                 // InitVal
                 initVals.add(new InitVal(stream));
                 // { ',' InitVal }

@@ -19,7 +19,7 @@ public class Block implements ASTNode {
         lbraceToken = stream.consumeOrThrow(place, TokenType.LBRACE);
         // { BlockItem }
         blockItems = new ArrayList<>();
-        while (stream.isNow(TokenType.RBRACE)) {
+        while (stream.getNow().type() != TokenType.RBRACE) {
             blockItems.add(BlockItem.parse(stream));
         }
         // '}'

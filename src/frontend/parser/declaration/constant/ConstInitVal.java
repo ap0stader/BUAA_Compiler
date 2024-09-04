@@ -32,7 +32,7 @@ public class ConstInitVal implements ASTNode {
             // [ ConstInitVal { ',' ConstInitVal } ]
             constInitVals = new ArrayList<>();
             commaTokens = new ArrayList<>();
-            if (stream.isNow(TokenType.RBRACE)) {
+            if (stream.getNow().type() != TokenType.RBRACE) {
                 // ConstInitVal
                 constInitVals.add(new ConstInitVal(stream));
                 // { ',' ConstInitVal }
