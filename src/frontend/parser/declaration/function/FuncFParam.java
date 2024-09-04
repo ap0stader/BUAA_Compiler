@@ -35,7 +35,7 @@ public class FuncFParam implements ASTNode {
             // '['
             lbrackTokens.add(stream.consumeOrThrow(place, TokenType.LBRACK));
             // ']'
-            lbrackTokens.add(stream.consumeOrThrow(place, TokenType.RBRACK));
+            rbrackTokens.add(stream.consumeOrThrow(place, TokenType.RBRACK));
             // { '[' ConstExp ']' }
             while (stream.isNow(TokenType.LBRACK)) {
                 lbrackTokens.add(stream.consumeOrThrow(place, TokenType.LBRACK));
