@@ -12,8 +12,8 @@ public class AddExp implements ASTNode {
     private final ArrayList<MulExp> mulExps;
     private final ArrayList<Token> symbols;
 
-    // 左递归文法： AddExp → MulExp | AddExp ('+' | '−') MulExp
-    // EBNF范式：  AddExp → MulExp { ('+' | '−') MulExp }
+    // 左递归文法：AddExp → MulExp | AddExp ('+' | '−') MulExp
+    // EBNF范式： AddExp → MulExp { ('+' | '−') MulExp }
     public AddExp(TokenStream stream) {
         mulExps = new ArrayList<>();
         symbols = new ArrayList<>();
@@ -36,7 +36,7 @@ public class AddExp implements ASTNode {
     public ArrayList<Object> explore() {
         ArrayList<Object> ret = new ArrayList<>();
         if (mulExps.size() == 1) {
-            // 只有MulExp，正常返回
+            // 只有MulExp，直接返回
             ret.add(mulExps.get(0));
         } else {
             ret.add(new AddExp(mulExps.subList(0, mulExps.size() - 1), symbols.subList(0, symbols.size() - 1)));

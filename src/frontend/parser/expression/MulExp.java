@@ -36,7 +36,7 @@ public class MulExp implements ASTNode {
     public ArrayList<Object> explore() {
         ArrayList<Object> ret = new ArrayList<>();
         if (unaryExps.size() == 1) {
-            // 只有UnaryExp，正常返回
+            // 只有UnaryExp，直接返回
             ret.add(unaryExps.get(0));
         } else {
             ret.add(new MulExp(unaryExps.subList(0, unaryExps.size() - 1), symbols.subList(0, symbols.size() - 1)));
