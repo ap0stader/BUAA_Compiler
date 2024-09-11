@@ -6,6 +6,7 @@ import frontend.lexer.TokenStream;
 import frontend.type.ASTNodeOption;
 import frontend.type.ASTNodeWithOption;
 import frontend.type.TokenType;
+import global.error.ErrorType;
 
 import java.util.ArrayList;
 
@@ -61,27 +62,41 @@ public class UnaryExp extends ASTNodeWithOption<UnaryExp.UnaryExpOption> {
     // UnaryExp → Ident '(' [FuncRParams] ')'
     public static class UnaryExp_IndetFuncCall implements UnaryExpOption {
         private final Token ident;
-        private final Token lbrackToken;
+        private final Token lparentToken;
         private final FuncRParams funcRParams;
-        private final Token rbrackToken;
+        private final Token rparentToken;
 
         private UnaryExp_IndetFuncCall(TokenStream stream) {
             String place = "UnaryExp_IndetFuncCall()";
             ident = stream.consumeOrThrow(place, TokenType.IDENFR);
-            lbrackToken = stream.consumeOrThrow(place, TokenType.LPARENT);
-            funcRParams = stream.getNow().type() != TokenType.RPARENT ? new FuncRParams(stream) : null;
-            rbrackToken = stream.consumeOrThrow(place, TokenType.RPARENT);
+            lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
+            FuncRParams tryfuncRParams;
+            int checkpointID = stream.checkpoint("IndetFuncCallTry");
+            try {
+                new Exp(stream);
+                stream.restore(checkpointID);
+                tryfuncRParams = new FuncRParams(stream);
+            } catch (RuntimeException e) {
+                // 尝试读取一次Exp，如果有RuntimeError并且和checkpoint的比较偏移为0，说明没有Exp，也就是没有funcRParams
+                if (stream.offset(checkpointID) != 0) {
+                    throw e;
+                } else {
+                    tryfuncRParams = null;
+                }
+            }
+            funcRParams = tryfuncRParams;
+            rparentToken = stream.consumeOrError(place, ErrorType.MISSING_RPARENT, TokenType.RPARENT);
         }
 
         @Override
         public ArrayList<Object> explore() {
             ArrayList<Object> ret = new ArrayList<>();
             ret.add(ident);
-            ret.add(lbrackToken);
+            ret.add(lparentToken);
             if (funcRParams != null) {
                 ret.add(funcRParams);
             }
-            ret.add(rbrackToken);
+            ret.add(rparentToken);
             return ret;
         }
 

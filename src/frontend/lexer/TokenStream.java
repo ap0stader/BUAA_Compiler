@@ -7,12 +7,15 @@ import global.error.ErrorType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 
 public class TokenStream {
     private final ArrayList<Token> list = new ArrayList<>();
     private int pos = 0;
-    private final HashMap<String, Integer> checkpoints = new HashMap<>();
+
+    private final ArrayList<CheckPoint> checkpoints = new ArrayList<>();
+
+    private record CheckPoint(int pos, String description) {
+    }
 
     // 添加Token到TokenStream中，仅同package的Lexer可访问
     void addToken(Token token) {
@@ -20,18 +23,19 @@ public class TokenStream {
     }
 
     // 添加检查点
-    public void checkpoint(String name) {
-        this.checkpoints.put(name, pos);
+    public int checkpoint(String description) {
+        this.checkpoints.add(new CheckPoint(pos, description + " at " + this.getNow()));
+        return this.checkpoints.size() - 1;
     }
 
     // 恢复检查点
-    public void restore(String checkpoint) {
-        this.pos = checkpoints.get(checkpoint);
+    public void restore(int checkpointID) {
+        this.pos = checkpoints.get(checkpointID).pos();
     }
 
     // 距离检查点距离
-    public int offset(String checkpoint) {
-        return this.pos - this.checkpoints.get(checkpoint);
+    public int offset(int checkpointID) {
+        return this.pos - this.checkpoints.get(checkpointID).pos();
     }
 
     // 是否还有Token

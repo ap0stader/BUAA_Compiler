@@ -45,14 +45,14 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
                 // Stmt → LVal '=' Exp ';'
                 //      | Exp ';'
                 //      | LVal '=' 'getint' '(' ')' ';'
-                stream.checkpoint("StmtTry");
+                int checkpointID = stream.checkpoint("StmtTry");
                 Exp tryExp = new Exp(stream);
                 if (stream.isNow(TokenType.ASSIGN)) {
                     if (stream.isNext(1, TokenType.GETINTTK)) {
-                        stream.restore("StmtTry");
+                        stream.restore(checkpointID);
                         yield new Stmt(new Stmt_LValGetint(stream));
                     } else {
-                        stream.restore("StmtTry");
+                        stream.restore(checkpointID);
                         yield new Stmt(new Stmt_LValAssign(stream));
                     }
                 } else {
@@ -325,12 +325,12 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             String place = "Stmt_Return()";
             returnToken = stream.consumeOrThrow(place, TokenType.RETURNTK);
             Exp tryExp;
-            stream.checkpoint("ReturnTry");
+            int checkpointID = stream.checkpoint("ReturnTry");
             try {
                 tryExp = new Exp(stream);
             } catch (RuntimeException e) {
                 // 尝试读取一次Exp，如果有RuntimeError并且和checkpoint的比较偏移为0，说明没有Exp
-                if (stream.offset("ReturnTry") != 0) {
+                if (stream.offset(checkpointID) != 0) {
                     throw e;
                 } else {
                     tryExp = null;

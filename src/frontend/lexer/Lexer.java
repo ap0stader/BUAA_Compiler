@@ -12,6 +12,7 @@ public class Lexer {
     private final PushbackReader reader;
     private char c = 0;
     private int line = 1;
+    private int indexOfLine = 1;
     private boolean finish = false;
 
     private final TokenStream stream = new TokenStream();
@@ -45,6 +46,18 @@ public class Lexer {
         this.reader.unread(c);
     }
 
+    // 读取到新的一行
+    private void newLine() {
+        this.line++;
+        this.indexOfLine = 1;
+    }
+
+    // 解析到一个新的Token，加入到TokenStream中
+    private void gotToken(TokenType type, String strVal) {
+        this.stream.addToken(new Token(type, strVal, this.line, this.indexOfLine));
+        this.indexOfLine++;
+    }
+
     // 返回从文件中生成的TokenStream
     public TokenStream getTokenStream() throws IOException {
         // 如果已经完成生成TokenStream，直接返回结果
@@ -56,7 +69,7 @@ public class Lexer {
         // 注：
         while (c != EOF) {
             if (c == '\n') {
-                this.line++; // 记录行号
+                this.newLine(); // 记录行号
                 fgetc();
             } else if (c == ' ' || c == '\t' || c == '\f' || c == '\r') {
                 fgetc(); // 跳过空白符号
@@ -71,7 +84,7 @@ public class Lexer {
             }
         }
         // 加入类型为EOF的Token，表示TokenStream结束
-        this.stream.addToken(new Token(TokenType.EOF, "", this.line));
+        this.gotToken(TokenType.EOF, "");
         this.finish = true;
         return this.stream;
     }
@@ -84,19 +97,19 @@ public class Lexer {
         }
         String indetStr = indetStrBuilder.toString();
         switch (indetStr) {
-            case "main" -> this.stream.addToken(new Token(TokenType.MAINTK, indetStr, this.line));
-            case "const" -> this.stream.addToken(new Token(TokenType.CONSTTK, indetStr, this.line));
-            case "int" -> this.stream.addToken(new Token(TokenType.INTTK, indetStr, this.line));
-            case "void" -> this.stream.addToken(new Token(TokenType.VOIDTK, indetStr, this.line));
-            case "break" -> this.stream.addToken(new Token(TokenType.BREAKTK, indetStr, this.line));
-            case "continue" -> this.stream.addToken(new Token(TokenType.CONTINUETK, indetStr, this.line));
-            case "if" -> this.stream.addToken(new Token(TokenType.IFTK, indetStr, this.line));
-            case "else" -> this.stream.addToken(new Token(TokenType.ELSETK, indetStr, this.line));
-            case "for" -> this.stream.addToken(new Token(TokenType.FORTK, indetStr, this.line));
-            case "return" -> this.stream.addToken(new Token(TokenType.RETURNTK, indetStr, this.line));
-            case "getint" -> this.stream.addToken(new Token(TokenType.GETINTTK, indetStr, this.line));
-            case "printf" -> this.stream.addToken(new Token(TokenType.PRINTFTK, indetStr, this.line));
-            default -> this.stream.addToken(new Token(TokenType.IDENFR, indetStr, this.line));
+            case "main" -> this.gotToken(TokenType.MAINTK, indetStr);
+            case "const" -> this.gotToken(TokenType.CONSTTK, indetStr);
+            case "int" -> this.gotToken(TokenType.INTTK, indetStr);
+            case "void" -> this.gotToken(TokenType.VOIDTK, indetStr);
+            case "break" -> this.gotToken(TokenType.BREAKTK, indetStr);
+            case "continue" -> this.gotToken(TokenType.CONTINUETK, indetStr);
+            case "if" -> this.gotToken(TokenType.IFTK, indetStr);
+            case "else" -> this.gotToken(TokenType.ELSETK, indetStr);
+            case "for" -> this.gotToken(TokenType.FORTK, indetStr);
+            case "return" -> this.gotToken(TokenType.RETURNTK, indetStr);
+            case "getint" -> this.gotToken(TokenType.GETINTTK, indetStr);
+            case "printf" -> this.gotToken(TokenType.PRINTFTK, indetStr);
+            default -> this.gotToken(TokenType.IDENFR, indetStr);
         }
     }
 
@@ -107,7 +120,7 @@ public class Lexer {
             fgetc();
         }
         String intConstStr = intConstStrBuilder.toString();
-        this.stream.addToken(new Token(TokenType.INTCON, intConstStr, this.line));
+        this.gotToken(TokenType.INTCON, intConstStr);
     }
 
     private void lexFormatString() throws IOException {
@@ -149,7 +162,7 @@ public class Lexer {
         formatStringStrBuilder.append('"');
         fgetc();
         String formatStringStr = formatStringStrBuilder.toString();
-        this.stream.addToken(new Token(TokenType.STRCON, formatStringStr, this.line));
+        this.gotToken(TokenType.STRCON, formatStringStr);
     }
 
     private void lexSymbolComment() throws IOException {
@@ -161,26 +174,26 @@ public class Lexer {
                     return; // 由于单行注释有可能直接读到结尾，故直接return以不执行本函数的预读，将预读给到lexComment
                 } else {
                     ungetc();
-                    this.stream.addToken(new Token(TokenType.DIV, "/", this.line));
+                    this.gotToken(TokenType.DIV, "/");
                 }
             }
-            case '+' -> this.stream.addToken(new Token(TokenType.PLUS, "+", this.line));
-            case '-' -> this.stream.addToken(new Token(TokenType.MINU, "-", this.line));
-            case '*' -> this.stream.addToken(new Token(TokenType.MULT, "*", this.line));
-            case '%' -> this.stream.addToken(new Token(TokenType.MOD, "%", this.line));
+            case '+' -> this.gotToken(TokenType.PLUS, "+");
+            case '-' -> this.gotToken(TokenType.MINU, "-");
+            case '*' -> this.gotToken(TokenType.MULT, "*");
+            case '%' -> this.gotToken(TokenType.MOD, "%");
             case '!' -> {
                 fgetc();
                 if (c == '=') {
-                    this.stream.addToken(new Token(TokenType.NEQ, "!=", this.line));
+                    this.gotToken(TokenType.NEQ, "!=");
                 } else {
                     ungetc();
-                    this.stream.addToken(new Token(TokenType.NOT, "!", this.line));
+                    this.gotToken(TokenType.NOT, "!");
                 }
             }
             case '&' -> {
                 fgetc();
                 if (c == '&') {
-                    this.stream.addToken(new Token(TokenType.AND, "&&", this.line));
+                    this.gotToken(TokenType.AND, "&&");
                 } else {
                     if (Config.lexerThrowable) {
                         throw new RuntimeException("When Lexer.lexSymbolComment()->case '&', unexpected character: " + c);
@@ -192,7 +205,7 @@ public class Lexer {
             case '|' -> {
                 fgetc();
                 if (c == '|') {
-                    this.stream.addToken(new Token(TokenType.OR, "||", this.line));
+                    this.gotToken(TokenType.OR, "||");
                 } else {
                     if (Config.lexerThrowable) {
                         throw new RuntimeException("When Lexer.lexSymbolComment()->case '|', unexpected character: " + c);
@@ -204,38 +217,38 @@ public class Lexer {
             case '<' -> {
                 fgetc();
                 if (c == '=') {
-                    this.stream.addToken(new Token(TokenType.LEQ, "<=", this.line));
+                    this.gotToken(TokenType.LEQ, "<=");
                 } else {
                     ungetc();
-                    this.stream.addToken(new Token(TokenType.LSS, "<", this.line));
+                    this.gotToken(TokenType.LSS, "<");
                 }
             }
             case '>' -> {
                 fgetc();
                 if (c == '=') {
-                    this.stream.addToken(new Token(TokenType.GEQ, ">=", this.line));
+                    this.gotToken(TokenType.GEQ, ">=");
                 } else {
                     ungetc();
-                    this.stream.addToken(new Token(TokenType.GRE, ">", this.line));
+                    this.gotToken(TokenType.GRE, ">");
                 }
             }
             case '=' -> {
                 fgetc();
                 if (c == '=') {
-                    this.stream.addToken(new Token(TokenType.EQL, "==", this.line));
+                    this.gotToken(TokenType.EQL, "==");
                 } else {
                     ungetc();
-                    this.stream.addToken(new Token(TokenType.ASSIGN, "=", this.line));
+                    this.gotToken(TokenType.ASSIGN, "=");
                 }
             }
-            case ';' -> this.stream.addToken(new Token(TokenType.SEMICN, ";", this.line));
-            case ',' -> this.stream.addToken(new Token(TokenType.COMMA, ",", this.line));
-            case '(' -> this.stream.addToken(new Token(TokenType.LPARENT, "(", this.line));
-            case ')' -> this.stream.addToken(new Token(TokenType.RPARENT, ")", this.line));
-            case '[' -> this.stream.addToken(new Token(TokenType.LBRACK, "[", this.line));
-            case ']' -> this.stream.addToken(new Token(TokenType.RBRACK, "]", this.line));
-            case '{' -> this.stream.addToken(new Token(TokenType.LBRACE, "{", this.line));
-            case '}' -> this.stream.addToken(new Token(TokenType.RBRACE, "}", this.line));
+            case ';' -> this.gotToken(TokenType.SEMICN, ";");
+            case ',' -> this.gotToken(TokenType.COMMA, ",");
+            case '(' -> this.gotToken(TokenType.LPARENT, "(");
+            case ')' -> this.gotToken(TokenType.RPARENT, ")");
+            case '[' -> this.gotToken(TokenType.LBRACK, "[");
+            case ']' -> this.gotToken(TokenType.RBRACK, "]");
+            case '{' -> this.gotToken(TokenType.LBRACE, "{");
+            case '}' -> this.gotToken(TokenType.RBRACE, "}");
             default -> {
                 if (Config.lexerThrowable) {
                     throw new RuntimeException("When Lexer.lexSymbolComment()->default, unexpected character: " + c);
@@ -256,7 +269,7 @@ public class Lexer {
             while (c != EOF) {
                 // 多行注释可能跨行，注意维护行号
                 if (c == '\n') {
-                    this.line++;
+                    this.newLine();
                 } else if (c == '*') {
                     fgetc();
                     if (c == '/') {
