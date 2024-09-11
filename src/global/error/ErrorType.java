@@ -1,7 +1,7 @@
 package global.error;
 
 public enum ErrorType {
-    ILLEGAL_CHAR("a"),
+    ILLEGAL_FORMATSTRING_CHAR("a"),
     DUPLICATED_IDENT("b"),
     UNDEFINED_IDENT("c"),
     FUNCRPARAMS_NUM_MISMATCH("d"),

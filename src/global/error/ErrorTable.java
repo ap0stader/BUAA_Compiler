@@ -1,25 +1,26 @@
 package global.error;
 
-import java.util.ArrayList;
+import java.util.TreeSet;
 
 public class ErrorTable {
-    private static final ArrayList<ErrorRecord> errorRecords = new ArrayList<>();
+    private static final TreeSet<ErrorRecord> errorRecords = new TreeSet<>();
 
     private ErrorTable() {
     }
 
     public static void addErrorRecord(int line, ErrorType type) {
-        errorRecords.add(new ErrorRecord(line, type));
+        errorRecords.add(new ErrorRecord(line, type, ""));
+    }
+
+    public static void addErrorRecord(int line, ErrorType type, String info) {
+        errorRecords.add(new ErrorRecord(line, type, info));
     }
 
     public static boolean notEmpty() {
         return !errorRecords.isEmpty();
     }
 
-    public static ArrayList<ErrorRecord> getSortedArrayListCopy() {
-        ArrayList<ErrorRecord> ret = new ArrayList<>(errorRecords);
-        // 每一行中最多只有一个错误，Java的sort()的排序是稳定的，先出现的错误排序后依然在前面
-        ret.sort(ErrorRecord::compareTo);
-        return ret;
+    public static TreeSet<ErrorRecord> getTreeSetCopy() {
+        return new TreeSet<>(errorRecords);
     }
 }

@@ -11,8 +11,12 @@ import java.io.IOException;
 public class DumpErrorTable {
     public static void dump() throws IOException {
         BufferedWriter out = new BufferedWriter(new FileWriter(Config.dumpErrorTableFileName));
-        for (ErrorRecord record : ErrorTable.getSortedArrayListCopy()) {
-            out.write(record.line() + " " + record.type() + "\n");
+        for (ErrorRecord record : ErrorTable.getTreeSetCopy()) {
+            if (Config.dumpErrorTableDetail) {
+                out.write(record.line() + " " + record.type().name() + " " + record.info() + "\n");
+            } else {
+                out.write(record.line() + " " + record.type() + "\n");
+            }
         }
         out.close();
     }

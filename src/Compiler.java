@@ -18,6 +18,9 @@ public class Compiler {
         Config.setConfigByArgs(args);
         try {
             frontend();
+            if (ErrorTable.notEmpty() && Config.frontendErrorInterrupt) {
+                throw new RuntimeException("Interrupted: Error Table is not empty!\n" + ErrorTable.getTreeSetCopy());
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -43,14 +46,11 @@ public class Compiler {
         }
         tryContinue();
         // Stage3 语义分析
+        //
 
-        // 错误处理
-        if (ErrorTable.notEmpty()) {
-            if (Config.dumpErrorTable) {
-                DumpErrorTable.dump();
-            } else if (Config.errorHandlingThrowable) {
-                throw new RuntimeException("Error Table is not empty!" + ErrorTable.getSortedArrayListCopy());
-            }
+        // 错误收集结果输出
+        if (Config.dumpErrorTable) {
+            DumpErrorTable.dump();
         }
         tryContinue();
     }

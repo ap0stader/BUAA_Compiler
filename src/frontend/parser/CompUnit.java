@@ -6,6 +6,7 @@ import frontend.parser.declaration.Decl;
 import frontend.parser.declaration.function.FuncDef;
 import frontend.parser.declaration.MainFuncDef;
 import frontend.type.TokenType;
+import global.Config;
 
 import java.util.ArrayList;
 
@@ -32,6 +33,11 @@ public class CompUnit implements ASTNode {
             funcDefs.add(new FuncDef(stream));
         }
         mainFuncDef = new MainFuncDef(stream);
+        if (stream.getNow().type() != TokenType.EOF) {
+            if (Config.parserThrowable) {
+                throw new RuntimeException("When CompUnit() end, didn't reach the end of the file.");
+            }
+        }
     }
 
     @Override

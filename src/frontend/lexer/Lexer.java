@@ -2,6 +2,8 @@ package frontend.lexer;
 
 import global.Config;
 import frontend.type.TokenType;
+import global.error.ErrorTable;
+import global.error.ErrorType;
 
 import java.io.IOException;
 import java.io.PushbackReader;
@@ -113,9 +115,37 @@ public class Lexer {
         formatStringStrBuilder.append('"');
         fgetc();
         while (c != '"') {
-            formatStringStrBuilder.append(c);
+            // 合法字符：ASCII为32, 33, 37, 40-126的ASCII字符
+            // （合法）32:(space) 33:! 37:%
+            // （非法）34:" 35:# 36:$ 38:& 39:'
+            if (c == 32 || c == 33 || c == 37 || (40 <= c && c <= 126)) {
+                formatStringStrBuilder.append(c);
+                if (c == 37) {
+                    // '%' (37) 出现当且仅当为'%d'
+                    fgetc();
+                    if (c == 'd') {
+                        formatStringStrBuilder.append(c);
+                    } else {
+                        // 可能其他分支需要使用
+                        ungetc();
+                        ErrorTable.addErrorRecord(line, ErrorType.ILLEGAL_FORMATSTRING_CHAR, "Got '%', but not %d");
+                    }
+                } else if (c == 92) {
+                    // '\' (92) 出现当且仅当为'\n'
+                    fgetc();
+                    if (c == 'n') {
+                        formatStringStrBuilder.append(c);
+                    } else {
+                        // 可能其他分支需要使用
+                        ungetc();
+                        ErrorTable.addErrorRecord(line, ErrorType.ILLEGAL_FORMATSTRING_CHAR, "Got '\\', but not \\n");
+                    }
+                }
+            } else {
+                ErrorTable.addErrorRecord(line, ErrorType.ILLEGAL_FORMATSTRING_CHAR, "Got '" + c + "'(ASCII:" + (int) c + ")");
+            }
             fgetc();
-        } // UNSTABLE 此处没有考虑字符串的换行问题
+        } // UNSTABLE 此处没有考虑字符串中非法的换行导致的行数统计错误的问题
         formatStringStrBuilder.append('"');
         fgetc();
         String formatStringStr = formatStringStrBuilder.toString();

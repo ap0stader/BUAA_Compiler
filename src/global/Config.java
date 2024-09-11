@@ -11,8 +11,9 @@ public class Config {
     public static boolean lexerThrowable = true;
     // 语法分析，如果不允许抛出错误，默认处理方式为return null;
     public static boolean parserThrowable = true;
-    // 语义分析后错误处理，如果不允许抛出错误，默认处理方式为无操作
-    public static boolean errorHandlingThrowable = true;
+
+    // 前端完成后存在错误，是否终止
+    public static boolean frontendErrorInterrupt = true;
 
     /* 总共进行阶段数
        ==== 前端 ====
@@ -22,7 +23,7 @@ public class Config {
      */
     public static int stages = 3;
 
-    // 词法分析后，是否输出TokenStream、输出的文件名是否输出行号等信息
+    // 词法分析后，是否输出TokenStream、输出的文件名、是否输出行号等信息
     public static boolean dumpTokenStream = false;
     public static String dumpTokenStreamFileName = outputFilename;
     public static boolean dumpTokenStreamLineNumber = false;
@@ -31,9 +32,10 @@ public class Config {
     public static boolean dumpAST = false;
     public static String dumpASTFileName = outputFilename;
 
-    // 语义分析后错误处理，是否输出错误收集结果、输出的文件名
+    // 语义分析后，是否输出错误收集结果、输出的文件名、是否输出错误详情
     public static boolean dumpErrorTable = false;
     public static String dumpErrorTableFileName = outputFilename;
+    public static boolean dumpErrorTableDetail = false;
 
     // 通过传递的参数设置全局配置
     public static void setConfigByArgs(String[] args) {
@@ -43,11 +45,10 @@ public class Config {
                 case "--no-all-throw" -> {
                     lexerThrowable = false;
                     parserThrowable = false;
-                    errorHandlingThrowable = false;
                 }
                 case "--no-lexer-throw" -> lexerThrowable = false;
                 case "--no-parser-throw" -> parserThrowable = false;
-                case "--no-error-handling-throw" -> errorHandlingThrowable = false;
+                case "--disable-frontend-error-interrupt" -> frontendErrorInterrupt = false;
                 // 调试模式
                 case "--debug" -> {
                     dumpTokenStream = true;
@@ -57,6 +58,7 @@ public class Config {
                     dumpASTFileName = "dump_AST.txt";
                     dumpErrorTable = true;
                     dumpErrorTableFileName = "dump_ErrorTable.txt";
+                    dumpErrorTableDetail = true;
                 }
                 // Lexical Analysis: -L
                 case "-L" -> {
