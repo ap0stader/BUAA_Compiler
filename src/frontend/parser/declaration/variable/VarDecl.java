@@ -5,6 +5,7 @@ import frontend.lexer.TokenStream;
 import frontend.parser.declaration.Decl;
 import frontend.type.ASTNode;
 import frontend.type.TokenType;
+import global.error.ErrorType;
 
 import java.util.ArrayList;
 
@@ -29,7 +30,7 @@ public class VarDecl implements ASTNode, Decl {
             varDefs.add(new VarDef(stream));
         }
         // ';'
-        semicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
+        semicnToken = stream.consumeOrError(place, ErrorType.MISSING_SEMICN, TokenType.SEMICN);
     }
 
     @Override

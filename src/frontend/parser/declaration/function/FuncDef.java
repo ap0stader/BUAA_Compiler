@@ -5,6 +5,7 @@ import frontend.lexer.TokenStream;
 import frontend.parser.statement.Block;
 import frontend.type.ASTNode;
 import frontend.type.TokenType;
+import global.error.ErrorType;
 
 import java.util.ArrayList;
 
@@ -30,7 +31,7 @@ public class FuncDef implements ASTNode {
         //  FuncFParam → 'int' Ident ['[' ']' { '[' ConstExp ']' }]
         funcFParams = stream.isNow(TokenType.INTTK) ? new FuncFParams(stream) : null;
         // ')'
-        rparentToken = stream.consumeOrThrow(place, TokenType.RPARENT);
+        rparentToken = stream.consumeOrError(place, ErrorType.MISSING_RPARENT, TokenType.RPARENT);
         // Block
         block = new Block(stream);
     }

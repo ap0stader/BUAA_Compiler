@@ -8,6 +8,7 @@ import frontend.parser.expression.LVal;
 import frontend.type.ASTNodeOption;
 import frontend.type.ASTNodeWithOption;
 import frontend.type.TokenType;
+import global.error.ErrorType;
 
 import java.util.ArrayList;
 
@@ -73,7 +74,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             lval = new LVal(stream);
             assignToken = stream.consumeOrThrow(place, TokenType.ASSIGN);
             exp = new Exp(stream);
-            semicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
+            semicnToken = stream.consumeOrError(place, ErrorType.MISSING_SEMICN, TokenType.SEMICN);
         }
 
         @Override
@@ -112,7 +113,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         }
     }
 
-    // Stmt → [Exp] ';'
+    // Stmt → Exp ';'
     public static class Stmt_Exp implements StmtOption {
         private final Exp exp;
         private final Token semicnToken;
@@ -120,7 +121,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         private Stmt_Exp(Exp exp, TokenStream stream) {
             String place = "Stmt_Exp()";
             this.exp = exp;
-            semicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
+            semicnToken = stream.consumeOrError(place, ErrorType.MISSING_SEMICN, TokenType.SEMICN);
         }
 
         @Override
@@ -171,7 +172,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             ifToken = stream.consumeOrThrow(place, TokenType.IFTK);
             lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
             cond = new Cond(stream);
-            rparentToken = stream.consumeOrThrow(place, TokenType.RPARENT);
+            rparentToken = stream.consumeOrError(place, ErrorType.MISSING_RPARENT, TokenType.RPARENT);
             ifStmt = Stmt.parse(stream);
             elseToken = stream.consumeOrNull(TokenType.ELSETK);
             elseStmt = elseToken != null ? Stmt.parse(stream) : null;
@@ -282,7 +283,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         private Stmt_Break(TokenStream stream) {
             String place = "Stmt_Break()";
             breakToken = stream.consumeOrThrow(place, TokenType.BREAKTK);
-            semicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
+            semicnToken = stream.consumeOrError(place, ErrorType.MISSING_SEMICN, TokenType.SEMICN);
         }
 
         @Override
@@ -302,7 +303,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         private Stmt_Continue(TokenStream stream) {
             String place = "Stmt_Continue()";
             continueToken = stream.consumeOrThrow(place, TokenType.CONTINUETK);
-            semicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
+            semicnToken = stream.consumeOrError(place, ErrorType.MISSING_SEMICN, TokenType.SEMICN);
         }
 
         @Override
@@ -323,8 +324,20 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         private Stmt_Return(TokenStream stream) {
             String place = "Stmt_Return()";
             returnToken = stream.consumeOrThrow(place, TokenType.RETURNTK);
-            exp = stream.getNow().type() != TokenType.SEMICN ? new Exp(stream) : null;
-            semicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
+            Exp tryExp;
+            stream.checkpoint("ReturnTry");
+            try {
+                tryExp = new Exp(stream);
+            } catch (RuntimeException e) {
+                // 尝试读取一次Exp，如果有RuntimeError并且和checkpoint的比较偏移为0，说明没有Exp
+                if (stream.offset("ReturnTry") != 0) {
+                    throw e;
+                } else {
+                    tryExp = null;
+                }
+            }
+            exp = tryExp;
+            semicnToken = stream.consumeOrError(place, ErrorType.MISSING_SEMICN, TokenType.SEMICN);
         }
 
         @Override
@@ -356,8 +369,8 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             assignToken = stream.consumeOrThrow(place, TokenType.ASSIGN);
             getintToken = stream.consumeOrThrow(place, TokenType.GETINTTK);
             lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
-            rparentToken = stream.consumeOrThrow(place, TokenType.RPARENT);
-            semicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
+            rparentToken = stream.consumeOrError(place, ErrorType.MISSING_RPARENT, TokenType.RPARENT);
+            semicnToken = stream.consumeOrError(place, ErrorType.MISSING_SEMICN, TokenType.SEMICN);
         }
 
         @Override
@@ -398,8 +411,8 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
                 commaTokens.add(stream.consumeOrThrow(place, TokenType.COMMA));
                 exps.add(new Exp(stream));
             }
-            rparentToken = stream.consumeOrThrow(place, TokenType.RPARENT);
-            semicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
+            rparentToken = stream.consumeOrError(place, ErrorType.MISSING_RPARENT, TokenType.RPARENT);
+            semicnToken = stream.consumeOrError(place, ErrorType.MISSING_SEMICN, TokenType.SEMICN);
         }
 
         @Override

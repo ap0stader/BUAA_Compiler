@@ -5,6 +5,7 @@ import frontend.lexer.TokenStream;
 import frontend.parser.statement.Block;
 import frontend.type.ASTNode;
 import frontend.type.TokenType;
+import global.error.ErrorType;
 
 import java.util.ArrayList;
 
@@ -25,7 +26,7 @@ public class MainFuncDef implements ASTNode {
         // '('
         lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
         // ')'
-        rparentToken = stream.consumeOrThrow(place, TokenType.RPARENT);
+        rparentToken = stream.consumeOrError(place, ErrorType.MISSING_RPARENT, TokenType.RPARENT);
         // Block
         block = new Block(stream);
     }

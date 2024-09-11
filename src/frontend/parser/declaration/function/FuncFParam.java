@@ -5,6 +5,7 @@ import frontend.lexer.TokenStream;
 import frontend.parser.expression.ConstExp;
 import frontend.type.ASTNode;
 import frontend.type.TokenType;
+import global.error.ErrorType;
 
 import java.util.ArrayList;
 
@@ -35,12 +36,12 @@ public class FuncFParam implements ASTNode {
             // '['
             lbrackTokens.add(stream.consumeOrThrow(place, TokenType.LBRACK));
             // ']'
-            rbrackTokens.add(stream.consumeOrThrow(place, TokenType.RBRACK));
+            rbrackTokens.add(stream.consumeOrError(place, ErrorType.MISSING_RBRACK, TokenType.RBRACK));
             // { '[' ConstExp ']' }
             while (stream.isNow(TokenType.LBRACK)) {
                 lbrackTokens.add(stream.consumeOrThrow(place, TokenType.LBRACK));
                 constExps.add(new ConstExp(stream));
-                rbrackTokens.add(stream.consumeOrThrow(place, TokenType.RBRACK));
+                rbrackTokens.add(stream.consumeOrError(place, ErrorType.MISSING_RBRACK, TokenType.RBRACK));
             }
         } else {
             lbrackTokens = null;

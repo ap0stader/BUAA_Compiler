@@ -4,6 +4,7 @@ import frontend.lexer.Token;
 import frontend.lexer.TokenStream;
 import frontend.type.ASTNode;
 import frontend.type.TokenType;
+import global.error.ErrorType;
 
 import java.util.ArrayList;
 
@@ -25,7 +26,7 @@ public class LVal implements ASTNode {
         while (stream.isNow(TokenType.LBRACK)) {
             lbrackTokens.add(stream.consumeOrThrow(place, TokenType.LBRACK));
             exps.add(new Exp(stream));
-            rbrackTokens.add(stream.consumeOrThrow(place, TokenType.RBRACK));
+            rbrackTokens.add(stream.consumeOrError(place, ErrorType.MISSING_RBRACK, TokenType.RBRACK));
         }
     }
 

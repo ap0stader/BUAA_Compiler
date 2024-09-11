@@ -2,6 +2,8 @@ package frontend.lexer;
 
 import global.Config;
 import frontend.type.TokenType;
+import global.error.ErrorTable;
+import global.error.ErrorType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -27,6 +29,11 @@ public class TokenStream {
         this.pos = checkpoints.get(checkpoint);
     }
 
+    // 距离检查点距离
+    public int offset(String checkpoint) {
+        return this.pos - this.checkpoints.get(checkpoint);
+    }
+
     // 是否还有Token
     public boolean hasNext() {
         return this.list.get(this.pos).type() != TokenType.EOF;
@@ -39,9 +46,6 @@ public class TokenStream {
 
     // 获取后offset指向的Token
     public Token getNext(int offset) {
-        if (offset < 0) {
-            throw new UnsupportedOperationException("When getNext(), offset < 0. See traceback for more information.");
-        }
         if (this.hasNext()) {
             return this.list.get(this.pos + offset);
         } else {
@@ -106,6 +110,21 @@ public class TokenStream {
         } else {
             return ret;
         }
+    }
+
+    // 如果当前指向的Token为types中指定的类型，则返回并且指针向后移动一位
+    // 否则登记到错误处理表中
+    public Token consumeOrError(String place, ErrorType errorType, TokenType... types) {
+        if (types.length == 0 && Config.parserThrowable) {
+            throw new RuntimeException("When " + place + ", none of type allowed");
+        }
+        Token ret = this.consumeOrNull(types);
+        if (ret == null) {
+            ErrorTable.addErrorRecord(this.getNext(-1).line(), errorType,
+                    "When " + place + ", unexpected token: " + getNow()
+                            + ". Expected: " + Arrays.toString(types));
+        }
+        return ret;
     }
 
     // 获取stream的ArrayList副本
