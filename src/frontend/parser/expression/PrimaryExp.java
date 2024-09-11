@@ -1,6 +1,6 @@
 package frontend.parser.expression;
 
-import config.Config;
+import global.Config;
 import frontend.lexer.Token;
 import frontend.lexer.TokenStream;
 import frontend.type.ASTNodeOption;

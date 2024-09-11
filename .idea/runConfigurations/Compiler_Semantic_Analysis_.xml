@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Compiler(Error Handling)" type="Application" factoryName="Application">
+  <configuration default="false" name="Compiler(Semantic Analysis)" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="Compiler" />
     <module name="Compiler" />
     <option name="PROGRAM_PARAMETERS" value="-E" />

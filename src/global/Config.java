@@ -1,4 +1,4 @@
-package config;
+package global;
 
 public class Config {
     // 输入文件名
@@ -6,18 +6,19 @@ public class Config {
     // 最终输出文件名
     public static final String outputFilename = "output.txt";
 
-    // 遇到未定义的异常情况，抛出运行时错误，在非特殊
+    // 遇到未定义的异常情况，是否抛出运行时错误
     // 词法分析，如果不允许抛出错误，默认处理方式为ungetc();或无操作
     public static boolean lexerThrowable = true;
     // 语法分析，如果不允许抛出错误，默认处理方式为return null;
     public static boolean parserThrowable = true;
-    // 错误收集
+    // 语义分析后错误处理，如果不允许抛出错误，默认处理方式为无操作
     public static boolean errorHandlingThrowable = true;
 
     /* 总共进行阶段数
+       ==== 前端 ====
        1. 词法分析，生成TokenStream
        2. 语法分析，生成CompUnit(AST)
-       3. 错误处理
+       3. 语义分析，生成IR(LLVM)
      */
     public static int stages = 3;
 
@@ -30,15 +31,15 @@ public class Config {
     public static boolean dumpAST = false;
     public static String dumpASTFileName = outputFilename;
 
-    // 错误收集后，是否输出错误处理结果、输出的文件名
-    public static boolean dumpErrorInfo = false;
-    public static String dumpErrorInfoFileName = outputFilename;
+    // 语义分析后错误处理，是否输出错误收集结果、输出的文件名
+    public static boolean dumpErrorTable = false;
+    public static String dumpErrorTableFileName = outputFilename;
 
     // 通过传递的参数设置全局配置
     public static void setConfigByArgs(String[] args) {
         for (String arg : args) {
             switch (arg) {
-                // 抛出错误限制
+                // 抛出异常限制
                 case "--no-all-throw" -> {
                     lexerThrowable = false;
                     parserThrowable = false;
@@ -54,8 +55,8 @@ public class Config {
                     dumpTokenStreamLineNumber = true;
                     dumpAST = true;
                     dumpASTFileName = "dump_AST.txt";
-                    dumpErrorInfo = true;
-                    dumpErrorInfoFileName = "dump_ErrorInfo.txt";
+                    dumpErrorTable = true;
+                    dumpErrorTableFileName = "dump_ErrorTable.txt";
                 }
                 // Lexical Analysis: -L
                 case "-L" -> {
@@ -67,12 +68,15 @@ public class Config {
                     stages = 2;
                     dumpAST = true;
                 }
-                // Error Handling: -E
+                // Semantic Analysis: -E
                 case "-E" -> {
                     stages = 3;
-                    dumpErrorInfo = true;
+                    dumpErrorTable = true;
                 }
             }
         }
+    }
+
+    private Config() {
     }
 }

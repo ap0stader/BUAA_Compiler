@@ -1,6 +1,6 @@
-package util.dump;
+package util;
 
-import config.Config;
+import global.Config;
 import frontend.lexer.Token;
 import frontend.parser.CompUnit;
 import frontend.type.ASTNode;
@@ -35,5 +35,8 @@ public class DumpAST {
                 out.write(leafNode.type().toString() + " " + leafNode.strVal() + "\n");
             }
         }
+    }
+
+    private DumpAST() {
     }
 }

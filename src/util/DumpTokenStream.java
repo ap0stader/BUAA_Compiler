@@ -1,6 +1,6 @@
-package util.dump;
+package util;
 
-import config.Config;
+import global.Config;
 import frontend.lexer.Token;
 import frontend.type.TokenType;
 
@@ -22,5 +22,8 @@ public class DumpTokenStream {
             }
         }
         out.close();
+    }
+
+    private DumpTokenStream() {
     }
 }

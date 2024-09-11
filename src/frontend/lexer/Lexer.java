@@ -1,6 +1,6 @@
 package frontend.lexer;
 
-import config.Config;
+import global.Config;
 import frontend.type.TokenType;
 
 import java.io.IOException;

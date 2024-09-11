@@ -1,6 +1,6 @@
 package frontend.parser.declaration;
 
-import config.Config;
+import global.Config;
 import frontend.lexer.TokenStream;
 import frontend.parser.declaration.constant.ConstDecl;
 import frontend.parser.declaration.variable.VarDecl;
