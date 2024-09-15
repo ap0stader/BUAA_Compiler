@@ -30,7 +30,7 @@ public class TokenStream {
 
     // 恢复检查点
     public void restore(int checkpointID) {
-        this.pos = checkpoints.get(checkpointID).pos();
+        this.pos = this.checkpoints.get(checkpointID).pos();
     }
 
     // 距离检查点距离
