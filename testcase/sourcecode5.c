@@ -41,6 +41,11 @@ int main()
     // ForStmt
     // RelExp <=
     for(i = 0; i <= 10; i = i + 1) {
+        // ReqlExp <   
+        if (i < 2) {
+            // Stmt continue
+            continue;
+        }
         printf("%d\n", i);
     }
     
@@ -65,7 +70,6 @@ int main()
     // Stmt for 缺省一个，情况2
     for(i = 20;; i = i - 1) {
         printf("%d\n", i);
-        // ReqlExp <
         if (i < 10) {
             break;
         }
