@@ -15,11 +15,11 @@ public class VarDecl implements ASTNode, Decl {
     private final ArrayList<Token> commaTokens;
     private final Token semicnToken;
 
-    // VarDecl → 'int' VarDef { ',' VarDef } ';'
+    // VarDecl → BType VarDef { ',' VarDef } ';'
     public VarDecl(TokenStream stream) {
         String place = "VarDecl()";
-        // 'int'
-        typeToken = stream.consumeOrThrow(place, TokenType.INTTK);
+        // BType → 'int' | 'char'
+        typeToken = stream.consumeOrThrow(place, TokenType.INTTK, TokenType.CHARTK);
         // VarDef
         varDefs = new ArrayList<>();
         varDefs.add(new VarDef(stream));
@@ -44,6 +44,10 @@ public class VarDecl implements ASTNode, Decl {
         }
         ret.add(semicnToken);
         return ret;
+    }
+
+    public Token typeToken() {
+        return typeToken;
     }
 
     public ArrayList<VarDef> varDefs() {

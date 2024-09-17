@@ -11,26 +11,21 @@ import java.util.ArrayList;
 
 public class ConstDef implements ASTNode {
     private final Token ident;
-    private final ArrayList<Token> lbrackTokens;
-    private final ArrayList<ConstExp> constExps;
-    private final ArrayList<Token> rbrackTokens;
+    private final Token lbrackToken;
+    private final ConstExp constExp;
+    private final Token rbrackToken;
     private final Token assignToken;
     private final ConstInitVal constInitVal;
 
-    // ConstDef → Ident { '[' ConstExp ']' } '=' ConstInitVal
+    // ConstDef → Ident [ '[' ConstExp ']' ] '=' ConstInitVal
     ConstDef(TokenStream stream) {
         String place = "ConstDef()";
         // Ident
         ident = stream.consumeOrThrow(place, TokenType.IDENFR);
-        // { '[' ConstExp ']' }
-        lbrackTokens = new ArrayList<>();
-        constExps = new ArrayList<>();
-        rbrackTokens = new ArrayList<>();
-        while (stream.isNow(TokenType.LBRACK)) {
-            lbrackTokens.add(stream.consumeOrThrow(place, TokenType.LBRACK));
-            constExps.add(new ConstExp(stream));
-            rbrackTokens.add(stream.consumeOrError(place, ErrorType.MISSING_RBRACK, TokenType.RBRACK));
-        }
+        // [ '[' ConstExp ']' ]
+        lbrackToken = stream.consumeOrNull(TokenType.LBRACK);
+        constExp = lbrackToken != null ? new ConstExp(stream) : null;
+        rbrackToken = lbrackToken != null ? stream.consumeOrError(place, ErrorType.MISSING_RBRACK, TokenType.RBRACK) : null;
         // '='
         assignToken = stream.consumeOrThrow(place, TokenType.ASSIGN);
         // ConstInitVal
@@ -41,10 +36,10 @@ public class ConstDef implements ASTNode {
     public ArrayList<Object> explore() {
         ArrayList<Object> ret = new ArrayList<>();
         ret.add(ident);
-        for (int i = 0; i < constExps.size(); i++) {
-            ret.add(lbrackTokens.get(i));
-            ret.add(constExps.get(i));
-            ret.add(rbrackTokens.get(i));
+        if (constExp != null) {
+            ret.add(lbrackToken);
+            ret.add(constExp);
+            ret.add(rbrackToken);
         }
         ret.add(assignToken);
         ret.add(constInitVal);
@@ -55,8 +50,8 @@ public class ConstDef implements ASTNode {
         return ident;
     }
 
-    public ArrayList<ConstExp> constExps() {
-        return constExps;
+    public ConstExp constExp() {
+        return constExp;
     }
 
     public ConstInitVal constInitVal() {

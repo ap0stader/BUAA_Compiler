@@ -10,11 +10,12 @@ import frontend.type.TokenType;
 public interface Decl extends BlockItem {
     // Decl → ConstDecl | VarDecl
     static Decl parse(TokenStream stream) {
-        // ConstDecl → $'const'$ 'int' ConstDef { ',' ConstDef } ';'
-        // VarDecl → $'int'$ VarDef { ',' VarDef } ';'
+        // ConstDecl → $'const'$ BType ConstDef { ',' ConstDef } ';'
+        // VarDecl → BType VarDef { ',' VarDef } ';'
+        //   BType → $'int'$ | $'char'$
         if (stream.isNow(TokenType.CONSTTK)) {
             return new ConstDecl(stream);
-        } else if (stream.isNow(TokenType.INTTK)) {
+        } else if (stream.isNow(TokenType.INTTK, TokenType.CHARTK)) {
             return new VarDecl(stream);
         } else {
             if (Config.parserThrowable) {

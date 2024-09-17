@@ -17,37 +17,19 @@ public class FuncFParam implements ASTNode {
 
     private final Token typeToken;
     private final Token ident;
-    private final ArrayList<Token> lbrackTokens;
-    private final ArrayList<ConstExp> constExps;
-    private final ArrayList<Token> rbrackTokens;
+    private final Token lbrackToken;
+    private final Token rbrackToken;
 
-    // FuncFParam → 'int' Ident ['[' ']' { '[' ConstExp ']' }]
+    // FuncFParam → BType Ident ['[' ']']
     FuncFParam(TokenStream stream) {
         String place = "FuncFParam()";
-        // 'int'
-        typeToken = stream.consumeOrThrow(place, TokenType.INTTK);
-        // Indet
+        // BType → 'int' | 'char'
+        typeToken = stream.consumeOrThrow(place, TokenType.INTTK, TokenType.CHARTK);
+        // Ident
         ident = stream.consumeOrThrow(place, TokenType.IDENFR);
-        // ['[' ']' { '[' ConstExp ']' }]
-        if (stream.isNow(TokenType.LBRACK)) {
-            lbrackTokens = new ArrayList<>();
-            constExps = new ArrayList<>();
-            rbrackTokens = new ArrayList<>();
-            // '['
-            lbrackTokens.add(stream.consumeOrThrow(place, TokenType.LBRACK));
-            // ']'
-            rbrackTokens.add(stream.consumeOrError(place, ErrorType.MISSING_RBRACK, TokenType.RBRACK));
-            // { '[' ConstExp ']' }
-            while (stream.isNow(TokenType.LBRACK)) {
-                lbrackTokens.add(stream.consumeOrThrow(place, TokenType.LBRACK));
-                constExps.add(new ConstExp(stream));
-                rbrackTokens.add(stream.consumeOrError(place, ErrorType.MISSING_RBRACK, TokenType.RBRACK));
-            }
-        } else {
-            lbrackTokens = null;
-            constExps = null;
-            rbrackTokens = null;
-        }
+        // ['[' ']']
+        lbrackToken = stream.consumeOrNull(TokenType.LBRACK);
+        rbrackToken = lbrackToken != null ? stream.consumeOrError(place, ErrorType.MISSING_RBRACK, TokenType.RBRACK) : null;
     }
 
     @Override
@@ -56,26 +38,21 @@ public class FuncFParam implements ASTNode {
         ret.add(typeToken);
         ret.add(ident);
         if (getType() == Type.ARRAY) {
-            ret.add(lbrackTokens.get(0));
-            ret.add(rbrackTokens.get(0));
-            for (int i = 0; i < constExps.size(); i++) {
-                ret.add(lbrackTokens.get(i + 1));
-                ret.add(constExps.get(i));
-                ret.add(rbrackTokens.get(i + 1));
-            }
+            ret.add(lbrackToken);
+            ret.add(rbrackToken);
         }
         return ret;
     }
 
     public Type getType() {
-        return lbrackTokens == null ? Type.BASIC : Type.ARRAY;
+        return lbrackToken == null ? Type.BASIC : Type.ARRAY;
     }
 
     public Token ident() {
         return ident;
     }
 
-    public ArrayList<ConstExp> constExps() {
-        return constExps;
+    public Token typeToken() {
+        return typeToken;
     }
 }

@@ -28,8 +28,9 @@ public class FuncDef implements ASTNode {
         lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
         // [FuncFParams]
         // FuncFParams → FuncFParam { ',' FuncFParam }
-        //  FuncFParam → 'int' Ident ['[' ']' { '[' ConstExp ']' }]
-        funcFParams = stream.isNow(TokenType.INTTK) ? new FuncFParams(stream) : null;
+        //  FuncFParam → BType Ident ['[' ']']
+        //       BType → 'int' | 'char'
+        funcFParams = stream.isNow(TokenType.INTTK, TokenType.CHARTK) ? new FuncFParams(stream) : null;
         // ')'
         rparentToken = stream.consumeOrError(place, ErrorType.MISSING_RPARENT, TokenType.RPARENT);
         // Block

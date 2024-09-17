@@ -10,9 +10,10 @@ import java.util.ArrayList;
 public class FuncType implements ASTNode {
     private final Token typeToken;
 
+    // FuncType → 'void' | 'int' | 'char'
     FuncType(TokenStream stream) {
         String place = "FuncType()";
-        typeToken = stream.consumeOrThrow(place, TokenType.VOIDTK, TokenType.INTTK);
+        typeToken = stream.consumeOrThrow(place, TokenType.VOIDTK, TokenType.INTTK, TokenType.CHARTK);
     }
 
     @Override
@@ -20,5 +21,9 @@ public class FuncType implements ASTNode {
         ArrayList<Object> ret = new ArrayList<>();
         ret.add(typeToken);
         return ret;
+    }
+
+    public Token typeToken() {
+        return typeToken;
     }
 }
