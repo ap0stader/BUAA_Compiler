@@ -71,6 +71,7 @@ public class UnaryExp extends ASTNodeWithOption<UnaryExp.UnaryExpOption> {
             String place = "UnaryExp_IndetFuncCall()";
             ident = stream.consumeOrThrow(place, TokenType.IDENFR);
             lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
+            // FuncRParams → Exp { ',' Exp }
             FuncRParams tryfuncRParams;
             int checkpointID = stream.checkpoint("IndetFuncCallTry");
             try {
@@ -79,10 +80,10 @@ public class UnaryExp extends ASTNodeWithOption<UnaryExp.UnaryExpOption> {
                 tryfuncRParams = new FuncRParams(stream);
             } catch (RuntimeException e) {
                 // 尝试读取一次Exp，如果有RuntimeError并且和checkpoint的比较偏移为0，说明没有Exp，也就是没有funcRParams
-                if (stream.offset(checkpointID) != 0) {
-                    throw e;
-                } else {
+                if (stream.offset(checkpointID) == 0) {
                     tryfuncRParams = null;
+                } else {
+                    throw e;
                 }
             }
             funcRParams = tryfuncRParams;

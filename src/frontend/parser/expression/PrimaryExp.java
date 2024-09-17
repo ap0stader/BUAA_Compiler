@@ -6,6 +6,7 @@ import frontend.lexer.TokenStream;
 import frontend.type.ASTNodeOption;
 import frontend.type.ASTNodeWithOption;
 import frontend.type.TokenType;
+import global.error.ErrorType;
 
 import java.util.ArrayList;
 
@@ -49,7 +50,7 @@ public class PrimaryExp extends ASTNodeWithOption<PrimaryExp.PrimaryExpOption> {
             String place = "PrimaryExp_Exp()";
             lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
             exp = new Exp(stream);
-            rparentToken = stream.consumeOrThrow(place, TokenType.RPARENT);
+            rparentToken = stream.consumeOrError(place, ErrorType.MISSING_RPARENT, TokenType.RPARENT);
         }
 
         @Override

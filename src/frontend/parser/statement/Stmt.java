@@ -331,10 +331,10 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
                 tryExp = new Exp(stream);
             } catch (RuntimeException e) {
                 // 尝试读取一次Exp，如果有RuntimeError并且和checkpoint的比较偏移为0，说明没有Exp
-                if (stream.offset(checkpointID) != 0) {
-                    throw e;
-                } else {
+                if (stream.offset(checkpointID) == 0) {
                     tryExp = null;
+                } else {
+                    throw e;
                 }
             }
             exp = tryExp;
@@ -345,7 +345,9 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         public ArrayList<Object> explore() {
             ArrayList<Object> ret = new ArrayList<>();
             ret.add(returnToken);
-            ret.add(exp);
+            if (exp != null) {
+                ret.add(exp);
+            }
             ret.add(semicnToken);
             return ret;
         }

@@ -25,14 +25,16 @@ public class DumpAST {
     // <BlockItem>, <Decl>, <BType> 不用输出
     private static void dump(ArrayList<Object> nodes) throws IOException {
         for (Object node : nodes) {
-            if (node instanceof ASTNode branchNode) {
-                dump(branchNode.explore());
-                out.write("<" + branchNode.getClass().getSimpleName() + ">" + "\n");
-            } else if (node instanceof ASTNodeWithOption<?> branchNodeWithOption) {
-                dump(branchNodeWithOption.extract().explore());
-                out.write("<" + branchNodeWithOption.getClass().getSimpleName() + ">" + "\n");
-            } else if (node instanceof Token leafNode) {
-                out.write(leafNode.type().toString() + " " + leafNode.strVal() + "\n");
+            if (node != null) {
+                if (node instanceof ASTNode branchNode) {
+                    dump(branchNode.explore());
+                    out.write("<" + branchNode.getClass().getSimpleName() + ">" + "\n");
+                } else if (node instanceof ASTNodeWithOption<?> branchNodeWithOption) {
+                    dump(branchNodeWithOption.extract().explore());
+                    out.write("<" + branchNodeWithOption.getClass().getSimpleName() + ">" + "\n");
+                } else if (node instanceof Token leafNode) {
+                    out.write(leafNode.type().toString() + " " + leafNode.strVal() + "\n");
+                }
             }
         }
     }
