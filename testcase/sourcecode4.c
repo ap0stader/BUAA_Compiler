@@ -105,7 +105,7 @@ int main()
 
     // Stmt LVal = Exp
     // LVal 普通常量
-    // UnaryExp Indet() 有参数
+    // UnaryExp Ident() 有参数
     // FunRParams 花括号内重复多次
     // FunRParams 花括号内重复0次
     // AddExp +
@@ -125,7 +125,7 @@ int main()
     }
 
     // Stmt Exp;
-    // UnaryExp Indet() 无参数
+    // UnaryExp Ident() 无参数
     print();
     print2();
 

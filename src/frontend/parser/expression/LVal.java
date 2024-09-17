@@ -17,7 +17,7 @@ public class LVal implements ASTNode {
     // LVal → Ident {'[' Exp ']'}
     public LVal(TokenStream stream) {
         String place = "LVal()";
-        // Indet
+        // Ident
         ident = stream.consumeOrThrow(place, TokenType.IDENFR);
         lbrackTokens = new ArrayList<>();
         exps = new ArrayList<>();

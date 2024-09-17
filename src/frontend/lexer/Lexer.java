@@ -73,7 +73,7 @@ public class Lexer {
             } else if (c == ' ' || c == '\t' || c == '\f' || c == '\r') {
                 fgetc(); // 跳过空白符号
             } else if (c == '_' || isLetter(c)) {
-                this.lexIndetKeyword(); // 标识符或关键字
+                this.lexIdentKeyword(); // 标识符或关键字
             } else if (isDigit(c)) {
                 this.lexIntConst(); // 整型数字常量
             } else if (c == '"') {
@@ -90,29 +90,29 @@ public class Lexer {
         return this.stream;
     }
 
-    private void lexIndetKeyword() throws IOException {
-        StringBuilder indetStrBuilder = new StringBuilder();
+    private void lexIdentKeyword() throws IOException {
+        StringBuilder identStrBuilder = new StringBuilder();
         while (c == '_' || isLetterOrDigit(c)) {
-            indetStrBuilder.append(c);
+            identStrBuilder.append(c);
             fgetc();
         }
-        String indetStr = indetStrBuilder.toString();
-        switch (indetStr) {
-            case "main" -> this.gotToken(TokenType.MAINTK, indetStr);
-            case "const" -> this.gotToken(TokenType.CONSTTK, indetStr);
-            case "int" -> this.gotToken(TokenType.INTTK, indetStr);
-            case "char" -> this.gotToken(TokenType.CHARTK, indetStr);
-            case "void" -> this.gotToken(TokenType.VOIDTK, indetStr);
-            case "break" -> this.gotToken(TokenType.BREAKTK, indetStr);
-            case "continue" -> this.gotToken(TokenType.CONTINUETK, indetStr);
-            case "if" -> this.gotToken(TokenType.IFTK, indetStr);
-            case "else" -> this.gotToken(TokenType.ELSETK, indetStr);
-            case "for" -> this.gotToken(TokenType.FORTK, indetStr);
-            case "return" -> this.gotToken(TokenType.RETURNTK, indetStr);
-            case "getint" -> this.gotToken(TokenType.GETINTTK, indetStr);
-            case "getchar" -> this.gotToken(TokenType.GETCHARTK, indetStr);
-            case "printf" -> this.gotToken(TokenType.PRINTFTK, indetStr);
-            default -> this.gotToken(TokenType.IDENFR, indetStr);
+        String identStr = identStrBuilder.toString();
+        switch (identStr) {
+            case "main" -> this.gotToken(TokenType.MAINTK, identStr);
+            case "const" -> this.gotToken(TokenType.CONSTTK, identStr);
+            case "int" -> this.gotToken(TokenType.INTTK, identStr);
+            case "char" -> this.gotToken(TokenType.CHARTK, identStr);
+            case "void" -> this.gotToken(TokenType.VOIDTK, identStr);
+            case "break" -> this.gotToken(TokenType.BREAKTK, identStr);
+            case "continue" -> this.gotToken(TokenType.CONTINUETK, identStr);
+            case "if" -> this.gotToken(TokenType.IFTK, identStr);
+            case "else" -> this.gotToken(TokenType.ELSETK, identStr);
+            case "for" -> this.gotToken(TokenType.FORTK, identStr);
+            case "return" -> this.gotToken(TokenType.RETURNTK, identStr);
+            case "getint" -> this.gotToken(TokenType.GETINTTK, identStr);
+            case "getchar" -> this.gotToken(TokenType.GETCHARTK, identStr);
+            case "printf" -> this.gotToken(TokenType.PRINTFTK, identStr);
+            default -> this.gotToken(TokenType.IDENFR, identStr);
         }
     }
 
