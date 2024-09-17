@@ -50,12 +50,14 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
                 int checkpointID = stream.checkpoint("StmtTry");
                 Exp tryExp = new Exp(stream);
                 if (stream.isNow(TokenType.ASSIGN)) {
-                    stream.restore(checkpointID);
                     if (stream.isNext(1, TokenType.GETINTTK)) {
+                        stream.restore(checkpointID);
                         yield new Stmt(new Stmt_LValGetint(stream));
                     } else if (stream.isNext(1, TokenType.GETCHARTK)) {
+                        stream.restore(checkpointID);
                         yield new Stmt(new Stmt_LValGetchar(stream));
                     } else {
+                        stream.restore(checkpointID);
                         yield new Stmt(new Stmt_LValAssign(stream));
                     }
                 } else {
