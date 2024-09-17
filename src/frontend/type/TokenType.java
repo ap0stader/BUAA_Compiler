@@ -3,11 +3,13 @@ package frontend.type;
 public enum TokenType {
     IDENFR,     // Ident
     INTCON,     // IntConst
-    STRCON,     // FormatString
+    STRCON,     // StringConst
+    CHRCON,     // CharConst
 
     MAINTK,     // main
     CONSTTK,    // const
     INTTK,      // int
+    CHARTK,     // char
     VOIDTK,     // void
     BREAKTK,    // break
     CONTINUETK, // continue
@@ -17,6 +19,7 @@ public enum TokenType {
     RETURNTK,   // return
 
     GETINTTK,   // getint
+    GETCHARTK,  // getchar
     PRINTFTK,   // printf
 
     PLUS,       // +
