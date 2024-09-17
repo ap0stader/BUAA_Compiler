@@ -7,23 +7,23 @@ import frontend.type.TokenType;
 
 import java.util.ArrayList;
 
-public class Number implements ASTNode {
-    private final Token intConst;
+public class Character implements ASTNode {
+    private final Token charConst;
 
-    // Number → IntConst
-    Number(TokenStream stream) {
-        String place = "Number()";
-        intConst = stream.consumeOrThrow(place, TokenType.INTCON);
+    // Character → CharConst
+    Character(TokenStream stream) {
+        String place = "Character()";
+        charConst = stream.consumeOrThrow(place, TokenType.CHRCON);
     }
 
     @Override
     public ArrayList<Object> explore() {
         ArrayList<Object> ret = new ArrayList<>();
-        ret.add(intConst);
+        ret.add(charConst);
         return ret;
     }
 
-    public Token intConst() {
-        return intConst;
+    public Token charConst() {
+        return charConst;
     }
 }

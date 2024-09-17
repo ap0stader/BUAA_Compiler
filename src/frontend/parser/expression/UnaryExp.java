@@ -19,16 +19,17 @@ public class UnaryExp extends ASTNodeWithOption<UnaryExp.UnaryExpOption> {
     }
 
     // UnaryExp → PrimaryExp | Ident '(' [FuncRParams] ')' | UnaryOp UnaryExp
-    // PrimaryExp → '(' Exp ')' | LVal | Number
+    // PrimaryExp → '(' Exp ')' | LVal | Number | Character
     //                     LVal → Ident {'[' Exp ']'}
     //                          Number → IntConst
+    //                                Character → CharConst
     // UnaryOp → '+' | '−' | '!'
     static UnaryExp parse(TokenStream stream) {
         if (stream.isNow(TokenType.PLUS, TokenType.MINU, TokenType.NOT)) {
             return new UnaryExp(new UnaryExp_UnaryOp(stream));
         } else if (stream.isNow(TokenType.IDENFR) && stream.isNext(1, TokenType.LPARENT)) {
             return new UnaryExp(new UnaryExp_IndetFuncCall(stream));
-        } else if (stream.isNow(TokenType.LPARENT, TokenType.IDENFR, TokenType.INTCON)) {
+        } else if (stream.isNow(TokenType.LPARENT, TokenType.IDENFR, TokenType.INTCON, TokenType.CHRCON)) {
             return new UnaryExp(new UnaryExp_PrimaryExp(stream));
         } else {
             if (Config.parserThrowable) {

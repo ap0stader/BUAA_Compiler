@@ -17,9 +17,10 @@ public class PrimaryExp extends ASTNodeWithOption<PrimaryExp.PrimaryExpOption> {
     public interface PrimaryExpOption extends ASTNodeOption {
     }
 
-    // PrimaryExp → '(' Exp ')' | LVal | Number
+    // PrimaryExp → '(' Exp ')' | LVal | Number | Character
     //                     LVal → Ident {'[' Exp ']'}
     //                          Number → IntConst
+    //                                Character → CharConst
     static PrimaryExp parse(TokenStream stream) {
         if (stream.isNow(TokenType.LPARENT)) {
             return new PrimaryExp(new PrimaryExp_Exp(stream));
@@ -27,6 +28,8 @@ public class PrimaryExp extends ASTNodeWithOption<PrimaryExp.PrimaryExpOption> {
             return new PrimaryExp(new PrimaryExp_LVal(stream));
         } else if (stream.isNow(TokenType.INTCON)) {
             return new PrimaryExp(new PrimaryExp_Number(stream));
+        } else if (stream.isNow(TokenType.CHRCON)) {
+            return new PrimaryExp(new PrimaryExp_Character(stream));
         } else {
             if (Config.parserThrowable) {
                 throw new RuntimeException("When PrimaryExp.parse(), unexpected token: " + stream.getNow());
@@ -100,6 +103,25 @@ public class PrimaryExp extends ASTNodeWithOption<PrimaryExp.PrimaryExpOption> {
 
         public Number number() {
             return number;
+        }
+    }
+
+    public static class PrimaryExp_Character implements PrimaryExpOption {
+        private final Character character;
+
+        private PrimaryExp_Character(TokenStream stream) {
+            character = new Character(stream);
+        }
+
+        @Override
+        public ArrayList<Object> explore() {
+            ArrayList<Object> ret = new ArrayList<>();
+            ret.add(character);
+            return ret;
+        }
+
+        public Character character() {
+            return character;
         }
     }
 }
