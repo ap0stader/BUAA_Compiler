@@ -228,6 +228,7 @@ public class Lexer {
                 if (c == '&') {
                     this.gotToken(TokenType.AND, "&&");
                 } else {
+                    this.gotToken(TokenType.AND, "&");
                     ErrorTable.addErrorRecord(this.line, ErrorType.ILLEGAL_AND_OR,
                             "Got '" + c + "'(ASCII:" + (int) c + ") when expected '&'");
                     ungetc();
@@ -238,6 +239,7 @@ public class Lexer {
                 if (c == '|') {
                     this.gotToken(TokenType.OR, "||");
                 } else {
+                    this.gotToken(TokenType.OR, "|");
                     ErrorTable.addErrorRecord(this.line, ErrorType.ILLEGAL_AND_OR,
                             "Got '" + c + "'(ASCII:" + (int) c + ") when expected '|'");
                     ungetc();
