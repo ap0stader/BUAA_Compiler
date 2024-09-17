@@ -66,7 +66,6 @@ public class Lexer {
         }
         fgetc();
         // 约定为每一次循环结束之后都保证c为预读好的一个字符
-        // 注：
         while (c != EOF) {
             if (c == '\n') {
                 this.newLine(); // 记录行号
@@ -78,7 +77,9 @@ public class Lexer {
             } else if (isDigit(c)) {
                 this.lexIntConst(); // 整型数字常量
             } else if (c == '"') {
-                this.lexFormatString(); // 输出格式字符串
+                this.lexStringConst(); // 字符串常量
+            } else if (c == '\'') {
+                this.lexCharConst(); // 字符常量
             } else {
                 this.lexSymbolComment(); // 各种符号或注释，若为未知字符则直接跳过
             }
@@ -100,6 +101,7 @@ public class Lexer {
             case "main" -> this.gotToken(TokenType.MAINTK, indetStr);
             case "const" -> this.gotToken(TokenType.CONSTTK, indetStr);
             case "int" -> this.gotToken(TokenType.INTTK, indetStr);
+            case "char" -> this.gotToken(TokenType.CHARTK, indetStr);
             case "void" -> this.gotToken(TokenType.VOIDTK, indetStr);
             case "break" -> this.gotToken(TokenType.BREAKTK, indetStr);
             case "continue" -> this.gotToken(TokenType.CONTINUETK, indetStr);
@@ -108,6 +110,7 @@ public class Lexer {
             case "for" -> this.gotToken(TokenType.FORTK, indetStr);
             case "return" -> this.gotToken(TokenType.RETURNTK, indetStr);
             case "getint" -> this.gotToken(TokenType.GETINTTK, indetStr);
+            case "getchar" -> this.gotToken(TokenType.GETCHARTK, indetStr);
             case "printf" -> this.gotToken(TokenType.PRINTFTK, indetStr);
             default -> this.gotToken(TokenType.IDENFR, indetStr);
         }
@@ -123,39 +126,31 @@ public class Lexer {
         this.gotToken(TokenType.INTCON, intConstStr);
     }
 
-    private void lexFormatString() throws IOException {
+    private void lexStringConst() throws IOException {
         StringBuilder formatStringStrBuilder = new StringBuilder();
         formatStringStrBuilder.append('"');
         fgetc();
         while (c != '"') {
-            // 合法字符：ASCII为32, 33, 37, 40-126的ASCII字符
-            // （合法）32:(space) 33:! 37:%
-            // （非法）34:" 35:# 36:$ 38:& 39:'
-            if (c == 32 || c == 33 || c == 37 || (40 <= c && c <= 126)) {
+            // 包括32-126的所有ASCII字符
+            if (32 <= c && c <= 126) {
                 formatStringStrBuilder.append(c);
-                if (c == 37) {
-                    // '%' (37) 出现当且仅当为'%d'
+                // '\' (92) 出现需要特别处理转义字符
+                if (c == '\\') {
                     fgetc();
-                    if (c == 'd') {
-                        formatStringStrBuilder.append(c);
-                    } else {
-                        // 可能其他分支需要使用
-                        ungetc();
-                        ErrorTable.addErrorRecord(line, ErrorType.ILLEGAL_FORMATSTRING_CHAR, "Got '%', but not %d");
-                    }
-                } else if (c == 92) {
-                    // '\' (92) 出现当且仅当为'\n'
-                    fgetc();
-                    if (c == 'n') {
-                        formatStringStrBuilder.append(c);
-                    } else {
-                        // 可能其他分支需要使用
-                        ungetc();
-                        ErrorTable.addErrorRecord(line, ErrorType.ILLEGAL_FORMATSTRING_CHAR, "Got '\\', but not \\n");
+                    switch (c) {
+                        // 合法的转义字符
+                        case 'a', 'b', 't', 'n', 'v', 'f', '"', '\'', '\\', '0':
+                            formatStringStrBuilder.append(c);
+                            break;
+                        default:
+                            ungetc();
+                            throw new RuntimeException("When lexStringConst(), after receive a \\," +
+                                    " got '" + c + "'(ASCII:" + (int) c + ") at line" + this.line + "," +
+                                    " expected 'a', 'b', 't', 'n', 'v', 'f', '\\\"', '\\'', '\\\\', '0'");
                     }
                 }
             } else {
-                ErrorTable.addErrorRecord(line, ErrorType.ILLEGAL_FORMATSTRING_CHAR, "Got '" + c + "'(ASCII:" + (int) c + ")");
+                throw new RuntimeException("When lexStringConst(), got '" + c + "'(ASCII:" + (int) c + ") at line" + this.line);
             }
             fgetc();
         } // UNSTABLE 此处没有考虑字符串中非法的换行导致的行数统计错误的问题
@@ -163,6 +158,44 @@ public class Lexer {
         fgetc();
         String formatStringStr = formatStringStrBuilder.toString();
         this.gotToken(TokenType.STRCON, formatStringStr);
+    }
+
+    private void lexCharConst() throws IOException {
+        StringBuilder formatStringStrBuilder = new StringBuilder();
+        formatStringStrBuilder.append('\'');
+        fgetc();
+        // 包括32-126的所有ASCII字符
+        if (32 <= c && c <= 126) {
+            formatStringStrBuilder.append(c);
+            // '\' (92) 出现需要特别处理转义字符
+            if (c == '\\') {
+                fgetc();
+                switch (c) {
+                    // 合法的转义字符
+                    case 'a', 'b', 't', 'n', 'v', 'f', '"', '\'', '\\', '0':
+                        formatStringStrBuilder.append(c);
+                        break;
+                    default:
+                        ungetc();
+                        throw new RuntimeException("When lexCharConst(), after receive a \\," +
+                                " got '" + c + "'(ASCII:" + (int) c + ") at line" + this.line + "," +
+                                " expected 'a', 'b', 't', 'n', 'v', 'f', '\\\"', '\\'', '\\\\', '0'");
+                }
+            }
+        } else {
+            throw new RuntimeException("When lexCharConst(), got '" + c + "'(ASCII:" + (int) c + ") at line" + this.line);
+        }
+        fgetc();
+        if (c == '\'') {
+            formatStringStrBuilder.append('\'');
+        } else {
+            ungetc();
+            throw new RuntimeException("When lexCharConst(), more than one character in single quotation mark at line" + this.line);
+        }
+        // UNSTABLE 此处没有考虑字符中非法的换行导致的行数统计错误的问题
+        fgetc();
+        String formatStringStr = formatStringStrBuilder.toString();
+        this.gotToken(TokenType.CHRCON, formatStringStr);
     }
 
     private void lexSymbolComment() throws IOException {
@@ -195,11 +228,9 @@ public class Lexer {
                 if (c == '&') {
                     this.gotToken(TokenType.AND, "&&");
                 } else {
-                    if (Config.lexerThrowable) {
-                        throw new RuntimeException("When Lexer.lexSymbolComment()->case '&', unexpected character: " + c);
-                    } else {
-                        ungetc();
-                    }
+                    ErrorTable.addErrorRecord(this.line, ErrorType.ILLEGAL_AND_OR,
+                            "Got '" + c + "'(ASCII:" + (int) c + ") when expected '&'");
+                    ungetc();
                 }
             }
             case '|' -> {
@@ -207,11 +238,9 @@ public class Lexer {
                 if (c == '|') {
                     this.gotToken(TokenType.OR, "||");
                 } else {
-                    if (Config.lexerThrowable) {
-                        throw new RuntimeException("When Lexer.lexSymbolComment()->case '|', unexpected character: " + c);
-                    } else {
-                        ungetc();
-                    }
+                    ErrorTable.addErrorRecord(this.line, ErrorType.ILLEGAL_AND_OR,
+                            "Got '" + c + "'(ASCII:" + (int) c + ") when expected '|'");
+                    ungetc();
                 }
             }
             case '<' -> {
