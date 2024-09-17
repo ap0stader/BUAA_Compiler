@@ -30,7 +30,8 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             | 'continue' ';'
             | 'return' [Exp] ';'
             | LVal '=' 'getint' '(' ')' ';'
-            | 'printf' '(' FormatString { ',' Exp } ')' ';' */
+            | LVal '=' 'getchar' '(' ')' ';'
+            | 'printf' '(' StringConst { ',' Exp } ')' ';' */
     static Stmt parse(TokenStream stream) {
         return switch (stream.getNow().type()) {
             case SEMICN -> new Stmt(new Stmt_Semicn(stream));
@@ -45,14 +46,16 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
                 // Stmt → LVal '=' Exp ';'
                 //      | Exp ';'
                 //      | LVal '=' 'getint' '(' ')' ';'
+                //      | LVal '=' 'getchar' '(' ')' ';'
                 int checkpointID = stream.checkpoint("StmtTry");
                 Exp tryExp = new Exp(stream);
                 if (stream.isNow(TokenType.ASSIGN)) {
+                    stream.restore(checkpointID);
                     if (stream.isNext(1, TokenType.GETINTTK)) {
-                        stream.restore(checkpointID);
                         yield new Stmt(new Stmt_LValGetint(stream));
+                    } else if (stream.isNext(1, TokenType.GETCHARTK)) {
+                        yield new Stmt(new Stmt_LValGetchar(stream));
                     } else {
-                        stream.restore(checkpointID);
                         yield new Stmt(new Stmt_LValAssign(stream));
                     }
                 } else {
@@ -208,8 +211,6 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         public Stmt elseStmt() {
             return elseStmt;
         }
-
-
     }
 
     // Stmt → 'for' '(' [ForStmt] ';' [Cond] ';' [ForStmt] ')' Stmt
@@ -390,11 +391,48 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         }
     }
 
-    // Stmt → 'printf' '(' FormatString { ',' Exp } ')' ';'
+
+    // Stmt → LVal '=' 'getchar' '(' ')' ';'
+    public static class Stmt_LValGetchar implements StmtOption {
+        private final LVal lval;
+        private final Token assignToken;
+        private final Token getcharToken;
+        private final Token lparentToken;
+        private final Token rparentToken;
+        private final Token semicnToken;
+
+        private Stmt_LValGetchar(TokenStream stream) {
+            String place = "Stmt_LValGetint()";
+            lval = new LVal(stream);
+            assignToken = stream.consumeOrThrow(place, TokenType.ASSIGN);
+            getcharToken = stream.consumeOrThrow(place, TokenType.GETCHARTK);
+            lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
+            rparentToken = stream.consumeOrError(place, ErrorType.MISSING_RPARENT, TokenType.RPARENT);
+            semicnToken = stream.consumeOrError(place, ErrorType.MISSING_SEMICN, TokenType.SEMICN);
+        }
+
+        @Override
+        public ArrayList<Object> explore() {
+            ArrayList<Object> ret = new ArrayList<>();
+            ret.add(lval);
+            ret.add(assignToken);
+            ret.add(getcharToken);
+            ret.add(lparentToken);
+            ret.add(rparentToken);
+            ret.add(semicnToken);
+            return ret;
+        }
+
+        public LVal lval() {
+            return lval;
+        }
+    }
+
+    // Stmt → 'printf' '(' StringConst { ',' Exp } ')' ';'
     public static class Stmt_Printf implements StmtOption {
         private final Token printfToken;
         private final Token lparentToken;
-        private final Token formatString;
+        private final Token stringConst;
         private final ArrayList<Token> commaTokens;
         private final ArrayList<Exp> exps;
         private final Token rparentToken;
@@ -404,7 +442,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             String place = "Stmt_Printf()";
             printfToken = stream.consumeOrThrow(place, TokenType.PRINTFTK);
             lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
-            formatString = stream.consumeOrThrow(place, TokenType.STRCON);
+            stringConst = stream.consumeOrThrow(place, TokenType.STRCON);
             commaTokens = new ArrayList<>();
             exps = new ArrayList<>();
             while (stream.isNow(TokenType.COMMA)) {
@@ -420,7 +458,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             ArrayList<Object> ret = new ArrayList<>();
             ret.add(printfToken);
             ret.add(lparentToken);
-            ret.add(formatString);
+            ret.add(stringConst);
             for (int i = 0; i < exps.size(); i++) {
                 ret.add(commaTokens.get(i));
                 ret.add(exps.get(i));
@@ -430,8 +468,8 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             return ret;
         }
 
-        public Token formatString() {
-            return formatString;
+        public Token stringConst() {
+            return stringConst;
         }
 
         public ArrayList<Exp> exps() {

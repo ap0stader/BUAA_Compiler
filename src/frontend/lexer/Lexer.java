@@ -127,20 +127,20 @@ public class Lexer {
     }
 
     private void lexStringConst() throws IOException {
-        StringBuilder formatStringStrBuilder = new StringBuilder();
-        formatStringStrBuilder.append('"');
+        StringBuilder stringConstStrBuilder = new StringBuilder();
+        stringConstStrBuilder.append('"');
         fgetc();
         while (c != '"') {
             // 包括32-126的所有ASCII字符
             if (32 <= c && c <= 126) {
-                formatStringStrBuilder.append(c);
+                stringConstStrBuilder.append(c);
                 // '\' (92) 出现需要特别处理转义字符
                 if (c == '\\') {
                     fgetc();
                     switch (c) {
                         // 合法的转义字符
                         case 'a', 'b', 't', 'n', 'v', 'f', '"', '\'', '\\', '0':
-                            formatStringStrBuilder.append(c);
+                            stringConstStrBuilder.append(c);
                             break;
                         default:
                             ungetc();
@@ -154,26 +154,26 @@ public class Lexer {
             }
             fgetc();
         } // UNSTABLE 此处没有考虑字符串中非法的换行导致的行数统计错误的问题
-        formatStringStrBuilder.append('"');
+        stringConstStrBuilder.append('"');
         fgetc();
-        String formatStringStr = formatStringStrBuilder.toString();
-        this.gotToken(TokenType.STRCON, formatStringStr);
+        String stringConstStr = stringConstStrBuilder.toString();
+        this.gotToken(TokenType.STRCON, stringConstStr);
     }
 
     private void lexCharConst() throws IOException {
-        StringBuilder formatStringStrBuilder = new StringBuilder();
-        formatStringStrBuilder.append('\'');
+        StringBuilder charConstStrBuilder = new StringBuilder();
+        charConstStrBuilder.append('\'');
         fgetc();
         // 包括32-126的所有ASCII字符
         if (32 <= c && c <= 126) {
-            formatStringStrBuilder.append(c);
+            charConstStrBuilder.append(c);
             // '\' (92) 出现需要特别处理转义字符
             if (c == '\\') {
                 fgetc();
                 switch (c) {
                     // 合法的转义字符
                     case 'a', 'b', 't', 'n', 'v', 'f', '"', '\'', '\\', '0':
-                        formatStringStrBuilder.append(c);
+                        charConstStrBuilder.append(c);
                         break;
                     default:
                         ungetc();
@@ -187,15 +187,15 @@ public class Lexer {
         }
         fgetc();
         if (c == '\'') {
-            formatStringStrBuilder.append('\'');
+            charConstStrBuilder.append('\'');
         } else {
             ungetc();
             throw new RuntimeException("When lexCharConst(), more than one character in single quotation mark at line" + this.line);
         }
         // UNSTABLE 此处没有考虑字符中非法的换行导致的行数统计错误的问题
         fgetc();
-        String formatStringStr = formatStringStrBuilder.toString();
-        this.gotToken(TokenType.CHRCON, formatStringStr);
+        String charConstStr = charConstStrBuilder.toString();
+        this.gotToken(TokenType.CHRCON, charConstStr);
     }
 
     private void lexSymbolComment() throws IOException {

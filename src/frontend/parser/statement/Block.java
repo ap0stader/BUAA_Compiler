@@ -34,4 +34,8 @@ public class Block implements ASTNode {
         ret.add(rbraceToken);
         return ret;
     }
+
+    public ArrayList<BlockItem> blockItems() {
+        return blockItems;
+    }
 }
