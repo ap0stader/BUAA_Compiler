@@ -11,15 +11,14 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PushbackReader;
 
-import static java.lang.System.exit;
-
 public class Compiler {
     public static void main(String[] args) {
         Config.setConfigByArgs(args);
         try {
             frontend();
-            if (ErrorTable.notEmpty() && Config.frontendErrorInterrupt) {
-                throw new RuntimeException("Interrupted: Error Table is not empty!\n" + ErrorTable.getTreeSetCopy());
+            DumpErrorTable.dump();
+            if (Config.stages >= 4 && ErrorTable.isEmpty()) {
+
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -37,31 +36,19 @@ public class Compiler {
         if (Config.dumpTokenStream) {
             DumpTokenStream.dump(tokenStream.getArrayListCopy());
         }
-        tryContinue();
+        if (Config.stages <= 1) {
+            return;
+        }
         // Stage2 语法分析
         // 创建CompUnit(AST) -> [输出CompUnit(AST)] -> 尝试继续
         CompUnit compUnit = new CompUnit(tokenStream);
         if (Config.dumpAST) {
             DumpAST.dump(compUnit);
         }
-        tryContinue();
+        if (Config.stages <= 2) {
+            return;
+        }
         // Stage3 语义分析
         //
-
-        // 错误收集结果输出
-        if (Config.dumpErrorTable) {
-            DumpErrorTable.dump();
-        }
-        tryContinue();
-    }
-
-    // 比对需要执行步骤与当前已经执行了的步骤，判断是否应当继续执行
-    private static int finishedStep = 0;
-
-    private static void tryContinue() {
-        finishedStep++;
-        if (finishedStep >= Config.stages) {
-            exit(0);
-        }
     }
 }

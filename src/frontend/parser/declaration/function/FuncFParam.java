@@ -2,7 +2,6 @@ package frontend.parser.declaration.function;
 
 import frontend.lexer.Token;
 import frontend.lexer.TokenStream;
-import frontend.parser.expression.ConstExp;
 import frontend.type.ASTNode;
 import frontend.type.TokenType;
 import global.error.ErrorType;

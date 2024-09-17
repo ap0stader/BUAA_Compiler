@@ -16,8 +16,8 @@ public class ErrorTable {
         errorRecords.add(new ErrorRecord(line, type, info));
     }
 
-    public static boolean notEmpty() {
-        return !errorRecords.isEmpty();
+    public static boolean isEmpty() {
+        return errorRecords.isEmpty();
     }
 
     public static TreeSet<ErrorRecord> getTreeSetCopy() {
