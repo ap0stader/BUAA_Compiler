@@ -11,15 +11,13 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PushbackReader;
 
+import static java.lang.System.exit;
+
 public class Compiler {
     public static void main(String[] args) {
         Config.setConfigByArgs(args);
         try {
             frontend();
-            DumpErrorTable.dump();
-            if (Config.stages >= 4 && ErrorTable.isEmpty()) {
-
-            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -33,6 +31,7 @@ public class Compiler {
         Lexer lexer = new Lexer(inputFileReader);
         TokenStream tokenStream = lexer.getTokenStream();
         inputFileReader.close();
+        tryContinue();
         if (Config.dumpTokenStream) {
             DumpTokenStream.dump(tokenStream.getArrayListCopy());
         }
@@ -45,10 +44,23 @@ public class Compiler {
         if (Config.dumpAST) {
             DumpAST.dump(compUnit);
         }
+        tryContinue();
         if (Config.stages <= 2) {
             return;
         }
         // Stage3 语义分析
         //
+
+        tryContinue();
+        if (Config.stages <= 3) {
+            return;
+        }
+    }
+
+    private static void tryContinue() throws IOException {
+        if (ErrorTable.notEmpty()) {
+            DumpErrorTable.dump();
+            exit(1);
+        }
     }
 }
