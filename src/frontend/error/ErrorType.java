@@ -1,4 +1,4 @@
-package global.error;
+package frontend.error;
 
 public enum ErrorType {
     ILLEGAL_AND_OR("a"),

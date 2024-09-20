@@ -1,4 +1,4 @@
-package global.error;
+package frontend.error;
 
 public record ErrorRecord(int line, ErrorType type, String info) implements Comparable<ErrorRecord> {
     @Override

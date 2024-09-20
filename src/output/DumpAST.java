@@ -1,4 +1,4 @@
-package util;
+package output;
 
 import global.Config;
 import frontend.lexer.Token;

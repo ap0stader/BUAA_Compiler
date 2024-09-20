@@ -4,7 +4,7 @@ import frontend.lexer.Token;
 import frontend.lexer.TokenStream;
 import frontend.type.ASTNode;
 import frontend.type.TokenType;
-import global.error.ErrorType;
+import frontend.error.ErrorType;
 
 import java.util.ArrayList;
 

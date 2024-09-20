@@ -2,8 +2,8 @@ package frontend.lexer;
 
 import global.Config;
 import frontend.type.TokenType;
-import global.error.ErrorTable;
-import global.error.ErrorType;
+import frontend.error.ErrorTable;
+import frontend.error.ErrorType;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,6 +13,12 @@ public class TokenStream {
     private int pos = 0;
 
     private final ArrayList<CheckPoint> checkpoints = new ArrayList<>();
+
+    private final ErrorTable errorTable;
+
+    public TokenStream(ErrorTable errorTable) {
+        this.errorTable = errorTable;
+    }
 
     private record CheckPoint(int pos, String description) {
     }
@@ -124,7 +130,7 @@ public class TokenStream {
         }
         Token ret = this.consumeOrNull(types);
         if (ret == null) {
-            ErrorTable.addErrorRecord(this.getNext(-1).line(), errorType,
+            this.errorTable.addErrorRecord(this.getNext(-1).line(), errorType,
                     "When " + place + ", unexpected token: " + getNow()
                             + ". Expected: " + Arrays.toString(types));
         }

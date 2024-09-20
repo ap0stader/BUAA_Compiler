@@ -2,8 +2,8 @@ package frontend.lexer;
 
 import global.Config;
 import frontend.type.TokenType;
-import global.error.ErrorTable;
-import global.error.ErrorType;
+import frontend.error.ErrorTable;
+import frontend.error.ErrorType;
 
 import java.io.IOException;
 import java.io.PushbackReader;
@@ -15,7 +15,9 @@ public class Lexer {
     private int indexOfLine = 1;
     private boolean finish = false;
 
-    private final TokenStream stream = new TokenStream();
+    private final ErrorTable errorTable;
+
+    private final TokenStream stream;
 
     private static final char EOF = (char) -1;
 
@@ -32,8 +34,10 @@ public class Lexer {
         return isLetter(ch) || isDigit(ch);
     }
 
-    public Lexer(PushbackReader reader) {
+    public Lexer(PushbackReader reader, ErrorTable errorTable) {
         this.reader = reader;
+        this.errorTable = errorTable;
+        this.stream = new TokenStream(this.errorTable);
     }
 
     // 从文件中读入下一个字符
@@ -229,7 +233,7 @@ public class Lexer {
                     this.gotToken(TokenType.AND, "&&");
                 } else {
                     this.gotToken(TokenType.AND, "&");
-                    ErrorTable.addErrorRecord(this.line, ErrorType.ILLEGAL_AND_OR,
+                    this.errorTable.addErrorRecord(this.line, ErrorType.ILLEGAL_AND_OR,
                             "Got '" + c + "'(ASCII:" + (int) c + ") when expected '&'");
                     ungetc();
                 }
@@ -240,7 +244,7 @@ public class Lexer {
                     this.gotToken(TokenType.OR, "||");
                 } else {
                     this.gotToken(TokenType.OR, "|");
-                    ErrorTable.addErrorRecord(this.line, ErrorType.ILLEGAL_AND_OR,
+                    this.errorTable.addErrorRecord(this.line, ErrorType.ILLEGAL_AND_OR,
                             "Got '" + c + "'(ASCII:" + (int) c + ") when expected '|'");
                     ungetc();
                 }
