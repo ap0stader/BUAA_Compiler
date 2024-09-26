@@ -32,8 +32,6 @@ public class Compiler {
         Lexer lexer = new Lexer(sourceCode.reader(), errorTable);
         TokenStream tokenStream = lexer.getTokenStream();
         sourceCode.close();
-        // TODO 下一行为参与词法分析评测时的特地设置
-        errorHandle(errorTable);
         if (Config.dumpTokenStream) {
             DumpTokenStream.dump(tokenStream.getArrayListCopy());
         }
@@ -41,6 +39,7 @@ public class Compiler {
         // Stage2 语法分析
         // 创建CompUnit(AST) -> 错误处理 -> [输出CompUnit(AST)]
         CompUnit compUnit = new CompUnit(tokenStream);
+        // TODO 下一行为参与语法分析评测时的特地设置
         errorHandle(errorTable);
         if (Config.dumpAST) {
             DumpAST.dump(compUnit);
