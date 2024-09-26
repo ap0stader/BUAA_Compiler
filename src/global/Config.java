@@ -20,7 +20,7 @@ public class Config {
        1. 词法分析，生成TokenStream
        2. 语法分析，生成CompUnit(AST)
      */
-    public static int stages = 1;
+    public static int stages = 2;
 
     // 词法分析后，是否输出TokenStream、输出的文件名、是否输出行号等信息
     public static boolean dumpTokenStream = false;

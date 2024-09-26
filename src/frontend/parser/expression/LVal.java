@@ -26,7 +26,7 @@ public class LVal implements ASTNode {
         ident = stream.consumeOrThrow(place, TokenType.IDENFR);
         // ['[' Exp ']']
         lbrackToken = stream.consumeOrNull(TokenType.LBRACK);
-        exp = lbrackToken != null ? new ConstExp(stream) : null;
+        exp = lbrackToken != null ? new Exp(stream) : null;
         rbrackToken = lbrackToken != null ? stream.consumeOrError(place, ErrorType.MISSING_RBRACK, TokenType.RBRACK) : null;
     }
 
