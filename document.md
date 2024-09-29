@@ -236,11 +236,78 @@ public record Token(TokenType type, String strVal, int line, int indexOfLine) {}
 
 ### 1. 设计
 
-
+将`TokenStream`从`Lexer`中独立出来，作为`Lexer`产生的数据传输给语法分析部分。语法分析部分采用递归下降子程序法组织，各个作为抽象语法树结点的对应非终结符的类的构造方法作为递归下降的子程序。每个类的对象根据文法的要求保存子结点或者词素。若一个非终结符的候选式有多个差距较大的，则分别构建不同的类。完成构建抽象语法树后，使用后序遍历方式输出整棵语法树。
 
 ### 2. 实现
 
+#### 2.1 `TokenStream`词素流
 
+为了方便进行获取指定类型的词素，如果不是指定的词素返回空或抛出异常或记录错误这个需要多次进行的操作，在词素流中增加多个类型的`consume`方法。
+
+```java
+// 如果当前指向的Token为types中指定的类型，则返回并且指针向后移动一位
+// 否则返回null
+public Token consumeOrNull(TokenType... types) {}
+// 如果当前指向的Token为types中指定的类型，则返回并且指针向后移动一位
+// 否则根据情况决定是否抛出错误
+public Token consumeOrThrow(String place, TokenType... types) {}
+// 如果当前指向的Token为types中指定的类型，则返回并且指针向后移动一位
+// 否则登记到错误处理表中
+public Token consumeOrError(String place, ErrorType errorType, TokenType... types) {}
+```
+
+#### 2.2 `ASTNodeWithOption`有多个候选式的非终结符
+
+为了方便有多个候选式的非终结符的输出。将不同的候选式作为对应非终结符的类的内部类，并实现相关的接口。同时通过抽象类定义这样的非终结符对应的类的行为。
+
+```java
+public abstract class ASTNodeWithOption<T extends ASTNodeOption> {
+  private final T option;
+  protected ASTNodeWithOption(T option) {
+    this.option = option;
+  }
+  public T extract() { // 通过extract()方法可以解出其中包含的选项内容
+    return this.option;
+  }
+}
+```
+
+```java
+public class UnaryExp extends ASTNodeWithOption<UnaryExp.UnaryExpOption> {
+  private UnaryExp(UnaryExpOption option) {
+    super(option);
+  }
+  public interface UnaryExpOption extends ASTNodeOption {}
+  static UnaryExp parse(TokenStream stream) {
+    if (stream.isNow(TokenType.PLUS, TokenType.MINU, TokenType.NOT)) {
+      return new UnaryExp(new UnaryExp_UnaryOp(stream));
+    } else if ......
+  }
+  public static class UnaryExp_PrimaryExp implements UnaryExpOption {}
+}
+```
+
+#### 2.3 `DumpAST`后序遍历输出语法树
+
+每个非终结符对应的类提供`explore`方法，返回这一层所有的结点。如果是有多个候选式的非终结符，还需要调用`extract`方法。遍历到非终结符的则递归，遍历到词素则输出。因为类的名字与非终结符的名字是对应的，所以可以使用`getClass`方法获得对象的类后直接输出类名。注意有多个候选式的不应输出内部类名。
+
+```java
+private static void dump(ArrayList<Object> nodes) throws IOException {
+  for (Object node : nodes) {
+    if (node != null) {
+      if (node instanceof ASTNode branchNode) {
+        dump(branchNode.explore());
+        out.write("<" + branchNode.getClass().getSimpleName() + ">" + "\n");
+      } else if (node instanceof ASTNodeWithOption<?> branchNodeWithOption) {
+        dump(branchNodeWithOption.extract().explore());
+        out.write("<" + branchNodeWithOption.getClass().getSimpleName() + ">" + "\n");
+      } else if (node instanceof Token leafNode) {
+        out.write(leafNode.type().toString() + " " + leafNode.strVal() + "\n");
+      }
+    }
+  }
+}
+```
 
 ## 附录 参考编译器介绍
 
