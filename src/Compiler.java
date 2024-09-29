@@ -18,6 +18,7 @@ public class Compiler {
         try {
             SourceCode sourceCode = new SourceCode(Config.inputFilename);
             frontend(sourceCode);
+            sourceCode.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -31,7 +32,6 @@ public class Compiler {
         // 创建Lexer -> 得到TokenStream -> 关闭文件 -> 错误处理 -> [输出TokenStream]
         Lexer lexer = new Lexer(sourceCode.reader(), errorTable);
         TokenStream tokenStream = lexer.getTokenStream();
-        sourceCode.close();
         if (Config.dumpTokenStream) {
             DumpTokenStream.dump(tokenStream.getArrayListCopy());
         }

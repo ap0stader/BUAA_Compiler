@@ -2,19 +2,247 @@
 
 [TOC]
 
-## 一、编译器总体设计
+## 一 编译器总体设计
+
+### 1. 总体结构
+
+本编译器采用经典的三端设计，分为前端(frontend)、中端(middle)、后端(backend)三个部分。
+
+前端的主要工作是词法分析、语法分析、语义分析生成中间代码(LLVM IR)，这三个阶段都要进行错误处理。
+
+中端的主要工作是进行中端优化。
+
+后端的主要工作是生成目标代码(MIPS汇编)、进行后端优化。
+
+### 2. 接口设计
+
+本编译器采用的是分别进行编译的各个步骤，通过多个Pass完成源代码到目标代码的编译工作。Compiler.java文件清晰地显示了数据的流向和各趟的执行内容。
+
+#### 2.1 总体
+
+```java
+public static void main(String[] args) {
+  // 根据传入的参数调整全局设置，用于本地的测试
+  Config.setConfigByArgs(args);
+  try {
+    // 源代码文件作为输入
+    SourceCode sourceCode = new SourceCode(Config.inputFilename);
+    // 前端解析源代码文件
+    frontend(sourceCode);
+    // 关闭源代码文件
+    sourceCode.close();
+  } catch (IOException e) {
+    e.printStackTrace();
+  }
+}
+```
+
+#### 2.2 前端
+
+```java
+private static void frontend(SourceCode sourceCode) throws IOException {
+  // 创建前端所需的错误表
+  ErrorTable errorTable = new ErrorTable();
+  // Stage1 词法分析
+  // 创建Lexer -> 得到TokenStream -> 关闭文件 -> 错误处理 -> [输出TokenStream]
+  Lexer lexer = new Lexer(sourceCode.reader(), errorTable);
+  TokenStream tokenStream = lexer.getTokenStream();
+  if (Config.dumpTokenStream) {
+    DumpTokenStream.dump(tokenStream.getArrayListCopy());
+  }
+  // Stage2 语法分析
+  // 创建CompUnit(AST) -> 错误处理 -> [输出CompUnit(AST)]
+  CompUnit compUnit = new CompUnit(tokenStream);
+  // 如果有错误，在语法分析输出前即停止
+  errorHandle(errorTable);
+  if (Config.dumpAST) {
+    DumpAST.dump(compUnit);
+  }
+  return;
+}
+
+private static void errorHandle(ErrorTable errorTable) throws IOException {
+  if (errorTable.notEmpty()) {
+    DumpErrorTable.dump(errorTable);
+    exit(1);
+  }
+}
+```
+
+### 3. 文件组织
+
+#### 3.1 `input`-输入
+
+```
+input
+└── SourceCode.java ===> 源代码文件作为输入
+```
+
+#### 3.2 `global`-全局
+
+```
+global
+└── Config.java ===> 全局配置文件
+```
+
+#### 3.3 `frontend`-前端
+
+```
+frontend
+├── error ===> 错误处理
+│   ├── ErrorRecord.java ===> 错误记录
+│   ├── ErrorTable.java ===> 错误表
+│   └── ErrorType.java ===> 错误类型
+├── lexer ===> 词法分析
+│   ├── Lexer.java ===> 词法分析器
+│   ├── Token.java ===> 词素
+│   └── TokenStream.java ===> 词素流
+├── parser ===> 语法分析，其中的各文件与非终结符对应
+│   ├── CompUnit.java ===> 顶层CompUnit
+│   ├── declaration ===> 声明相关
+│   │   ├── Decl.java
+│   │   ├── MainFuncDef.java
+│   │   ├── constant
+│   │   │   ├── ConstDecl.java
+│   │   │   ├── ConstDef.java
+│   │   │   └── ConstInitVal.java
+│   │   ├── function
+│   │   │   ├── FuncDef.java
+│   │   │   ├── FuncFParam.java
+│   │   │   ├── FuncFParams.java
+│   │   │   └── FuncType.java
+│   │   └── variable
+│   │       ├── InitVal.java
+│   │       ├── VarDecl.java
+│   │       └── VarDef.java
+│   ├── expression ===> 表达式相关
+│   │   ├── AddExp.java
+│   │   ├── Character.java
+│   │   ├── Cond.java
+│   │   ├── ConstExp.java
+│   │   ├── EqExp.java
+│   │   ├── Exp.java
+│   │   ├── FuncRParams.java
+│   │   ├── LAndExp.java
+│   │   ├── LOrExp.java
+│   │   ├── LVal.java
+│   │   ├── MulExp.java
+│   │   ├── Number.java
+│   │   ├── PrimaryExp.java
+│   │   ├── RelExp.java
+│   │   ├── UnaryExp.java
+│   │   └── UnaryOp.java
+│   └── statement ===>语句相关
+│       ├── Block.java
+│       ├── BlockItem.java
+│       ├── ForStmt.java
+│       └── Stmt.java
+└── type ===> 前端公用的类型声明
+    ├── ASTNode.java ===> 抽象语法树结点
+    ├── ASTNodeOption.java ===> 抽象语法树结点的选项（如Stmt中的if）
+    ├── ASTNodeWithOption.java ===> 带有选项的抽象语法数结点（如Stmt）
+    └── TokenType.java ===> 词素类型
+```
+
+#### 3.4 `output`-输出
+
+```
+output
+├── DumpAST.java ===> 输出抽象语法树
+├── DumpErrorTable.java ===> 输出错误表
+└── DumpTokenStream.java ===> 输出词素流
+```
+
+## 二 词法分析设计
+
+### 1. 设计
+
+使用`PushbackReader`作为读取源代码的工具，该Reader支持退回已读取的字符，适用于在分析符号时可能需要往前看一个字符的情况。将各类解析分别编成方法放入`Lexer`中，利用Java的`Character`类提供的一些方法。词法分析器同时携带一个词素流(`TokenStream`)，用于后续的语法分析的时候读取。对于其中的每个词素，使用`record`定义。包括需要打印的词素的类型和原始字符串值。
+
+### 2. 实现
+
+#### 2.1 `Lexer`词法分析器
+
+由于Java提供的`Character`采用的是UTF-8编码，故需要重写一些判断方法。同时为了配合`PushbackReader`的使用，也需要提供一些功能方法
+
+```java
+private static boolean isDigit(char ch) {}
+private static boolean isLetter(char ch) {}
+private static boolean isLetterOrDigit(char ch) {}
+private void fgetc() throws IOException {}
+private void ungetc() throws IOException {}
+```
+
+词法分析器约定每次完成某个读取过程总是预读好了一个字符（存入`c`）以供判断。根据读到的字符调用相应的函数进行处理
+
+```java
+public TokenStream getTokenStream() throws IOException {
+  // 如果已经完成生成TokenStream，直接返回结果
+  if (finish) {
+    return this.stream;
+  }
+  fgetc();
+  // 约定为每一次循环结束之后都保证c为预读好的一个字符
+  while (c != EOF) {
+    if (c == '\n') {
+      this.newLine(); // 记录行号
+      fgetc();
+    } else if (c == ' ' || c == '\t' || c == '\f' || c == '\r') {
+      fgetc(); // 跳过空白符号
+    } else if (c == '_' || isLetter(c)) {
+      this.lexIdentKeyword(); // 标识符或关键字
+    } else if (isDigit(c)) {
+      this.lexIntConst(); // 整型数字常量
+    } else if (c == '"') {
+      this.lexStringConst(); // 字符串常量
+    } else if (c == '\'') {
+      this.lexCharConst(); // 字符常量
+    } else {
+      this.lexSymbolComment(); // 各种符号或注释，若为未知字符则直接跳过
+    }
+  }
+  // 加入类型为EOF的Token，表示TokenStream结束
+  this.gotToken(TokenType.EOF, "");
+  this.finish = true;
+  return this.stream;
+}
+```
+
+对于需要处理的错误，根据要求记录错误并退回字符
+
+```java
+case '|' -> {
+  fgetc();
+  if (c == '|') {
+    this.gotToken(TokenType.OR, "||");
+  } else {
+    this.gotToken(TokenType.OR, "|");
+    this.errorTable.addErrorRecord(this.line, ErrorType.ILLEGAL_AND_OR,
+            "Got '" + c + "'(ASCII:" + (int) c + ") when expected '|'");
+    ungetc();
+  }
+}
+```
+
+#### 2.2 `Token`词素
+
+为了调试和后续错误处理定位行号和位置方便。除了要输出的类型和原始字符串值之外同时记录了所在行的行号和在该行的位置。
+
+```java
+public record Token(TokenType type, String strVal, int line, int indexOfLine) {}
+```
+
+## 三 语法分析设计
+
+### 1. 设计
 
 
 
-## 二、词法分析设计
+### 2. 实现
 
 
 
-## 三、语法分析设计
-
-
-
-## 附录：参考编译器介绍
+## 附录 参考编译器介绍
 
 选择的参考编译器是PL/0编译器。PL/0编译器是一个经典的编译教学用编译器，采用Pascal语言编写，其可编译的高级语言PL/0是一种类似于Pascal的简单语言。以下是PL/0的文法定义：
 
@@ -707,7 +935,7 @@ procedure block( lev,tx : integer; fsys : symset ); {解析一个代码块的过
 
 #### 9) 解释执行中间代码
 
-````pascal
+```pascal
 procedure interpret; {中间代码解释执行}
   const stacksize = 500; {栈式虚拟机的栈的大小}
   var p,b,t: integer; { program-,base-,topstack-register } {教程当中的PC、MP、SP三个寄存器}
@@ -833,7 +1061,7 @@ procedure interpret; {中间代码解释执行}
     until p = 0; {上来就会进入到主过程，所以p=0时，意味着程序退出了主过程也即结束}
     writeln('END PL/0'); {结束执行}
   end; { interpret }
-````
+```
 
 #### 10) 主过程
 
