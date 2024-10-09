@@ -9,18 +9,21 @@ public class Config {
     // 是否输出错误详情
     public static boolean dumpErrorTableDetail = false;
 
-    // 遇到未定义的异常情况，是否抛出运行时错误
-    // 词法分析，如果不允许抛出错误，默认处理方式为ungetc();或无操作
+    // 前端遇到未定义的异常情况，是否抛出运行时异常
+    // 词法分析，如果不允许抛出异常，默认处理方式为ungetc();或无操作
     public static boolean lexerThrowable = true;
-    // 语法分析，如果不允许抛出错误，默认处理方式为return null;
+    // 语法分析，如果不允许抛出异常，默认处理方式为return null;
     public static boolean parserThrowable = true;
+    // 语义分析，如果不允许抛出异常，默认处理方式为TODO
+    public static boolean visitorThrowable = true;
 
     /* 总共进行阶段数
        ==== 前端 ====
        1. 词法分析，生成TokenStream
        2. 语法分析，生成CompUnit(AST)
+       3. 语义分析，生成IRModule
      */
-    public static int stages = 2;
+    public static int stages = 3;
 
     // 词法分析后，是否输出TokenStream、输出的文件名、是否输出行号等信息
     public static boolean dumpTokenStream = false;
@@ -31,17 +34,27 @@ public class Config {
     public static boolean dumpAST = false;
     public static String dumpASTFileName = "parser.txt";
 
+    // 语义分析后，是否输出SymbolTable、输出的文件名
+    public static boolean dumpSymbolTable = false;
+    public static String dumpSymbolTableFileName = "symbol.txt";
+
+    // 中端优化前，是否输出优化前的LLVM
+    public static boolean dumpLLVMBeforeOptimized = false;
+    public static String dumpLLVMBeforeOptimizedFileName = "llvm_ir.txt";
+
     // 通过传递的参数设置全局配置
     public static void setConfigByArgs(String[] args) {
         for (String arg : args) {
             switch (arg) {
-                // 抛出异常限制
+                // 前端抛出异常限制
                 case "--no-all-throw" -> {
                     lexerThrowable = false;
                     parserThrowable = false;
+                    visitorThrowable = false;
                 }
                 case "--no-lexer-throw" -> lexerThrowable = false;
                 case "--no-parser-throw" -> parserThrowable = false;
+                case "--no-visitor-throw" -> visitorThrowable = false;
                 // 调试模式
                 case "--debug" -> {
                     dumpErrorTableDetail = true;
@@ -50,6 +63,10 @@ public class Config {
                     dumpTokenStreamLineNumber = true;
                     dumpAST = true;
                     dumpASTFileName = "dump_AST.txt";
+                    dumpSymbolTable = true;
+                    dumpSymbolTableFileName = "dump_SymbolTable.txt";
+                    dumpLLVMBeforeOptimized = true;
+                    dumpLLVMBeforeOptimizedFileName = "dump_LLVMBeforeOptimized.txt";
                 }
                 // Lexical Analysis: -L
                 case "-L" -> {
@@ -63,7 +80,9 @@ public class Config {
                 }
                 // Semantic Analysis: -E
                 case "-E" -> {
-                    stages = 3;
+                    stages = 4;
+                    dumpSymbolTable = true;
+                    dumpLLVMBeforeOptimized = true;
                 }
             }
         }

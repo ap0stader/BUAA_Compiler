@@ -137,8 +137,8 @@ public class TokenStream {
         return ret;
     }
 
-    // 获取stream的ArrayList副本
-    public ArrayList<Token> getArrayListCopy() {
-        return new ArrayList<>(this.list);
+    // 获取token的ArrayList
+    public ArrayList<Token> getArrayList() {
+        return this.list;
     }
 }
