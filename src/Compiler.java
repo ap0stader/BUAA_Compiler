@@ -56,7 +56,7 @@ public class Compiler {
         IRModule irModule = vistor.visitCompUnit();
         errorHandle(errorTable);
         if (Config.dumpSymbolTable) {
-            DumpSymbolTable.dump(vistor.getSymbolList());
+            DumpSymbolTable.dump(vistor.getSymbolTable());
         }
         tryContinue(3);
         return irModule;

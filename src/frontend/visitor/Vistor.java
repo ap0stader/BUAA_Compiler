@@ -4,28 +4,25 @@ import IR.IRModule;
 import frontend.error.ErrorTable;
 import frontend.parser.CompUnit;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-
 public class Vistor {
     private final CompUnit compUnit;
     private final ErrorTable errorTable;
 
-    private final LinkedList<SymbolTable> symbolStack;
-    private final ArrayList<SymbolTable> symbolList;
+    private final SymbolTable symbolTable;
 
     public Vistor(CompUnit compUnit, ErrorTable errorTable) {
         this.compUnit = compUnit;
         this.errorTable = errorTable;
-        this.symbolStack = new LinkedList<>();
-        this.symbolList = new ArrayList<>();
+        this.symbolTable = new SymbolTable(errorTable);
     }
 
-    public ArrayList<SymbolTable> getSymbolList() {
-        return this.symbolList;
+    public SymbolTable getSymbolTable() {
+        return this.symbolTable;
     }
 
     public IRModule visitCompUnit() {
+        symbolTable.push();
+
         return null;
     }
 }

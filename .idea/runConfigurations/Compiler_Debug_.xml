@@ -1,7 +1,8 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Compiler(Default)" type="Application" factoryName="Application">
+  <configuration default="false" name="Compiler(Debug)" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="Compiler" />
     <module name="Compiler" />
+    <option name="PROGRAM_PARAMETERS" value="--debug" />
     <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/testdir" />
     <method v="2">
       <option name="Make" enabled="true" />
