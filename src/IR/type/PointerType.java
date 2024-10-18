@@ -1,15 +1,15 @@
 package IR.type;
 
-public final class PointerType implements Type {
+public final class PointerType implements IRType {
     private final boolean arrayDecay;
-    private final Type referenceType;
+    private final IRType referenceType;
 
-    public PointerType(Type referenceType) {
+    public PointerType(IRType referenceType) {
         this.arrayDecay = true;
         this.referenceType = referenceType;
     }
 
-    public Type referenceType() {
+    public IRType referenceType() {
         return referenceType;
     }
 
@@ -18,7 +18,7 @@ public final class PointerType implements Type {
         if (arrayDecay) {
             return referenceType.displayStr() + "Array";
         } else {
-            return referenceType.displayStr() + "Pointer";
+            throw new UnsupportedOperationException("A PointerType should not be display in SysY.");
         }
     }
 }

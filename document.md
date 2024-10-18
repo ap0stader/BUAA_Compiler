@@ -801,7 +801,7 @@ procedure block( lev,tx : integer; fsys : symset ); {解析一个代码块的过
           if i = 0
              then error(11) {未找到，报错未声明的标识符}
           else if table[i].kind <> variable {判断是否为变量}
-            then begin { giving value to non-variation }
+            then begin { giving IRValue to non-variation }
               error(12); {报错只能向变量赋值}
               i := 0 {将找到的下标置为0，等同于未找到}
             end;

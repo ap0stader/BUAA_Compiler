@@ -1,6 +1,6 @@
 package IR.type;
 
-public abstract class IntegerType implements Type {
+public abstract class IntegerType implements IRType {
     private final int size;
 
     private IntegerType(int size) {

@@ -54,6 +54,7 @@ public class Compiler {
         // 创建Visitor -> 得到Module -> 错误处理 -> [输出符号表]
         Vistor vistor = new Vistor(compUnit, errorTable);
         IRModule irModule = vistor.visitCompUnit();
+        // TODO 下一行为参与语义分析评测时的特地设置
         errorHandle(errorTable);
         if (Config.dumpSymbolTable) {
             DumpSymbolTable.dump(vistor.getSymbolTable());

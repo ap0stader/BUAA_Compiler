@@ -1,10 +1,10 @@
 package frontend.visitor.symbol;
 
-import IR.type.Type;
+import IR.type.IRType;
 import frontend.lexer.Token;
 
 public class FuncSymbol extends Symbol {
-    public FuncSymbol(Type type, Token ident) {
+    public FuncSymbol(IRType type, Token ident) {
         super(type, ident.strVal(), ident.line());
     }
 }

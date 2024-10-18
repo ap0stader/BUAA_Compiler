@@ -1,15 +1,15 @@
 package IR.type;
 
-public final class ArrayType implements Type {
-    private final Type elementType;
+public final class ArrayType implements IRType {
+    private final IRType elementType;
     private final int length;
 
-    public ArrayType(Type elementType, int length) {
+    public ArrayType(IRType elementType, int length) {
         this.elementType = elementType;
         this.length = length;
     }
 
-    public Type elementType() {
+    public IRType elementType() {
         return this.elementType;
     }
 

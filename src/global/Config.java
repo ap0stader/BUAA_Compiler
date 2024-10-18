@@ -36,7 +36,7 @@ public class Config {
     public static String dumpASTFileName = "parser.txt";
 
     // 语义分析后，是否输出SymbolTable、输出的文件名，是否输出详情信息
-    // TODO 下一行为参与语法分析评测时的特地设置
+    // TODO 下一行为参与语义分析评测时的特地设置
     public static boolean dumpSymbolTable = true;
     public static String dumpSymbolTableFileName = "symbol.txt";
     public static boolean dumpSymbolTableDetail = false;

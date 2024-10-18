@@ -1,4 +1,7 @@
 package IR.value;
 
-public class GlobalVariable {
+import IR.IRValue;
+
+public class GlobalVariable extends IRValue {
+
 }

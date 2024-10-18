@@ -1,20 +1,20 @@
 package frontend.visitor.symbol;
 
-import IR.type.Type;
-import IR.value.Value;
+import IR.IRValue;
+import IR.type.IRType;
 import global.Config;
 
 public abstract class Symbol {
-    private final Type type;
+    private final IRType type;
     private final String name;
     private final int line;
-    private Value value;
+    private IRValue irValue;
 
-    protected Symbol(Type type, String name, int line) {
+    protected Symbol(IRType type, String name, int line) {
         this.type = type;
         this.name = name;
         this.line = line;
-        this.value = null;
+        this.irValue = null;
     }
 
     public String typeDisplayStr() {
@@ -29,9 +29,9 @@ public abstract class Symbol {
         return this.name;
     }
 
-    public Value value() {
-        if (this.value != null) {
-            return this.value;
+    public IRValue irValue() {
+        if (this.irValue != null) {
+            return this.irValue;
         } else {
             if (Config.visitorThrowable) {
                 throw new RuntimeException("The value of VarSymbol '" + this.name +
@@ -42,9 +42,9 @@ public abstract class Symbol {
         }
     }
 
-    public void setValue(Value value) {
-        if (this.value != null) {
-            this.value = value;
+    public void setIRValue(IRValue irValue) {
+        if (this.irValue != null) {
+            this.irValue = irValue;
         } else {
             if (Config.visitorThrowable) {
                 throw new RuntimeException("The value of VarSymbol '" + this.name +

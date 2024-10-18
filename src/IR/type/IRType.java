@@ -1,5 +1,5 @@
 package IR.type;
 
-public interface Type {
+public interface IRType {
     String displayStr();
 }
