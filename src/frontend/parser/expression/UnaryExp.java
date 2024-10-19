@@ -28,7 +28,7 @@ public class UnaryExp extends ASTNodeWithOption<UnaryExp.UnaryExpOption> {
         if (stream.isNow(TokenType.PLUS, TokenType.MINU, TokenType.NOT)) {
             return new UnaryExp(new UnaryExp_UnaryOp(stream));
         } else if (stream.isNow(TokenType.IDENFR) && stream.isNext(1, TokenType.LPARENT)) {
-            return new UnaryExp(new UnaryExp_IndetFuncCall(stream));
+            return new UnaryExp(new UnaryExp_IdentFuncCall(stream));
         } else if (stream.isNow(TokenType.LPARENT, TokenType.IDENFR, TokenType.INTCON, TokenType.CHRCON)) {
             return new UnaryExp(new UnaryExp_PrimaryExp(stream));
         } else {
@@ -61,19 +61,19 @@ public class UnaryExp extends ASTNodeWithOption<UnaryExp.UnaryExpOption> {
     }
 
     // UnaryExp → Ident '(' [FuncRParams] ')'
-    public static class UnaryExp_IndetFuncCall implements UnaryExpOption {
+    public static class UnaryExp_IdentFuncCall implements UnaryExpOption {
         private final Token ident;
         private final Token lparentToken;
         private final FuncRParams funcRParams;
         private final Token rparentToken;
 
-        private UnaryExp_IndetFuncCall(TokenStream stream) {
-            String place = "UnaryExp_IndetFuncCall()";
+        private UnaryExp_IdentFuncCall(TokenStream stream) {
+            String place = "UnaryExp_IdentFuncCall()";
             ident = stream.consumeOrThrow(place, TokenType.IDENFR);
             lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
             // FuncRParams → Exp { ',' Exp }
             FuncRParams tryfuncRParams;
-            int checkpointID = stream.checkpoint("IndetFuncCallTry");
+            int checkpointID = stream.checkpoint("IdentFuncCallTry");
             try {
                 new Exp(stream);
                 stream.restore(checkpointID);

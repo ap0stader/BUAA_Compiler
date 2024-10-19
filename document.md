@@ -328,7 +328,7 @@ statement = [ ident ":=" expression # 赋值语句
               | "begin" statement {";" statement } "end" # 多条语句的开始和结束
               | "if" condition "then" statement  # if语句（不支持else）
               | "while" condition "do" statement # while语句
-              | "read" "(" indet {"," indent} ")" # 输入语句，读入值到变量
+              | "read" "(" identifier {"," identifier} ")" # 输入语句，读入值到变量
               | "write" "(" expression {"," expression} ")" # 输出语句，输入表达式的值
             ] # 语句可以为空
 

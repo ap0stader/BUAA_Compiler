@@ -81,8 +81,8 @@ public class Calculator {
             }
         } else if (unaryExpExtract instanceof UnaryExp.UnaryExp_PrimaryExp unaryExp_primaryExp) {
             return this.calculatePrimaryExp(unaryExp_primaryExp.primaryExp());
-        } else if (unaryExpExtract instanceof UnaryExp.UnaryExp_IndetFuncCall unaryExp_indetFuncCall) {
-            throw new UseVariableContent("calculateUnaryExp()", unaryExp_indetFuncCall.ident());
+        } else if (unaryExpExtract instanceof UnaryExp.UnaryExp_IdentFuncCall unaryExp_identFuncCall) {
+            throw new UseVariableContent("calculateUnaryExp()", unaryExp_identFuncCall.ident());
         } else {
             throw new RuntimeException("When calculateUnaryExp(), got unknown type of UnaryExp ("
                     + unaryExpExtract.getClass().getSimpleName() + ")");

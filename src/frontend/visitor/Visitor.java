@@ -94,7 +94,7 @@ public class Visitor {
             if (constDef.constExp() == null) {
                 // 非数组
                 if (initVals.size() != 1) {
-                    throw new RuntimeException("When visitConstDecl(), initVals of identify " + ident + " mismatch its type");
+                    throw new RuntimeException("When visitConstDecl(), initVals of identifier " + ident + " mismatch its type");
                 }
                 ConstSymbol newSymbol = new ConstSymbol(Translator.translateConstType(bType, 0), ident, initVals);
                 if (this.symbolTable.insert(newSymbol)) {
@@ -104,7 +104,7 @@ public class Visitor {
                 // 数组
                 int length = this.calculator.calculateConstExp(constDef.constExp());
                 if (initVals.size() > length) {
-                    throw new RuntimeException("When visitConstDecl(), initVals of identify " + ident + " is longer than its length");
+                    throw new RuntimeException("When visitConstDecl(), initVals of identifier " + ident + " is longer than its length");
                 } else {
                     // 补齐未显示写出的0
                     for (int i = initVals.size(); i < length; i++) {
@@ -150,7 +150,7 @@ public class Visitor {
         for (VarDef varDef : varDecl.varDefs()) {
             Token ident = varDef.ident();
             if (varDef.initVal() == null) {
-                throw new RuntimeException("When visitGlobalVarDecl(), initVals of identify " + ident + " is not exist");
+                throw new RuntimeException("When visitGlobalVarDecl(), initVals of identifier " + ident + " is not exist");
             }
             ArrayList<Integer> initVals = this.visitInitValAsConst(varDef.initVal());
             // 字符型截取低八位
@@ -160,7 +160,7 @@ public class Visitor {
             if (varDef.constExp() == null) {
                 // 非数组
                 if (initVals.size() != 1) {
-                    throw new RuntimeException("When visitGlobalVarDecl(), initVals of identify " + ident + " mismatch its type");
+                    throw new RuntimeException("When visitGlobalVarDecl(), initVals of identifier " + ident + " mismatch its type");
                 }
                 VarSymbol newSymbol = new VarSymbol(Translator.translateVarType(bType, 0, false), ident);
                 if (this.symbolTable.insert(newSymbol)) {
@@ -170,7 +170,7 @@ public class Visitor {
                 // 数组
                 int length = this.calculator.calculateConstExp(varDef.constExp());
                 if (initVals.size() > length) {
-                    throw new RuntimeException("When visitGlobalVarDecl(), initVals of identify " + ident + " is longer than its length");
+                    throw new RuntimeException("When visitGlobalVarDecl(), initVals of identifier " + ident + " is longer than its length");
                 } else {
                     // 补齐未显示写出的0
                     for (int i = initVals.size(); i < length; i++) {
