@@ -1,12 +1,12 @@
 package IR.type;
 
 public final class PointerType implements IRType, IRType.VarSymbolType {
-    private final boolean arrayDecay;
     private final IRType referenceType;
+    private final boolean arrayDecay;
 
-    public PointerType(IRType referenceType) {
-        this.arrayDecay = true;
+    public PointerType(IRType referenceType, boolean arrayDecay) {
         this.referenceType = referenceType;
+        this.arrayDecay = arrayDecay;
     }
 
     public IRType referenceType() {

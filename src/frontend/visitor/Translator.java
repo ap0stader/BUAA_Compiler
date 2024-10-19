@@ -3,6 +3,7 @@ package frontend.visitor;
 import IR.type.ArrayType;
 import IR.type.IRType;
 import IR.type.IntegerType;
+import IR.type.PointerType;
 import frontend.lexer.Token;
 import frontend.type.TokenType;
 import global.Config;
@@ -103,25 +104,55 @@ public class Translator {
         };
     }
 
-    static IRType.ConstSymbolType translateConstType(Token BType, int length) {
-        if (BType.type() == TokenType.INTTK || BType.type() == TokenType.CHARTK) {
+    static IRType.ConstSymbolType translateConstType(Token bType, int length) {
+        if (bType.type() == TokenType.INTTK || bType.type() == TokenType.CHARTK) {
             if (length == 0) {
-                if (BType.type() == TokenType.CHARTK) {
+                if (bType.type() == TokenType.CHARTK) {
                     return new IntegerType.Char();
-                } else { // BType.type() == TokenType.INTTK
+                } else { // bType.type() == TokenType.INTTK
                     return new IntegerType.Int();
                 }
             } else if (length > 0) {
-                if (BType.type() == TokenType.CHARTK) {
+                if (bType.type() == TokenType.CHARTK) {
                     return new ArrayType(new IntegerType.Char(), length);
-                } else { // BType.type() == TokenType.INTTK
+                } else { // bType.type() == TokenType.INTTK
                     return new ArrayType(new IntegerType.Int(), length);
                 }
             } else {
-                throw new RuntimeException("When translateType(), the length " + length + " of " + BType + " is illegal");
+                throw new RuntimeException("When translateConstType(), the length " + length + " of " + bType + " is illegal");
             }
         } else {
-            throw new RuntimeException("When translateConstType(), got unexpected BType " + BType);
+            throw new RuntimeException("When translateConstType(), got unexpected bType " + bType);
+        }
+    }
+
+    public static IRType.VarSymbolType translateVarType(Token bType, int length, boolean arrayDecay) {
+        if (bType.type() == TokenType.INTTK || bType.type() == TokenType.CHARTK) {
+            if (arrayDecay) {
+                if (bType.type() == TokenType.CHARTK) {
+                    return new PointerType(new IntegerType.Char(), true);
+                } else { // bType.type() == TokenType.INTTK
+                    return new PointerType(new IntegerType.Int(), true);
+                }
+            } else {
+                if (length == 0) {
+                    if (bType.type() == TokenType.CHARTK) {
+                        return new IntegerType.Char();
+                    } else { // bType.type() == TokenType.INTTK
+                        return new IntegerType.Int();
+                    }
+                } else if (length > 0) {
+                    if (bType.type() == TokenType.CHARTK) {
+                        return new ArrayType(new IntegerType.Char(), length);
+                    } else { // bType.type() == TokenType.INTTK
+                        return new ArrayType(new IntegerType.Int(), length);
+                    }
+                } else {
+                    throw new RuntimeException("When translateVarType(), the length " + length + " of " + bType + " is illegal");
+                }
+            }
+        } else {
+            throw new RuntimeException("When translateVarType(), got unexpected bType " + bType);
         }
     }
 }

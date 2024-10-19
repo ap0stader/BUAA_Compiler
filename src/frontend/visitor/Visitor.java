@@ -5,15 +5,13 @@ import frontend.error.ErrorTable;
 import frontend.lexer.Token;
 import frontend.parser.CompUnit;
 import frontend.parser.declaration.*;
-import frontend.parser.declaration.constant.ConstDecl;
-import frontend.parser.declaration.constant.ConstDef;
-import frontend.parser.declaration.constant.ConstInitVal;
+import frontend.parser.declaration.constant.*;
 import frontend.parser.declaration.function.*;
 import frontend.parser.declaration.variable.*;
-import frontend.parser.expression.ConstExp;
+import frontend.parser.expression.*;
 import frontend.type.TokenType;
-import frontend.visitor.symbol.ConstSymbol;
-import frontend.visitor.symbol.VarSymbol;
+import frontend.visitor.symbol.*;
+import util.Pair;
 
 import java.util.ArrayList;
 
@@ -61,11 +59,11 @@ public class Visitor {
     // Decl → ConstDecl | VarDecl
     private void visitGlobalDecl(Decl decl) {
         if (decl instanceof ConstDecl constDecl) {
-            for (ConstSymbol constSymbol : this.visitConstDecl(constDecl)) {
+            for (ConstSymbol constant : this.visitConstDecl(constDecl)) {
 
             }
         } else if (decl instanceof VarDecl varDecl) {
-            for (VarSymbol varSymbol : this.visitGlobalVarDecl(varDecl)) {
+            for (Pair<VarSymbol, ArrayList<Integer>> variable : this.visitGlobalVarDecl(varDecl)) {
 
             }
         }
@@ -84,13 +82,13 @@ public class Visitor {
     // ConstDef → Ident [ '[' ConstExp ']' ] '=' ConstInitVal
     private ArrayList<ConstSymbol> visitConstDecl(ConstDecl constDecl) {
         ArrayList<ConstSymbol> ret = new ArrayList<>();
-        Token BType = constDecl.typeToken();
+        Token bType = constDecl.typeToken();
         // visitConstDef()
         for (ConstDef constDef : constDecl.constDefs()) {
             Token ident = constDef.ident();
             ArrayList<Integer> initVals = this.visitConstInitVal(constDef.constInitVal());
             // 字符型截取低八位
-            if (BType.type() == TokenType.CHARTK) {
+            if (bType.type() == TokenType.CHARTK) {
                 initVals.replaceAll(integer -> integer & 0xff);
             }
             if (constDef.constExp() == null) {
@@ -98,7 +96,7 @@ public class Visitor {
                 if (initVals.size() != 1) {
                     throw new RuntimeException("When visitConstDecl(), initVals of identify " + ident + " mismatch its type");
                 }
-                ConstSymbol newSymbol = new ConstSymbol(Translator.translateConstType(BType, 0), ident, initVals);
+                ConstSymbol newSymbol = new ConstSymbol(Translator.translateConstType(bType, 0), ident, initVals);
                 if (this.symbolTable.insert(newSymbol)) {
                     ret.add(newSymbol);
                 }
@@ -113,7 +111,7 @@ public class Visitor {
                         initVals.add(0);
                     }
                 }
-                ConstSymbol newSymbol = new ConstSymbol(Translator.translateConstType(BType, length), ident, initVals);
+                ConstSymbol newSymbol = new ConstSymbol(Translator.translateConstType(bType, length), ident, initVals);
                 if (this.symbolTable.insert(newSymbol)) {
                     ret.add(newSymbol);
                 }
@@ -145,10 +143,66 @@ public class Visitor {
     // VarDecl → BType VarDef { ',' VarDef } ';'
     // BType → 'int' | 'char'
     // VarDef → Ident [ '[' ConstExp ']' ] [ '=' InitVal ]
-    // InitVal → Exp | '{' [ Exp { ',' Exp } ] '}' | StringConst
-    private ArrayList<VarSymbol> visitGlobalVarDecl(VarDecl varDecl) {
-        ArrayList<VarSymbol> ret = new ArrayList<>();
-
+    private ArrayList<Pair<VarSymbol, ArrayList<Integer>>> visitGlobalVarDecl(VarDecl varDecl) {
+        ArrayList<Pair<VarSymbol, ArrayList<Integer>>> ret = new ArrayList<>();
+        Token bType = varDecl.typeToken();
+        // visitVarDef()
+        for (VarDef varDef : varDecl.varDefs()) {
+            Token ident = varDef.ident();
+            if (varDef.initVal() == null) {
+                throw new RuntimeException("When visitGlobalVarDecl(), initVals of identify " + ident + " is not exist");
+            }
+            ArrayList<Integer> initVals = this.visitInitValAsConst(varDef.initVal());
+            // 字符型截取低八位
+            if (bType.type() == TokenType.CHARTK) {
+                initVals.replaceAll(integer -> integer & 0xff);
+            }
+            if (varDef.constExp() == null) {
+                // 非数组
+                if (initVals.size() != 1) {
+                    throw new RuntimeException("When visitGlobalVarDecl(), initVals of identify " + ident + " mismatch its type");
+                }
+                VarSymbol newSymbol = new VarSymbol(Translator.translateVarType(bType, 0, false), ident);
+                if (this.symbolTable.insert(newSymbol)) {
+                    ret.add(new Pair<>(newSymbol, initVals));
+                }
+            } else {
+                // 数组
+                int length = this.calculator.calculateConstExp(varDef.constExp());
+                if (initVals.size() > length) {
+                    throw new RuntimeException("When visitGlobalVarDecl(), initVals of identify " + ident + " is longer than its length");
+                } else {
+                    // 补齐未显示写出的0
+                    for (int i = initVals.size(); i < length; i++) {
+                        initVals.add(0);
+                    }
+                }
+                VarSymbol newSymbol = new VarSymbol(Translator.translateVarType(bType, length, false), ident);
+                if (this.symbolTable.insert(newSymbol)) {
+                    ret.add(new Pair<>(newSymbol, initVals));
+                }
+            }
+        }
         return ret;
+    }
+
+    // InitVal → Exp | '{' [ Exp { ',' Exp } ] '}' | StringConst
+    private ArrayList<Integer> visitInitValAsConst(InitVal initVal) {
+        if (initVal.getType() == InitVal.Type.BASIC) {
+            ArrayList<Integer> initVals = new ArrayList<>();
+            initVals.add(this.calculator.calculateExp(initVal.exp()));
+            return initVals;
+        } else if (initVal.getType() == InitVal.Type.STRING) {
+            return Translator.translateStringConst(initVal.stringConst());
+        } else if (initVal.getType() == InitVal.Type.ARRAY) {
+            ArrayList<Integer> initVals = new ArrayList<>();
+            for (Exp exp : initVal.exps()) {
+                initVals.add(this.calculator.calculateExp(exp));
+            }
+            return initVals;
+        } else {
+            throw new RuntimeException("When visitInitValAsConst(), got unknown type of InitVal ("
+                    + initVal.getType() + ")");
+        }
     }
 }
