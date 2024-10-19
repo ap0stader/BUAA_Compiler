@@ -1,6 +1,6 @@
 package IR.type;
 
-public final class PointerType implements IRType {
+public final class PointerType implements IRType, IRType.VarSymbolType {
     private final boolean arrayDecay;
     private final IRType referenceType;
 

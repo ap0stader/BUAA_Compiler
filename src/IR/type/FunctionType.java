@@ -2,7 +2,7 @@ package IR.type;
 
 import java.util.ArrayList;
 
-public final class FunctionType implements IRType {
+public final class FunctionType implements IRType, IRType.FuncSymbolType {
     private final IRType returnType;
     private final ArrayList<IRType> parametersType;
 

@@ -1,5 +1,5 @@
 import IR.IRModule;
-import frontend.visitor.Vistor;
+import frontend.visitor.Visitor;
 import global.Config;
 import frontend.lexer.TokenStream;
 import frontend.lexer.Lexer;
@@ -39,6 +39,7 @@ public class Compiler {
         // 创建Lexer -> 得到TokenStream -> [输出TokenStream]
         Lexer lexer = new Lexer(sourceCode.reader(), errorTable);
         TokenStream tokenStream = lexer.getTokenStream();
+        errorHandle(1, errorTable);
         if (Config.dumpTokenStream) {
             DumpTokenStream.dump(tokenStream.getArrayList());
         }
@@ -46,32 +47,36 @@ public class Compiler {
         // Stage2 语法分析
         // 创建CompUnit(AST) -> [输出CompUnit(AST)]
         CompUnit compUnit = new CompUnit(tokenStream);
+        errorHandle(2, errorTable);
         if (Config.dumpAST) {
             DumpAST.dump(compUnit);
         }
         tryContinue(2);
         // Stage3 语义分析
         // 创建Visitor -> 得到Module -> 错误处理 -> [输出符号表]
-        Vistor vistor = new Vistor(compUnit, errorTable);
-        IRModule irModule = vistor.visitCompUnit();
-        // TODO 下一行为参与语义分析评测时的特地设置
-        errorHandle(errorTable);
+        Visitor visitor = new Visitor(compUnit, errorTable);
+        IRModule irModule = visitor.visitCompUnit();
+        errorHandle(3, errorTable);
         if (Config.dumpSymbolTable) {
-            DumpSymbolTable.dump(vistor.getSymbolTable());
+            DumpSymbolTable.dump(visitor.getSymbolTable());
         }
         tryContinue(3);
+        if (errorTable.notEmpty()) {
+            DumpErrorTable.dump(errorTable);
+            exit(1);
+        }
         return irModule;
     }
 
-    private static void errorHandle(ErrorTable errorTable) throws IOException {
-        if (errorTable.notEmpty()) {
+    private static void errorHandle(int nowStage, ErrorTable errorTable) throws IOException {
+        if (nowStage >= Config.stages && errorTable.notEmpty()) {
             DumpErrorTable.dump(errorTable);
             exit(1);
         }
     }
 
     private static void tryContinue(int nowStage) {
-        if (Config.stages <= nowStage) {
+        if (nowStage >= Config.stages) {
             exit(0);
         }
     }

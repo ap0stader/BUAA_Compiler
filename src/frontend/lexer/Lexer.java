@@ -148,13 +148,18 @@ public class Lexer {
                             break;
                         default:
                             ungetc();
-                            throw new RuntimeException("When lexStringConst(), after receive a \\," +
-                                    " got '" + c + "'(ASCII:" + (int) c + ") at line" + this.line + "," +
-                                    " expected 'a', 'b', 't', 'n', 'v', 'f', '\\\"', '\\'', '\\\\', '0'");
+                            if (Config.lexerThrowable) {
+                                throw new RuntimeException("When lexStringConst(), after receive a \\," +
+                                        " got '" + c + "'(ASCII:" + (int) c + ") at line " + this.line + "," +
+                                        " expected 'a', 'b', 't', 'n', 'v', 'f', '\\\"', '\\'', '\\\\', '0'");
+                            }
                     }
                 }
             } else {
-                throw new RuntimeException("When lexStringConst(), got '" + c + "'(ASCII:" + (int) c + ") at line" + this.line);
+                if (Config.lexerThrowable) {
+                    throw new RuntimeException("When lexStringConst(), got '" + c
+                            + "'(ASCII:" + (int) c + ") at line " + this.line);
+                }
             }
             fgetc();
         } // UNSTABLE 此处没有考虑字符串中非法的换行导致的行数统计错误的问题
@@ -181,20 +186,23 @@ public class Lexer {
                         break;
                     default:
                         ungetc();
-                        throw new RuntimeException("When lexCharConst(), after receive a \\," +
-                                " got '" + c + "'(ASCII:" + (int) c + ") at line" + this.line + "," +
-                                " expected 'a', 'b', 't', 'n', 'v', 'f', '\\\"', '\\'', '\\\\', '0'");
+                        if (Config.lexerThrowable) {
+                            throw new RuntimeException("When lexCharConst(), after receive a \\," +
+                                    " got '" + c + "'(ASCII:" + (int) c + ") at line" + this.line + "," +
+                                    " expected 'a', 'b', 't', 'n', 'v', 'f', '\\\"', '\\'', '\\\\', '0'");
+                        }
                 }
             }
         } else {
-            throw new RuntimeException("When lexCharConst(), got '" + c + "'(ASCII:" + (int) c + ") at line" + this.line);
+            throw new RuntimeException("When lexCharConst(), got '" + c
+                    + "'(ASCII:" + (int) c + ") at line " + this.line);
         }
         fgetc();
         if (c == '\'') {
             charConstStrBuilder.append('\'');
         } else {
             ungetc();
-            throw new RuntimeException("When lexCharConst(), more than one character in single quotation mark at line" + this.line);
+            throw new RuntimeException("When lexCharConst(), more than one character in single quotation mark at line " + this.line);
         }
         // UNSTABLE 此处没有考虑字符中非法的换行导致的行数统计错误的问题
         fgetc();
@@ -286,7 +294,8 @@ public class Lexer {
             case '}' -> this.gotToken(TokenType.RBRACE, "}");
             default -> {
                 if (Config.lexerThrowable) {
-                    throw new RuntimeException("When Lexer.lexSymbolComment()->default, unexpected character: " + c);
+                    throw new RuntimeException("When Lexer.lexSymbolComment()->default, unexpected character '" + c
+                            + "'(ASCII:" + (int) c + ") at line" + this.line);
                 }
             }
         }

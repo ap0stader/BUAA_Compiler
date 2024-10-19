@@ -19,4 +19,8 @@ public class Exp implements ASTNode {
         ret.add(addExp);
         return ret;
     }
+
+    public AddExp addExp() {
+        return addExp;
+    }
 }

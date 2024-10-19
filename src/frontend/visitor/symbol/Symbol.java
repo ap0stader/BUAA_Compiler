@@ -2,7 +2,9 @@ package frontend.visitor.symbol;
 
 import IR.IRValue;
 import IR.type.IRType;
+import frontend.lexer.Token;
 import global.Config;
+
 
 public abstract class Symbol {
     private final IRType type;
@@ -10,11 +12,10 @@ public abstract class Symbol {
     private final int line;
     private IRValue irValue;
 
-    protected Symbol(IRType type, String name, int line) {
+    protected Symbol(IRType type, Token ident) {
         this.type = type;
-        this.name = name;
-        this.line = line;
-        this.irValue = null;
+        this.name = ident.strVal();
+        this.line = ident.line();
     }
 
     public String typeDisplayStr() {

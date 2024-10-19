@@ -35,11 +35,13 @@ public class SymbolTable {
         this.subSymbolListIndexStack.pop();
     }
 
-    void insert(Symbol newSymbol) {
+    boolean insert(Symbol newSymbol) {
         if (this.subTableStack.isEmpty() || this.subSymbolListIndexStack.isEmpty()) {
             if (Config.visitorThrowable) {
                 throw new RuntimeException("The stack of sub symbol table is empty when insert symbol '" +
                         newSymbol.name() + "' at line" + newSymbol.line());
+            } else {
+                return false;
             }
         } else {
             HashMap<String, Symbol> currentSubTable = this.subTableStack.peek();
@@ -47,10 +49,12 @@ public class SymbolTable {
             if (currentSubTable.containsKey(newSymbol.name())) {
                 errorTable.addErrorRecord(newSymbol.line(), ErrorType.DUPLICATED_IDENT,
                         "Duplicated symbol '" + newSymbol.name() + "' at line " + newSymbol.line() + ", " +
-                                "last defined at line " + currentSubTable.get(newSymbol.name()));
+                                "last defined at line " + currentSubTable.get(newSymbol.name()).line());
+                return false;
             } else {
                 currentSubTable.put(newSymbol.name(), newSymbol);
                 currentSymbolList.add(newSymbol);
+                return true;
             }
         }
     }
@@ -69,10 +73,18 @@ public class SymbolTable {
                     return subTable.get(ident.strVal());
                 }
             }
-            errorTable.addErrorRecord(ident.line(), ErrorType.UNDEFINED_IDENT,
-                    "Undefined symbol '" + ident.strVal() + "', referenced at line " + ident.line());
             return null;
         }
+    }
+
+    Symbol searchOrError(Token ident) {
+        Symbol ret = this.searchOrNull(ident);
+        if (ret == null) {
+            errorTable.addErrorRecord(ident.line(), ErrorType.UNDEFINED_IDENT,
+                    "Undefined symbol '" + ident.strVal() + "', referenced at line " + ident.line());
+
+        }
+        return ret;
     }
 
     public ArrayList<ArrayList<Symbol>> getSymbolList() {

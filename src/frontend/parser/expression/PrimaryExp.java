@@ -69,21 +69,21 @@ public class PrimaryExp extends ASTNodeWithOption<PrimaryExp.PrimaryExpOption> {
 
     // PrimaryExp → LVal
     public static class PrimaryExp_LVal implements PrimaryExpOption {
-        private final LVal lval;
+        private final LVal lVal;
 
         private PrimaryExp_LVal(TokenStream stream) {
-            lval = new LVal(stream);
+            lVal = new LVal(stream);
         }
 
         @Override
         public ArrayList<Object> explore() {
             ArrayList<Object> ret = new ArrayList<>();
-            ret.add(lval);
+            ret.add(lVal);
             return ret;
         }
 
-        public LVal lval() {
-            return lval;
+        public LVal lVal() {
+            return lVal;
         }
     }
 

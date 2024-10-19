@@ -12,7 +12,7 @@ public class Config {
     // 前端遇到未定义的异常情况，是否抛出运行时异常
     // 词法分析，如果不允许抛出异常，默认处理方式为ungetc();或无操作
     public static boolean lexerThrowable = true;
-    // 语法分析，如果不允许抛出异常，默认处理方式为return null;
+    // 语法分析，如果不允许抛出异常，默认处理方式为return null;或无操作
     public static boolean parserThrowable = true;
     // 语义分析，如果不允许抛出异常，默认处理方式为return null;或无操作
     public static boolean visitorThrowable = true;

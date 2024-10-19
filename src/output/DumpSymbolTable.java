@@ -1,5 +1,6 @@
 package output;
 
+import frontend.visitor.symbol.ConstSymbol;
 import frontend.visitor.symbol.Symbol;
 import frontend.visitor.SymbolTable;
 import global.Config;
@@ -16,8 +17,13 @@ public class DumpSymbolTable {
         for (int level = 1; level <= subSymbolLists.size(); level++) {
             for (Symbol symbol : subSymbolLists.get(level - 1)) {
                 if (Config.dumpSymbolTableDetail) {
-                    out.write(level + " " + symbol.line() + " "
-                            + symbol.name() + " " + symbol.typeDisplayStr() + "\n");
+                    if (symbol instanceof ConstSymbol constSymbol) {
+                        out.write(level + " " + symbol.line() + " "
+                                + symbol.name() + " " + symbol.typeDisplayStr() + " " + constSymbol.initVals() + "\n");
+                    } else {
+                        out.write(level + " " + symbol.line() + " "
+                                + symbol.name() + " " + symbol.typeDisplayStr() + "\n");
+                    }
                 } else {
                     out.write(level + " " + symbol.name() + " " + symbol.typeDisplayStr() + "\n");
                 }

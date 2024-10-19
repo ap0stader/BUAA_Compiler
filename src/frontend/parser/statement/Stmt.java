@@ -69,14 +69,14 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
 
     // Stmt → LVal '=' Exp ';'
     public static class Stmt_LValAssign implements StmtOption {
-        private final LVal lval;
+        private final LVal lVal;
         private final Token assignToken;
         private final Exp exp;
         private final Token semicnToken;
 
         private Stmt_LValAssign(TokenStream stream) {
             String place = "Stmt_LValAssign()";
-            lval = new LVal(stream);
+            lVal = new LVal(stream);
             assignToken = stream.consumeOrThrow(place, TokenType.ASSIGN);
             exp = new Exp(stream);
             semicnToken = stream.consumeOrError(place, ErrorType.MISSING_SEMICN, TokenType.SEMICN);
@@ -85,15 +85,15 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         @Override
         public ArrayList<Object> explore() {
             ArrayList<Object> ret = new ArrayList<>();
-            ret.add(lval);
+            ret.add(lVal);
             ret.add(assignToken);
             ret.add(exp);
             ret.add(semicnToken);
             return ret;
         }
 
-        public LVal lval() {
-            return lval;
+        public LVal lVal() {
+            return lVal;
         }
 
         public Exp exp() {
@@ -361,7 +361,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
 
     // Stmt → LVal '=' 'getint' '(' ')' ';'
     public static class Stmt_LValGetint implements StmtOption {
-        private final LVal lval;
+        private final LVal lVal;
         private final Token assignToken;
         private final Token getintToken;
         private final Token lparentToken;
@@ -370,7 +370,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
 
         private Stmt_LValGetint(TokenStream stream) {
             String place = "Stmt_LValGetint()";
-            lval = new LVal(stream);
+            lVal = new LVal(stream);
             assignToken = stream.consumeOrThrow(place, TokenType.ASSIGN);
             getintToken = stream.consumeOrThrow(place, TokenType.GETINTTK);
             lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
@@ -381,7 +381,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         @Override
         public ArrayList<Object> explore() {
             ArrayList<Object> ret = new ArrayList<>();
-            ret.add(lval);
+            ret.add(lVal);
             ret.add(assignToken);
             ret.add(getintToken);
             ret.add(lparentToken);
@@ -390,15 +390,15 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             return ret;
         }
 
-        public LVal lval() {
-            return lval;
+        public LVal lVal() {
+            return lVal;
         }
     }
 
 
     // Stmt → LVal '=' 'getchar' '(' ')' ';'
     public static class Stmt_LValGetchar implements StmtOption {
-        private final LVal lval;
+        private final LVal lVal;
         private final Token assignToken;
         private final Token getcharToken;
         private final Token lparentToken;
@@ -407,7 +407,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
 
         private Stmt_LValGetchar(TokenStream stream) {
             String place = "Stmt_LValGetint()";
-            lval = new LVal(stream);
+            lVal = new LVal(stream);
             assignToken = stream.consumeOrThrow(place, TokenType.ASSIGN);
             getcharToken = stream.consumeOrThrow(place, TokenType.GETCHARTK);
             lparentToken = stream.consumeOrThrow(place, TokenType.LPARENT);
@@ -418,7 +418,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         @Override
         public ArrayList<Object> explore() {
             ArrayList<Object> ret = new ArrayList<>();
-            ret.add(lval);
+            ret.add(lVal);
             ret.add(assignToken);
             ret.add(getcharToken);
             ret.add(lparentToken);
@@ -427,8 +427,8 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             return ret;
         }
 
-        public LVal lval() {
-            return lval;
+        public LVal lVal() {
+            return lVal;
         }
     }
 

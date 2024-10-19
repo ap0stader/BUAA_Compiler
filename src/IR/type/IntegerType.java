@@ -1,6 +1,6 @@
 package IR.type;
 
-public abstract class IntegerType implements IRType {
+public abstract class IntegerType implements IRType, IRType.VarSymbolType, IRType.ConstSymbolType {
     private final int size;
 
     private IntegerType(int size) {
@@ -11,7 +11,7 @@ public abstract class IntegerType implements IRType {
         return size;
     }
 
-    public final class Int extends IntegerType {
+    public static final class Int extends IntegerType {
         public Int() {
             super(32);
         }
@@ -22,7 +22,7 @@ public abstract class IntegerType implements IRType {
         }
     }
 
-    public final class Char extends IntegerType {
+    public static final class Char extends IntegerType {
         public Char() {
             super(8);
         }

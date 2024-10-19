@@ -1,6 +1,6 @@
 package IR.type;
 
-public final class ArrayType implements IRType {
+public final class ArrayType implements IRType, IRType.VarSymbolType, IRType.ConstSymbolType {
     private final IRType elementType;
     private final int length;
 
