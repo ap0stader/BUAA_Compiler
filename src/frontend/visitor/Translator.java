@@ -10,7 +10,7 @@ import global.Config;
 
 import java.util.ArrayList;
 
-public class Translator {
+class Translator {
     private Translator() {
     }
 

@@ -6,16 +6,16 @@ import frontend.type.TokenType;
 import frontend.visitor.symbol.ConstSymbol;
 import frontend.visitor.symbol.Symbol;
 
-public class Calculator {
+class Calculator {
     private final SymbolTable symbolTable;
 
     Calculator(SymbolTable symbolTable) {
         this.symbolTable = symbolTable;
     }
 
-    private static class UseVariableContent extends RuntimeException {
+    static class UseVariableContent extends RuntimeException {
         private UseVariableContent(String place, Token ident) {
-            super("When " + place + ", used variable content, which identify token is " + ident);
+            super("When " + place + ", used variable content, which identifier token is " + ident);
         }
     }
 

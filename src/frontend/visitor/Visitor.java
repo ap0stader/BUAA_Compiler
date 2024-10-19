@@ -21,6 +21,7 @@ public class Visitor {
 
     private final SymbolTable symbolTable;
     private final Calculator calculator;
+    private final Builder builder;
 
     private final ErrorTable errorTable;
 
@@ -34,6 +35,7 @@ public class Visitor {
         symbolTable.push();
         this.calculator = new Calculator(this.symbolTable);
         this.irModule = new IRModule();
+        this.builder = new Builder(this.irModule);
     }
 
     public SymbolTable getSymbolTable() {

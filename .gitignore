@@ -29,7 +29,6 @@ bin/
 .DS_Store
 
 testdir
-resource
 
 src.zip
 document.pdf
