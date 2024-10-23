@@ -1,27 +1,29 @@
 package IR.type;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
-public final class FunctionType implements IRType, IRType.FuncSymbolType {
-    private final IRType returnType;
-    private final ArrayList<IRType> parametersType;
-
-    public FunctionType(IRType returnType, ArrayList<IRType> parametersType) {
-        this.returnType = returnType;
-        this.parametersType = parametersType;
-    }
-
-    public IRType returnType() {
-        return returnType;
-    }
-
-    public ArrayList<IRType> parametersType() {
-        // TODO 移除该处不必要的保护
-        return new ArrayList<>(parametersType);
-    }
-
+public record FunctionType(
+        IRType returnType,
+        ArrayList<IRType> parametersType
+) implements IRType, IRType.FuncSymbolType {
     @Override
     public String displayStr() {
         return returnType.displayStr() + "Func";
+    }
+
+    @Override
+    public String llvmStr() {
+        throw new UnsupportedOperationException("Can not call llvmStr() of FunctionType directly");
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof FunctionType otherFunctionType) {
+            return Objects.equals(this.returnType, otherFunctionType.returnType)
+                    && Objects.equals(this.parametersType, otherFunctionType.parametersType);
+        } else {
+            return false;
+        }
     }
 }

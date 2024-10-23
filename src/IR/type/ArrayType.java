@@ -1,24 +1,28 @@
 package IR.type;
 
-public final class ArrayType implements IRType, IRType.VarSymbolType, IRType.ConstSymbolType {
-    private final IRType elementType;
-    private final int length;
+import java.util.Objects;
 
-    public ArrayType(IRType elementType, int length) {
-        this.elementType = elementType;
-        this.length = length;
-    }
-
-    public IRType elementType() {
-        return this.elementType;
-    }
-
-    public int length() {
-        return this.length;
-    }
-
+public record ArrayType(
+        IRType elementType,
+        int length
+) implements IRType, IRType.VarSymbolType, IRType.ConstSymbolType {
     @Override
     public String displayStr() {
         return this.elementType.displayStr() + "Array";
+    }
+
+    @Override
+    public String llvmStr() {
+        return "[" + this.length + " x " + this.elementType.llvmStr() + "]";
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof ArrayType otherArrayType) {
+            return Objects.equals(this.elementType, otherArrayType.elementType)
+                    && this.length == otherArrayType.length;
+        } else {
+            return false;
+        }
     }
 }

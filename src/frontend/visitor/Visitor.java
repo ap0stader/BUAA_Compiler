@@ -31,8 +31,6 @@ public class Visitor {
         this.compUnit = compUnit;
         this.errorTable = errorTable;
         this.symbolTable = new SymbolTable(errorTable);
-        // 全局符号表
-        symbolTable.push();
         this.calculator = new Calculator(this.symbolTable);
         this.irModule = new IRModule();
         this.builder = new Builder(this.irModule);
@@ -48,12 +46,16 @@ public class Visitor {
         if (finish) {
             return this.irModule;
         }
+        // 全局符号表
+        symbolTable.push();
         // 全局变量
         this.compUnit.decls().forEach(this::visitGlobalDecl);
         // 各函数
         this.compUnit.funcDefs().forEach(this::visitFuncDef);
         // 主函数
         this.visitMainFuncDef(this.compUnit.mainFuncDef());
+        // 全局符号表弹出
+        symbolTable.pop();
         this.finish = true;
         return this.irModule;
     }
@@ -61,12 +63,12 @@ public class Visitor {
     // Decl → ConstDecl | VarDecl
     private void visitGlobalDecl(Decl decl) {
         if (decl instanceof ConstDecl constDecl) {
-            for (ConstSymbol constant : this.visitConstDecl(constDecl)) {
-
+            for (ConstSymbol globalConstant : this.visitConstDecl(constDecl)) {
+                globalConstant.setIRValue(this.builder.addGlobalConstant(globalConstant));
             }
         } else if (decl instanceof VarDecl varDecl) {
-            for (Pair<VarSymbol, ArrayList<Integer>> variable : this.visitGlobalVarDecl(varDecl)) {
-
+            for (Pair<VarSymbol, ArrayList<Integer>> globalVariable : this.visitGlobalVarDecl(varDecl)) {
+                globalVariable.key().setIRValue(this.builder.addGlobalVariable(globalVariable.key(), globalVariable.value()));
             }
         }
     }

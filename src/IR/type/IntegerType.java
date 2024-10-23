@@ -11,6 +11,20 @@ public abstract class IntegerType implements IRType, IRType.VarSymbolType, IRTyp
         return size;
     }
 
+    @Override
+    public String llvmStr() {
+        return "i" + this.size;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof IntegerType otherIntegerType) {
+            return this.size == otherIntegerType.size;
+        } else {
+            return false;
+        }
+    }
+
     public static final class Int extends IntegerType {
         public Int() {
             super(32);
