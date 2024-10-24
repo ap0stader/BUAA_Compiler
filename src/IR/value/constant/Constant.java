@@ -7,6 +7,4 @@ public abstract class Constant extends IRValue {
     protected Constant(IRType type) {
         super(type);
     }
-
-    public abstract String llvmStr();
 }

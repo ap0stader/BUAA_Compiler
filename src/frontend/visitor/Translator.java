@@ -4,9 +4,13 @@ import IR.type.ArrayType;
 import IR.type.IRType;
 import IR.type.IntegerType;
 import IR.type.PointerType;
+import IR.value.constant.Constant;
+import IR.value.constant.ConstantArray;
+import IR.value.constant.ConstantInt;
 import frontend.lexer.Token;
 import frontend.type.TokenType;
 import global.Config;
+import util.Pair;
 
 import java.util.ArrayList;
 
@@ -73,7 +77,7 @@ class Translator {
             return character;
         } else {
             if (Config.visitorThrowable) {
-                throw new RuntimeException("When charToInt(), got unexpected character '" + character
+                throw new RuntimeException("When charToInt, got unexpected character '" + character
                         + "'(ASCII:" + (int) character + ")");
             } else {
                 return 0;
@@ -95,7 +99,7 @@ class Translator {
             case '0' -> 0;
             default -> {
                 if (Config.visitorThrowable) {
-                    throw new RuntimeException("When escapeCharToInt(), got unexpected escape character '\\"
+                    throw new RuntimeException("When escapeCharToInt, got unexpected escape character '\\"
                             + escapeCharacter + "'");
                 } else {
                     yield 0;
@@ -104,55 +108,57 @@ class Translator {
         };
     }
 
-    static IRType.ConstSymbolType translateConstType(Token bType, int length) {
+    static IRType.ConstSymbolType getConstIRType(Token bType, Integer length) {
         if (bType.type() == TokenType.INTTK || bType.type() == TokenType.CHARTK) {
-            if (length == 0) {
+            if (length == null) {
+                // 数组长度可以为0，null表示没有长度
                 if (bType.type() == TokenType.CHARTK) {
-                    return new IntegerType.Char();
+                    return IRType.getInt8Ty();
                 } else { // bType.type() == TokenType.INTTK
-                    return new IntegerType.Int();
+                    return IRType.getInt32Ty();
                 }
-            } else if (length > 0) {
+            } else if (length >= 0) {
                 if (bType.type() == TokenType.CHARTK) {
-                    return new ArrayType(new IntegerType.Char(), length);
+                    return new ArrayType(IRType.getInt8Ty(), length);
                 } else { // bType.type() == TokenType.INTTK
-                    return new ArrayType(new IntegerType.Int(), length);
+                    return new ArrayType(IRType.getInt32Ty(), length);
                 }
             } else {
-                throw new RuntimeException("When translateConstType(), the length " + length + " of " + bType + " is illegal");
+                throw new RuntimeException("When getConstIRType(), the length " + length + " of " + bType + " is illegal");
             }
         } else {
-            throw new RuntimeException("When translateConstType(), got unexpected bType " + bType);
+            throw new RuntimeException("When getConstIRType(), got unexpected bType " + bType);
         }
     }
 
-    public static IRType.VarSymbolType translateVarType(Token bType, int length, boolean arrayDecay) {
+    static IRType.VarSymbolType getVarIRType(Token bType, Integer length, boolean arrayDecay) {
         if (bType.type() == TokenType.INTTK || bType.type() == TokenType.CHARTK) {
             if (arrayDecay) {
                 if (bType.type() == TokenType.CHARTK) {
-                    return new PointerType(new IntegerType.Char(), true);
+                    return new PointerType(IRType.getInt8Ty(), true);
                 } else { // bType.type() == TokenType.INTTK
-                    return new PointerType(new IntegerType.Int(), true);
+                    return new PointerType(IRType.getInt32Ty(), true);
                 }
             } else {
-                if (length == 0) {
+                if (length == null) {
+                    // 数组长度可以为0，null表示没有长度
                     if (bType.type() == TokenType.CHARTK) {
-                        return new IntegerType.Char();
+                        return IRType.getInt8Ty();
                     } else { // bType.type() == TokenType.INTTK
-                        return new IntegerType.Int();
+                        return IRType.getInt32Ty();
                     }
-                } else if (length > 0) {
+                } else if (length >= 0) {
                     if (bType.type() == TokenType.CHARTK) {
-                        return new ArrayType(new IntegerType.Char(), length);
+                        return new ArrayType(IRType.getInt8Ty(), length);
                     } else { // bType.type() == TokenType.INTTK
-                        return new ArrayType(new IntegerType.Int(), length);
+                        return new ArrayType(IRType.getInt32Ty(), length);
                     }
                 } else {
-                    throw new RuntimeException("When translateVarType(), the length " + length + " of " + bType + " is illegal");
+                    throw new RuntimeException("When getVarIRType(), the length " + length + " of " + bType + " is illegal");
                 }
             }
         } else {
-            throw new RuntimeException("When translateVarType(), got unexpected bType " + bType);
+            throw new RuntimeException("When getVarIRType(), got unexpected bType " + bType);
         }
     }
 }

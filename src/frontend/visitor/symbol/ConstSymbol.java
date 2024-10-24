@@ -18,10 +18,10 @@ public class ConstSymbol extends Symbol {
         return initVals;
     }
 
-    public Integer getInitValsAtIndex(Token ident, int index) {
+    public Integer getInitValAtIndex(Token ident, int index) {
         if (index >= initVals.size()) {
             if (Config.visitorThrowable) {
-                throw new IndexOutOfBoundsException("When getInitValsAtIndex(), accessed by " + ident
+                throw new IndexOutOfBoundsException("When getInitValAtIndex(), accessed by " + ident
                         + ", index " + index + " out of bound " + initVals.size());
             } else {
                 return 0;

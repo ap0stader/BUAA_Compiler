@@ -110,9 +110,9 @@ class Calculator {
         if (symbol != null) {
             if (symbol instanceof ConstSymbol constSymbol) {
                 if (lVal.getType() == LVal.Type.BASIC) {
-                    return constSymbol.getInitValsAtIndex(lVal.ident(), 0);
+                    return constSymbol.getInitValAtIndex(lVal.ident(), 0);
                 } else if (lVal.getType() == LVal.Type.ARRAY) {
-                    return constSymbol.getInitValsAtIndex(lVal.ident(), this.calculateExp(lVal.exp()));
+                    return constSymbol.getInitValAtIndex(lVal.ident(), this.calculateExp(lVal.exp()));
                 } else {
                     throw new RuntimeException("When calculateLVal(), got unknown type of LVal ("
                             + lVal.getType() + ")");

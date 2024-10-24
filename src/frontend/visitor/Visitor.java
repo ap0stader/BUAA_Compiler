@@ -90,20 +90,20 @@ public class Visitor {
         // visitConstDef()
         for (ConstDef constDef : constDecl.constDefs()) {
             Token ident = constDef.ident();
-            ArrayList<Integer> initVals = this.visitConstInitVal(constDef.constInitVal());
+            ArrayList<Integer> initVals;
+            ConstSymbol newSymbol;
+            // 必定有初始值
+            initVals = this.visitConstInitVal(constDef.constInitVal());
             // 字符型截取低八位
             if (bType.type() == TokenType.CHARTK) {
-                initVals.replaceAll(integer -> integer & 0xff);
+                initVals.replaceAll(integer -> (int) integer.byteValue());
             }
             if (constDef.constExp() == null) {
                 // 非数组
                 if (initVals.size() != 1) {
                     throw new RuntimeException("When visitConstDecl(), initVals of identifier " + ident + " mismatch its type");
                 }
-                ConstSymbol newSymbol = new ConstSymbol(Translator.translateConstType(bType, 0), ident, initVals);
-                if (this.symbolTable.insert(newSymbol)) {
-                    ret.add(newSymbol);
-                }
+                newSymbol = new ConstSymbol(Translator.getConstIRType(bType, null), ident, initVals);
             } else {
                 // 数组
                 int length = this.calculator.calculateConstExp(constDef.constExp());
@@ -115,10 +115,10 @@ public class Visitor {
                         initVals.add(0);
                     }
                 }
-                ConstSymbol newSymbol = new ConstSymbol(Translator.translateConstType(bType, length), ident, initVals);
-                if (this.symbolTable.insert(newSymbol)) {
-                    ret.add(newSymbol);
-                }
+                newSymbol = new ConstSymbol(Translator.getConstIRType(bType, length), ident, initVals);
+            }
+            if (this.symbolTable.insert(newSymbol)) {
+                ret.add(newSymbol);
             }
         }
         return ret;
@@ -153,23 +153,29 @@ public class Visitor {
         // visitVarDef()
         for (VarDef varDef : varDecl.varDefs()) {
             Token ident = varDef.ident();
+            ArrayList<Integer> initVals;
+            VarSymbol newSymbol;
             if (varDef.initVal() == null) {
-                throw new RuntimeException("When visitGlobalVarDecl(), initVals of identifier " + ident + " is not exist");
+                // 无初始值
+                initVals = new ArrayList<>();
+                if (varDef.constExp() == null) {
+                    // 不是数组的给一个0，是数组的直接利用补齐0，因为数组的长度可以等于0，所以不能直接所有都给一个0
+                    initVals.add(0);
+                }
+            } else {
+                // 有初始值
+                initVals = this.visitInitValAsConst(varDef.initVal());
             }
-            ArrayList<Integer> initVals = this.visitInitValAsConst(varDef.initVal());
             // 字符型截取低八位
             if (bType.type() == TokenType.CHARTK) {
-                initVals.replaceAll(integer -> integer & 0xff);
+                initVals.replaceAll(integer -> (int) (integer.byteValue()));
             }
             if (varDef.constExp() == null) {
                 // 非数组
                 if (initVals.size() != 1) {
                     throw new RuntimeException("When visitGlobalVarDecl(), initVals of identifier " + ident + " mismatch its type");
                 }
-                VarSymbol newSymbol = new VarSymbol(Translator.translateVarType(bType, 0, false), ident);
-                if (this.symbolTable.insert(newSymbol)) {
-                    ret.add(new Pair<>(newSymbol, initVals));
-                }
+                newSymbol = new VarSymbol(Translator.getVarIRType(bType, null, false), ident);
             } else {
                 // 数组
                 int length = this.calculator.calculateConstExp(varDef.constExp());
@@ -181,10 +187,10 @@ public class Visitor {
                         initVals.add(0);
                     }
                 }
-                VarSymbol newSymbol = new VarSymbol(Translator.translateVarType(bType, length, false), ident);
-                if (this.symbolTable.insert(newSymbol)) {
-                    ret.add(new Pair<>(newSymbol, initVals));
-                }
+                newSymbol = new VarSymbol(Translator.getVarIRType(bType, length, false), ident);
+            }
+            if (this.symbolTable.insert(newSymbol)) {
+                ret.add(new Pair<>(newSymbol, initVals));
             }
         }
         return ret;

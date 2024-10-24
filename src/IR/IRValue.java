@@ -28,4 +28,9 @@ public abstract class IRValue {
     public IRType type() {
         return type;
     }
+
+    // TODO：未完成开发时使用，后续应当改为抽象方法
+    public String llvmStr() {
+        throw new UnsupportedOperationException("Unimplemented.");
+    }
 }

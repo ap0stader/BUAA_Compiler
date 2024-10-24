@@ -1,6 +1,11 @@
 package IR.type;
 
-public record LabelType() implements IRType {
+public final class LabelType implements IRType {
+    static final LabelType INSTANCE = new LabelType();
+
+    private LabelType() {
+    }
+
     // 这不是LLVM中实现的一个类，仅用于BasicBlock
     @Override
     public String displayStr() {

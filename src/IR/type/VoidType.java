@@ -1,6 +1,11 @@
 package IR.type;
 
-public record VoidType() implements IRType {
+public final class VoidType implements IRType {
+    static final VoidType INSTANCE = new VoidType();
+
+    private VoidType() {
+    }
+
     @Override
     public String displayStr() {
         return "Void";

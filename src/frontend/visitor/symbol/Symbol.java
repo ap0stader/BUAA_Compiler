@@ -10,7 +10,7 @@ public abstract class Symbol {
     private final IRType type;
     private final String name;
     private final int line;
-    private IRValue irValue;
+    private IRValue irValue = null;
 
     protected Symbol(IRType type, Token ident) {
         this.type = type;
@@ -22,12 +22,16 @@ public abstract class Symbol {
         return this.type.displayStr();
     }
 
-    public int line() {
-        return this.line;
+    public IRType type() {
+        return type;
     }
 
     public String name() {
-        return this.name;
+        return name;
+    }
+
+    public int line() {
+        return line;
     }
 
     public IRValue irValue() {
@@ -44,7 +48,7 @@ public abstract class Symbol {
     }
 
     public void setIRValue(IRValue irValue) {
-        if (this.irValue != null) {
+        if (this.irValue == null) {
             this.irValue = irValue;
         } else {
             if (Config.visitorThrowable) {

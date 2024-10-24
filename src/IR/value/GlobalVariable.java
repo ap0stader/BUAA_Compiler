@@ -19,10 +19,10 @@ public class GlobalVariable extends IRValue {
     }
 
     @Override
-    public String toString() {
+    public String llvmStr() {
         return "@" + this.name + " = " +
                 (this.isPrivate ? "private unnamed_addr" : "dso_local") + " " +
                 (this.isConstant ? "constant" : "global") + " " +
-                this.initVals.toString();
+                this.initVals.llvmStr() + "\n";
     }
 }

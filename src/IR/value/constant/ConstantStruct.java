@@ -1,6 +1,5 @@
 package IR.value.constant;
 
-import IR.type.IRType;
 import IR.type.StructType;
 
 import java.util.ArrayList;
@@ -9,7 +8,7 @@ import java.util.Objects;
 public class ConstantStruct extends Constant {
     private final ArrayList<Constant> constantValues;
 
-    protected ConstantStruct(StructType structType, ArrayList<Constant> constantValues) {
+    public ConstantStruct(StructType structType, ArrayList<Constant> constantValues) {
         super(structType);
         if (structType.memberTypes().size() != constantValues.size()) {
             throw new RuntimeException("When ConstantStruct(), number of members mismatch. Got " + constantValues.size() +

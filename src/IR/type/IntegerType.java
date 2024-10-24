@@ -26,7 +26,9 @@ public abstract class IntegerType implements IRType, IRType.VarSymbolType, IRTyp
     }
 
     public static final class Int extends IntegerType {
-        public Int() {
+        static final Int INSTANCE = new Int();
+
+        private Int() {
             super(32);
         }
 
@@ -37,7 +39,9 @@ public abstract class IntegerType implements IRType, IRType.VarSymbolType, IRTyp
     }
 
     public static final class Char extends IntegerType {
-        public Char() {
+        static final Char INSTANCE = new Char();
+
+        private Char() {
             super(8);
         }
 

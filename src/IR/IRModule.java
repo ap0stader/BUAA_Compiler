@@ -6,11 +6,23 @@ import IR.value.GlobalVariable;
 import java.util.ArrayList;
 
 public class IRModule {
-    public final ArrayList<GlobalVariable> globalVariables;
-    public final ArrayList<Function> functions;
+    private final ArrayList<GlobalVariable> globalVariables;
+    private final ArrayList<Function> functions;
 
     public IRModule() {
         this.globalVariables = new ArrayList<>();
         this.functions = new ArrayList<>();
+    }
+
+    public ArrayList<GlobalVariable> globalVariables() {
+        return globalVariables;
+    }
+
+    public ArrayList<Function> functions() {
+        return functions;
+    }
+
+    public void appendGlobalVariables(GlobalVariable globalVariable) {
+        this.globalVariables.add(globalVariable);
     }
 }
