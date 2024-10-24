@@ -16,6 +16,12 @@ public final class VoidType implements IRType {
         return "void";
     }
 
+    // DEBUG 重写toString方法以供调试
+    @Override
+    public String toString() {
+        return this.llvmStr();
+    }
+
     @Override
     public boolean equals(Object obj) {
         return obj instanceof VoidType;

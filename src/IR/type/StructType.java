@@ -26,9 +26,17 @@ public record StructType(ArrayList<IRType> memberTypes)
         return sb.toString();
     }
 
+    // DEBUG 重写toString方法以供调试
+    @Override
+    public String toString() {
+        return llvmStr();
+    }
+
+    // WARNING 未重写hashCode方法，不得在Hash类容器中使用
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof StructType otherStructType) {
+            // ArrayList的比较方法自动严格比较
             return Objects.equals(this.memberTypes, otherStructType.memberTypes);
         } else {
             return false;

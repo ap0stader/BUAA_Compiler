@@ -16,6 +16,12 @@ public abstract class IntegerType implements IRType, IRType.VarSymbolType, IRTyp
         return "i" + this.size;
     }
 
+    // DEBUG 重写toString方法以供调试
+    @Override
+    public String toString() {
+        return this.llvmStr();
+    }
+
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof IntegerType otherIntegerType) {
