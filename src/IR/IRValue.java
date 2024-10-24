@@ -33,4 +33,10 @@ public abstract class IRValue {
     public String llvmStr() {
         throw new UnsupportedOperationException("Unimplemented.");
     }
+
+    // DEBUG 重写toString方法以供调试
+    @Override
+    public String toString() {
+        return this.llvmStr();
+    }
 }

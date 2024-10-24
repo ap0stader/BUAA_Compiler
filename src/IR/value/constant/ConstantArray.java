@@ -10,6 +10,7 @@ public class ConstantArray extends Constant {
 
     public ConstantArray(ArrayType arrayType, ArrayList<Constant> constantValues) {
         super(arrayType);
+        // 检查类型是否匹配
         for (Constant value : constantValues) {
             if (!Objects.equals(arrayType.elementType(), value.type())) {
                 throw new RuntimeException("When ConstantArray(), type mismatch. Got " + value.type() +
@@ -24,6 +25,7 @@ public class ConstantArray extends Constant {
         StringBuilder sb = new StringBuilder();
         sb.append(this.type.llvmStr());
         sb.append(" [");
+        // 可能存在长度为0的数组
         if (!this.constantValues.isEmpty()) {
             sb.append(this.constantValues.get(0).llvmStr());
             for (int i = 1; i < this.constantValues.size(); i++) {

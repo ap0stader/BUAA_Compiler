@@ -2,6 +2,7 @@ package IR.value;
 
 import IR.IRValue;
 import IR.type.IRType;
+import IR.type.PointerType;
 import IR.value.constant.Constant;
 
 public class GlobalVariable extends IRValue {
@@ -12,7 +13,8 @@ public class GlobalVariable extends IRValue {
     public GlobalVariable(IRType type, String name,
                           boolean setConstant, boolean setPrivate,
                           Constant initVals) {
-        super(name, type);
+        // 自动转为对应的指针类型，不需要在传入时包装为指针类型
+        super(name, new PointerType(type, false));
         this.isConstant = setConstant;
         this.isPrivate = setPrivate;
         this.initVals = initVals;

@@ -10,6 +10,7 @@ public class ConstantStruct extends Constant {
 
     public ConstantStruct(StructType structType, ArrayList<Constant> constantValues) {
         super(structType);
+        // 检查类型是否匹配
         if (structType.memberTypes().size() != constantValues.size()) {
             throw new RuntimeException("When ConstantStruct(), number of members mismatch. Got " + constantValues.size() +
                     ", expected " + structType.memberTypes().size());
@@ -30,6 +31,7 @@ public class ConstantStruct extends Constant {
         StringBuilder sb = new StringBuilder();
         sb.append(this.type.llvmStr());
         sb.append(" <{ ");
+        // 可能存在没有成员的结构体
         if (!this.constantValues.isEmpty()) {
             sb.append(this.constantValues.get(0).llvmStr());
             for (int i = 1; i < this.constantValues.size(); i++) {
