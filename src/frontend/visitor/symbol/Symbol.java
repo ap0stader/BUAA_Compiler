@@ -5,7 +5,6 @@ import IR.type.IRType;
 import frontend.lexer.Token;
 import global.Config;
 
-
 public abstract class Symbol {
     private final IRType type;
     private final String name;
@@ -48,13 +47,6 @@ public abstract class Symbol {
     }
 
     public void setIRValue(IRValue irValue) {
-        if (this.irValue == null) {
-            this.irValue = irValue;
-        } else {
-            if (Config.visitorThrowable) {
-                throw new RuntimeException("The value of VarSymbol '" + this.name +
-                        "' at line " + this.line + " has set.");
-            }
-        }
+        this.irValue = irValue;
     }
 }

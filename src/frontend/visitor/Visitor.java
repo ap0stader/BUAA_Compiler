@@ -46,7 +46,7 @@ public class Visitor {
         if (finish) {
             return this.irModule;
         }
-        // 全局符号表
+        // 全局符号表进入
         symbolTable.push();
         // 全局变量
         this.compUnit.decls().forEach(this::visitGlobalDecl);
@@ -63,12 +63,12 @@ public class Visitor {
     // Decl → ConstDecl | VarDecl
     private void visitGlobalDecl(Decl decl) {
         if (decl instanceof ConstDecl constDecl) {
-            for (ConstSymbol globalConstant : this.visitConstDecl(constDecl)) {
-                globalConstant.setIRValue(this.builder.addGlobalConstant(globalConstant));
+            for (ConstSymbol constSymbol : this.visitConstDecl(constDecl)) {
+                constSymbol.setIRValue(this.builder.addGlobalConstant(constSymbol));
             }
         } else if (decl instanceof VarDecl varDecl) {
-            for (Pair<VarSymbol, ArrayList<Integer>> globalVariable : this.visitGlobalVarDecl(varDecl)) {
-                globalVariable.key().setIRValue(this.builder.addGlobalVariable(globalVariable.key(), globalVariable.value()));
+            for (Pair<VarSymbol, ArrayList<Integer>> varSymbol : this.visitGlobalVarDecl(varDecl)) {
+                varSymbol.key().setIRValue(this.builder.addGlobalVariable(varSymbol.key(), varSymbol.value()));
             }
         }
     }

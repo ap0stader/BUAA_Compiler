@@ -1,16 +1,9 @@
 package frontend.visitor;
 
-import IR.type.ArrayType;
-import IR.type.IRType;
-import IR.type.IntegerType;
-import IR.type.PointerType;
-import IR.value.constant.Constant;
-import IR.value.constant.ConstantArray;
-import IR.value.constant.ConstantInt;
+import IR.type.*;
 import frontend.lexer.Token;
 import frontend.type.TokenType;
 import global.Config;
-import util.Pair;
 
 import java.util.ArrayList;
 

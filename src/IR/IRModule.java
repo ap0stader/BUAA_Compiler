@@ -25,4 +25,8 @@ public class IRModule {
     public void appendGlobalVariables(GlobalVariable globalVariable) {
         this.globalVariables.add(globalVariable);
     }
+
+    public void appendFunctions(Function function) {
+        this.functions.add(function);
+    }
 }
