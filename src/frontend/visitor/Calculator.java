@@ -13,7 +13,7 @@ class Calculator {
         this.symbolTable = symbolTable;
     }
 
-    static class UseVariableContent extends RuntimeException {
+    private static class UseVariableContent extends RuntimeException {
         private UseVariableContent(String place, Token ident) {
             super("When " + place + ", used variable content, which identifier token is " + ident);
         }
@@ -98,6 +98,7 @@ class Calculator {
         } else if (primaryExpExtract instanceof PrimaryExp.PrimaryExp_Number primaryExp_number) {
             return Integer.parseInt(primaryExp_number.number().intConst().strVal());
         } else if (primaryExpExtract instanceof PrimaryExp.PrimaryExp_Character primaryExp_character) {
+            // 由于char参加运算的方式为先零拓展为int再参加运算，故此处可以直接提升为int
             return Translator.translateCharConst(primaryExp_character.character().charConst());
         } else {
             throw new RuntimeException("When calculatePrimaryExp(), got unknown type of PrimaryExp ("

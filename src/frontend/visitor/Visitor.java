@@ -90,8 +90,8 @@ public class Visitor {
         // visitConstDef()
         for (ConstDef constDef : constDecl.constDefs()) {
             Token ident = constDef.ident();
-            ArrayList<Integer> initVals;
             ConstSymbol newSymbol;
+            ArrayList<Integer> initVals;
             // 必定有初始值
             initVals = this.visitConstInitVal(constDef.constInitVal());
             // 字符型截取低八位
@@ -134,13 +134,13 @@ public class Visitor {
             return Translator.translateStringConst(constInitVal.stringConst());
         } else if (constInitVal.getType() == ConstInitVal.Type.ARRAY) {
             ArrayList<Integer> initVals = new ArrayList<>();
+            // 由于只考虑一维数组，所以此处直接解析计算
             for (ConstExp constExp : constInitVal.constExps()) {
                 initVals.add(this.calculator.calculateConstExp(constExp));
             }
             return initVals;
         } else {
-            throw new RuntimeException("When visitConstInitVal(), got unknown type of ConstInitVal ("
-                    + constInitVal.getType() + ")");
+            throw new RuntimeException("When visitConstInitVal(), got unknown type of ConstInitVal (" + constInitVal.getType() + ")");
         }
     }
 
@@ -153,8 +153,8 @@ public class Visitor {
         // visitVarDef()
         for (VarDef varDef : varDecl.varDefs()) {
             Token ident = varDef.ident();
-            ArrayList<Integer> initVals;
             VarSymbol newSymbol;
+            ArrayList<Integer> initVals;
             if (varDef.initVal() == null) {
                 // 无初始值
                 initVals = new ArrayList<>();
@@ -206,13 +206,13 @@ public class Visitor {
             return Translator.translateStringConst(initVal.stringConst());
         } else if (initVal.getType() == InitVal.Type.ARRAY) {
             ArrayList<Integer> initVals = new ArrayList<>();
+            // 由于只考虑一维数组，所以此处直接解析计算
             for (Exp exp : initVal.exps()) {
                 initVals.add(this.calculator.calculateExp(exp));
             }
             return initVals;
         } else {
-            throw new RuntimeException("When visitInitValAsConst(), got unknown type of InitVal ("
-                    + initVal.getType() + ")");
+            throw new RuntimeException("When visitInitValAsConst(), got unknown type of InitVal (" + initVal.getType() + ")");
         }
     }
 }

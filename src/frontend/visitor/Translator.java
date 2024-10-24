@@ -42,6 +42,7 @@ class Translator {
     }
 
     static Integer translateCharConst(Token charConst) {
+        // 由于char参加运算的方式为先零拓展为int再参加运算，故此处包括子函数均直接提升为int
         try {
             assert charConst.type() == TokenType.CHRCON;
             String charConstString = charConst.strVal();
