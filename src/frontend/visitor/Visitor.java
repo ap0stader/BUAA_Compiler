@@ -78,8 +78,6 @@ public class Visitor {
 
     // FuncDef → FuncType Ident '(' [FuncFParams] ')' Block
     // FuncType → 'void' | 'int' | 'char'
-    // FuncFParams → FuncFParam { ',' FuncFParam }
-    //  FuncFParam → BType Ident ['[' ']']
     private void visitFuncDef(FuncDef funcDef) {
         // visitFuncType()
         Token funcType = funcDef.funcType().typeToken();
@@ -106,22 +104,6 @@ public class Visitor {
         this.visitFunctionBlock(funcDef.block().blockItems());
         // 离开函数的作用域
         this.symbolTable.pop();
-    }
-
-    // FuncFParams → FuncFParam { ',' FuncFParam }
-    //  FuncFParam → BType Ident ['[' ']']
-    private ArrayList<VarSymbol> visitFuncFParams(FuncFParams funcFParams) {
-        ArrayList<VarSymbol> ret = new ArrayList<>();
-        for (FuncFParam funcFParam : funcFParams.funcFParams()) {
-            if (funcFParam.getType() == FuncFParam.Type.BASIC) {
-                ret.add(new VarSymbol(Translator.getVarIRType(funcFParam.typeToken(), null, false), funcFParam.ident()));
-            } else if (funcFParam.getType() == FuncFParam.Type.ARRAY) {
-                ret.add(new VarSymbol(Translator.getVarIRType(funcFParam.typeToken(), null, true), funcFParam.ident()));
-            } else {
-                throw new RuntimeException("When visitFuncFParams(), got unknown type of FuncFParam (" + funcFParam.getType() + ")");
-            }
-        }
-        return ret;
     }
 
     // MainFuncDef → 'int' 'main' '(' ')' Block
@@ -212,7 +194,7 @@ public class Visitor {
                 }
             } else {
                 // 有初始值
-                initVals = this.visitInitValAsConst(varDef.initVal());
+                initVals = this.visitGlobalInitVal(varDef.initVal());
             }
             // 字符型截取低八位
             if (bType.type() == TokenType.CHARTK) {
@@ -245,7 +227,7 @@ public class Visitor {
     }
 
     // InitVal → Exp | '{' [ Exp { ',' Exp } ] '}' | StringConst
-    private ArrayList<Integer> visitInitValAsConst(InitVal initVal) {
+    private ArrayList<Integer> visitGlobalInitVal(InitVal initVal) {
         if (initVal.getType() == InitVal.Type.BASIC) {
             return new ArrayList<>(Collections.singletonList(this.calculator.calculateExp(initVal.exp())));
         } else if (initVal.getType() == InitVal.Type.STRING) {
@@ -254,10 +236,27 @@ public class Visitor {
             // 由于只考虑一维数组，所以此处直接解析计算
             return new ArrayList<>(initVal.exps().stream().map(this.calculator::calculateExp).toList());
         } else {
-            throw new RuntimeException("When visitInitValAsConst(), got unknown type of InitVal (" + initVal.getType() + ")");
+            throw new RuntimeException("When visitGlobalInitVal(), got unknown type of InitVal (" + initVal.getType() + ")");
         }
     }
 
+    // FuncFParams → FuncFParam { ',' FuncFParam }
+    //  FuncFParam → BType Ident ['[' ']']
+    private ArrayList<VarSymbol> visitFuncFParams(FuncFParams funcFParams) {
+        ArrayList<VarSymbol> ret = new ArrayList<>();
+        for (FuncFParam funcFParam : funcFParams.funcFParams()) {
+            if (funcFParam.getType() == FuncFParam.Type.BASIC) {
+                ret.add(new VarSymbol(Translator.getVarIRType(funcFParam.typeToken(), null, false), funcFParam.ident()));
+            } else if (funcFParam.getType() == FuncFParam.Type.ARRAY) {
+                ret.add(new VarSymbol(Translator.getVarIRType(funcFParam.typeToken(), null, true), funcFParam.ident()));
+            } else {
+                throw new RuntimeException("When visitFuncFParams(), got unknown type of FuncFParam (" + funcFParam.getType() + ")");
+            }
+        }
+        return ret;
+    }
+
+    // BlockItem → Decl | Stmt
     private void visitFunctionBlock(ArrayList<BlockItem> blockItems) {
         BasicBlock entryBlock = this.builder.newBasicBlock();
         for (BlockItem item : blockItems) {
@@ -270,4 +269,6 @@ public class Visitor {
             }
         }
     }
+
+    // Decl → ConstDecl | VarDecl
 }
