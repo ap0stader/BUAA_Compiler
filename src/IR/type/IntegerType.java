@@ -1,14 +1,19 @@
 package IR.type;
 
-public abstract class IntegerType implements IRType, IRType.VarSymbolType, IRType.ConstSymbolType {
+public class IntegerType implements IRType, IRType.VarSymbolType, IRType.ConstSymbolType {
     private final int size;
 
-    private IntegerType(int size) {
+    public IntegerType(int size) {
         this.size = size;
     }
 
     public int size() {
         return size;
+    }
+
+    @Override
+    public String displayStr() {
+        throw new UnsupportedOperationException("A raw Integer should not be display in SysY.");
     }
 
     @Override

@@ -6,7 +6,7 @@ import java.util.Objects;
 public record FunctionType(
         IRType returnType,
         ArrayList<IRType> parametersType
-) implements IRType, IRType.FuncSymbolType {
+) implements IRType {
     @Override
     public String displayStr() {
         return returnType.displayStr() + "Func";

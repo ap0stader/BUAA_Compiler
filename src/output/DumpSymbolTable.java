@@ -1,5 +1,6 @@
 package output;
 
+import IR.type.IRType;
 import frontend.visitor.symbol.ConstSymbol;
 import frontend.visitor.symbol.Symbol;
 import frontend.visitor.SymbolTable;
@@ -13,19 +14,19 @@ import java.util.ArrayList;
 public class DumpSymbolTable {
     public static void dump(SymbolTable symbolTable) throws IOException {
         BufferedWriter out = new BufferedWriter(new FileWriter(Config.dumpSymbolTableFileName));
-        ArrayList<ArrayList<Symbol>> subSymbolLists = symbolTable.getSymbolList();
+        ArrayList<ArrayList<Symbol<? extends IRType>>> subSymbolLists = symbolTable.getSymbolList();
         for (int level = 1; level <= subSymbolLists.size(); level++) {
-            for (Symbol symbol : subSymbolLists.get(level - 1)) {
+            for (Symbol<? extends IRType> symbol : subSymbolLists.get(level - 1)) {
                 if (Config.dumpSymbolTableDetail) {
                     if (symbol instanceof ConstSymbol constSymbol) {
                         out.write(level + " " + symbol.line() + " "
-                                + symbol.name() + " " + symbol.typeDisplayStr() + " " + constSymbol.initVals() + "\n");
+                                + symbol.name() + " " + symbol.type() + " " + constSymbol.initVals() + "\n");
                     } else {
                         out.write(level + " " + symbol.line() + " "
-                                + symbol.name() + " " + symbol.typeDisplayStr() + "\n");
+                                + symbol.name() + " " + symbol.type() + "\n");
                     }
                 } else {
-                    out.write(level + " " + symbol.name() + " " + symbol.typeDisplayStr() + "\n");
+                    out.write(level + " " + symbol.name() + " " + symbol.type().displayStr() + "\n");
                 }
             }
         }

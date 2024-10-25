@@ -155,4 +155,18 @@ class Translator {
             throw new RuntimeException("When getVarIRType(), got unexpected bType " + bType);
         }
     }
+
+    static FunctionType getFuncIRType(Token funcType, ArrayList<IRType> parameters) {
+        IRType returnType;
+        if (funcType.type() == TokenType.INTTK) {
+            returnType = IRType.getInt32Ty();
+        } else if (funcType.type() == TokenType.CHARTK) {
+            returnType = IRType.getInt8Ty();
+        } else if (funcType.type() == TokenType.VOIDTK) {
+            returnType = IRType.getVoidTy();
+        } else {
+            throw new RuntimeException("When getFuncIRType(), got unexpected funcType " + funcType);
+        }
+        return new FunctionType(returnType, parameters);
+    }
 }

@@ -1,6 +1,7 @@
 package frontend.visitor;
 
 import IR.IRModule;
+import IR.value.BasicBlock;
 import frontend.error.ErrorTable;
 import frontend.lexer.Token;
 import frontend.parser.CompUnit;
@@ -8,12 +9,14 @@ import frontend.parser.declaration.*;
 import frontend.parser.declaration.constant.*;
 import frontend.parser.declaration.function.*;
 import frontend.parser.declaration.variable.*;
-import frontend.parser.expression.*;
+import frontend.parser.statement.BlockItem;
+import frontend.parser.statement.Stmt;
 import frontend.type.TokenType;
 import frontend.visitor.symbol.*;
 import util.Pair;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class Visitor {
     private final CompUnit compUnit;
@@ -73,12 +76,63 @@ public class Visitor {
         }
     }
 
+    // FuncDef → FuncType Ident '(' [FuncFParams] ')' Block
+    // FuncType → 'void' | 'int' | 'char'
+    // FuncFParams → FuncFParam { ',' FuncFParam }
+    //  FuncFParam → BType Ident ['[' ']']
     private void visitFuncDef(FuncDef funcDef) {
-
+        // visitFuncType()
+        Token funcType = funcDef.funcType().typeToken();
+        Token ident = funcDef.ident();
+        ArrayList<VarSymbol> parameters;
+        if (funcDef.funcFParams() == null) {
+            // 无参数
+            parameters = new ArrayList<>();
+        } else {
+            // 有参数，在此处即遍历FuncFParams，先用于生成函数类型
+            parameters = this.visitFuncFParams(funcDef.funcFParams());
+        }
+        FuncSymbol newSymbol = new FuncSymbol(Translator.getFuncIRType(funcType,
+                new ArrayList<>(parameters.stream().map(VarSymbol::type).toList())), ident);
+        newSymbol.setIRValue(this.builder.addFunction(newSymbol, parameters));
+        // 函数尝试进入符号表，为了检查出尽可能多的错误，无论是否成功都继续操作以检查
+        this.symbolTable.insert(newSymbol);
+        // 进入函数的作用域
+        this.symbolTable.push();
+        // 参数尝试进入符号表
+        for (VarSymbol parameter : parameters) {
+            this.symbolTable.insert(parameter);
+        }
+        this.visitFunctionBlock(funcDef.block().blockItems());
+        // 离开函数的作用域
+        this.symbolTable.pop();
     }
 
-    private void visitMainFuncDef(MainFuncDef mainFuncDef) {
+    // FuncFParams → FuncFParam { ',' FuncFParam }
+    //  FuncFParam → BType Ident ['[' ']']
+    private ArrayList<VarSymbol> visitFuncFParams(FuncFParams funcFParams) {
+        ArrayList<VarSymbol> ret = new ArrayList<>();
+        for (FuncFParam funcFParam : funcFParams.funcFParams()) {
+            if (funcFParam.getType() == FuncFParam.Type.BASIC) {
+                ret.add(new VarSymbol(Translator.getVarIRType(funcFParam.typeToken(), null, false), funcFParam.ident()));
+            } else if (funcFParam.getType() == FuncFParam.Type.ARRAY) {
+                ret.add(new VarSymbol(Translator.getVarIRType(funcFParam.typeToken(), null, true), funcFParam.ident()));
+            } else {
+                throw new RuntimeException("When visitFuncFParams(), got unknown type of FuncFParam (" + funcFParam.getType() + ")");
+            }
+        }
+        return ret;
+    }
 
+    // MainFuncDef → 'int' 'main' '(' ')' Block
+    private void visitMainFuncDef(MainFuncDef mainFuncDef) {
+        // 主函数不需要进入符号表，也没有参数
+        this.builder.addMainFunction();
+        // 进入主函数的作用域
+        this.symbolTable.push();
+        this.visitFunctionBlock(mainFuncDef.block().blockItems());
+        // 离开主函数的作用域
+        this.symbolTable.pop();
     }
 
     // ConstDecl → 'const' BType ConstDef { ',' ConstDef } ';'
@@ -127,18 +181,12 @@ public class Visitor {
     // ConstInitVal → ConstExp | '{' [ ConstExp { ',' ConstExp } ] '}' | StringConst
     private ArrayList<Integer> visitConstInitVal(ConstInitVal constInitVal) {
         if (constInitVal.getType() == ConstInitVal.Type.BASIC) {
-            ArrayList<Integer> initVals = new ArrayList<>();
-            initVals.add(this.calculator.calculateConstExp(constInitVal.constExp()));
-            return initVals;
+            return new ArrayList<>(Collections.singletonList(this.calculator.calculateConstExp(constInitVal.constExp())));
         } else if (constInitVal.getType() == ConstInitVal.Type.STRING) {
             return Translator.translateStringConst(constInitVal.stringConst());
         } else if (constInitVal.getType() == ConstInitVal.Type.ARRAY) {
-            ArrayList<Integer> initVals = new ArrayList<>();
             // 由于只考虑一维数组，所以此处直接解析计算
-            for (ConstExp constExp : constInitVal.constExps()) {
-                initVals.add(this.calculator.calculateConstExp(constExp));
-            }
-            return initVals;
+            return new ArrayList<>(constInitVal.constExps().stream().map(this.calculator::calculateConstExp).toList());
         } else {
             throw new RuntimeException("When visitConstInitVal(), got unknown type of ConstInitVal (" + constInitVal.getType() + ")");
         }
@@ -199,20 +247,27 @@ public class Visitor {
     // InitVal → Exp | '{' [ Exp { ',' Exp } ] '}' | StringConst
     private ArrayList<Integer> visitInitValAsConst(InitVal initVal) {
         if (initVal.getType() == InitVal.Type.BASIC) {
-            ArrayList<Integer> initVals = new ArrayList<>();
-            initVals.add(this.calculator.calculateExp(initVal.exp()));
-            return initVals;
+            return new ArrayList<>(Collections.singletonList(this.calculator.calculateExp(initVal.exp())));
         } else if (initVal.getType() == InitVal.Type.STRING) {
             return Translator.translateStringConst(initVal.stringConst());
         } else if (initVal.getType() == InitVal.Type.ARRAY) {
-            ArrayList<Integer> initVals = new ArrayList<>();
             // 由于只考虑一维数组，所以此处直接解析计算
-            for (Exp exp : initVal.exps()) {
-                initVals.add(this.calculator.calculateExp(exp));
-            }
-            return initVals;
+            return new ArrayList<>(initVal.exps().stream().map(this.calculator::calculateExp).toList());
         } else {
             throw new RuntimeException("When visitInitValAsConst(), got unknown type of InitVal (" + initVal.getType() + ")");
+        }
+    }
+
+    private void visitFunctionBlock(ArrayList<BlockItem> blockItems) {
+        BasicBlock entryBlock = this.builder.newBasicBlock();
+        for (BlockItem item : blockItems) {
+            if (item instanceof Decl) {
+
+            } else if (item instanceof Stmt) {
+
+            } else {
+                throw new RuntimeException("When visitFunctionBlock(), got unknown type of BlockItem (" + item.getClass().getSimpleName() + ")");
+            }
         }
     }
 }

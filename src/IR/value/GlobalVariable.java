@@ -10,7 +10,7 @@ public class GlobalVariable extends IRValue {
     private final boolean isPrivate;
     private final Constant initVals;
 
-    public GlobalVariable(IRType type, String name,
+    public GlobalVariable(String name, IRType type,
                           boolean setConstant, boolean setPrivate,
                           Constant initVals) {
         // 自动转为对应的指针类型，不需要在传入时包装为指针类型
@@ -20,11 +20,16 @@ public class GlobalVariable extends IRValue {
         this.initVals = initVals;
     }
 
-    @Override
     public String llvmStr() {
         return "@" + this.name + " = " +
                 (this.isPrivate ? "private unnamed_addr" : "dso_local") + " " +
                 (this.isConstant ? "constant" : "global") + " " +
                 this.initVals.llvmStr() + "\n";
+    }
+
+    // DEBUG 重写toString方法以供调试
+    @Override
+    public String toString() {
+        return this.llvmStr();
     }
 }

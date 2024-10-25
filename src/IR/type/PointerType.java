@@ -24,7 +24,7 @@ public record PointerType(
     // DEBUG 重写toString方法以供调试
     @Override
     public String toString() {
-        return this.llvmStr();
+        return this.llvmStr() + (this.arrayDecay ? "(array)" : "");
     }
 
     // WARNING 未重写hashCode方法，不得在Hash类容器中使用

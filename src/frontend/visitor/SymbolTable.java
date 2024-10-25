@@ -1,5 +1,6 @@
 package frontend.visitor;
 
+import IR.type.IRType;
 import frontend.error.ErrorTable;
 import frontend.error.ErrorType;
 import frontend.lexer.Token;
@@ -13,8 +14,8 @@ import java.util.LinkedList;
 public class SymbolTable {
     private final ErrorTable errorTable;
 
-    private final LinkedList<HashMap<String, Symbol>> subTableStack;
-    private final ArrayList<ArrayList<Symbol>> symbolList;
+    private final LinkedList<HashMap<String, Symbol<? extends IRType>>> subTableStack;
+    private final ArrayList<ArrayList<Symbol<? extends IRType>>> symbolList;
     private final LinkedList<Integer> subSymbolListIndexStack;
 
     SymbolTable(ErrorTable errorTable) {
@@ -35,7 +36,7 @@ public class SymbolTable {
         this.subSymbolListIndexStack.pop();
     }
 
-    boolean insert(Symbol newSymbol) {
+    boolean insert(Symbol<? extends IRType> newSymbol) {
         if (this.subTableStack.isEmpty() || this.subSymbolListIndexStack.isEmpty()) {
             if (Config.visitorThrowable) {
                 throw new RuntimeException("The stack of sub symbol table is empty when insert symbol '" +
@@ -44,8 +45,8 @@ public class SymbolTable {
                 return false;
             }
         } else {
-            HashMap<String, Symbol> currentSubTable = this.subTableStack.peek();
-            ArrayList<Symbol> currentSymbolList = this.symbolList.get(this.subSymbolListIndexStack.peek());
+            HashMap<String, Symbol<? extends IRType>> currentSubTable = this.subTableStack.peek();
+            ArrayList<Symbol<? extends IRType>> currentSymbolList = this.symbolList.get(this.subSymbolListIndexStack.peek());
             if (currentSubTable.containsKey(newSymbol.name())) {
                 errorTable.addErrorRecord(newSymbol.line(), ErrorType.DUPLICATED_IDENT,
                         "Duplicated symbol '" + newSymbol.name() + "' at line " + newSymbol.line() + ", " +
@@ -59,7 +60,7 @@ public class SymbolTable {
         }
     }
 
-    Symbol searchOrNull(Token ident) {
+    Symbol<? extends IRType> searchOrNull(Token ident) {
         if (this.subTableStack.isEmpty()) {
             if (Config.visitorThrowable) {
                 throw new RuntimeException("The stack of sub symbol table is empty when search symbol '" +
@@ -68,7 +69,7 @@ public class SymbolTable {
                 return null;
             }
         } else {
-            for (HashMap<String, Symbol> subTable : this.subTableStack) {
+            for (HashMap<String, Symbol<? extends IRType>> subTable : this.subTableStack) {
                 if (subTable.containsKey(ident.strVal())) {
                     return subTable.get(ident.strVal());
                 }
@@ -77,8 +78,8 @@ public class SymbolTable {
         }
     }
 
-    Symbol searchOrError(Token ident) {
-        Symbol ret = this.searchOrNull(ident);
+    Symbol<? extends IRType> searchOrError(Token ident) {
+        Symbol<? extends IRType> ret = this.searchOrNull(ident);
         if (ret == null) {
             errorTable.addErrorRecord(ident.line(), ErrorType.UNDEFINED_IDENT,
                     "Undefined symbol '" + ident.strVal() + "', referenced at line " + ident.line());
@@ -87,7 +88,7 @@ public class SymbolTable {
         return ret;
     }
 
-    public ArrayList<ArrayList<Symbol>> getSymbolList() {
+    public ArrayList<ArrayList<Symbol<? extends IRType>>> getSymbolList() {
         return this.symbolList;
     }
 }

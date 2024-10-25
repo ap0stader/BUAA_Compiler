@@ -6,7 +6,7 @@ import global.Config;
 
 import java.util.ArrayList;
 
-public class ConstSymbol extends Symbol {
+public class ConstSymbol extends Symbol<IRType.ConstSymbolType> {
     private final ArrayList<Integer> initVals;
 
     public ConstSymbol(IRType.ConstSymbolType type, Token ident, ArrayList<Integer> initVals) {

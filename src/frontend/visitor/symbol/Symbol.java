@@ -1,27 +1,22 @@
 package frontend.visitor.symbol;
 
 import IR.IRValue;
-import IR.type.IRType;
 import frontend.lexer.Token;
 import global.Config;
 
-public abstract class Symbol {
-    private final IRType type;
+public abstract class Symbol<T> {
+    private final T type;
     private final String name;
     private final int line;
     private IRValue irValue = null;
 
-    protected Symbol(IRType type, Token ident) {
+    protected Symbol(T type, Token ident) {
         this.type = type;
         this.name = ident.strVal();
         this.line = ident.line();
     }
 
-    public String typeDisplayStr() {
-        return this.type.displayStr();
-    }
-
-    public IRType type() {
+    public T type() {
         return type;
     }
 

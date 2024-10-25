@@ -30,6 +30,4 @@ public interface IRType {
     interface VarSymbolType extends IRType {}
 
     interface ConstSymbolType extends IRType {}
-
-    interface FuncSymbolType extends IRType {}
 }
