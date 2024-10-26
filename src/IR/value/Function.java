@@ -45,16 +45,12 @@ public class Function extends IRValue {
         sb.append("(");
         if (this.isLib) {
             for (int i = 0; i < functionType.parametersType().size(); i++) {
-                if (i > 0) {
-                    sb.append(", ");
-                }
+                sb.append(i > 0 ? ", " : "");
                 sb.append(functionType.parametersType().get(i).llvmStr());
             }
         } else {
             for (int i = 0; i < this.arguments.size(); i++) {
-                if (i > 0) {
-                    sb.append(", ");
-                }
+                sb.append(i > 0 ? ", " : "");
                 sb.append(this.arguments.get(i).llvmStr(counter));
             }
         }

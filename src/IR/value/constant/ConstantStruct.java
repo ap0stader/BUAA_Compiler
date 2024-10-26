@@ -29,8 +29,7 @@ public class ConstantStruct extends Constant {
     @Override
     public String llvmStr() {
         StringBuilder sb = new StringBuilder();
-        sb.append(this.type.llvmStr());
-        sb.append(" <{ ");
+        sb.append("<{ ");
         for (int i = 0; i < this.constantValues.size(); i++) {
             sb.append(i > 0 ? ", " : "");
             sb.append(this.constantValues.get(i).type().llvmStr()).append(" ");

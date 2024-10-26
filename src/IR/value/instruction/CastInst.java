@@ -23,13 +23,13 @@ public abstract class CastInst extends Instruction {
         }
     }
 
-    // CastInst是UnaryInstruction的子类，只使用operands.get(0)
+    // CastInst是UnaryInstruction的子类
     private final CastOps castOp;
 
-    private CastInst(CastOps castOp, IRType destType, IRType srcType, IRValue operand, BasicBlock parent) {
+    private CastInst(CastOps castOp, IRValue src, IRType destType, BasicBlock parent) {
         super(destType, parent);
         this.castOp = castOp;
-        this.addOperand(operand);
+        this.addOperand(src);
     }
 
     @Override
@@ -41,22 +41,22 @@ public abstract class CastInst extends Instruction {
 
     // <result> = trunc <ty> <value> to <ty2>
     public class TruncInst extends CastInst {
-        public TruncInst(IRType destType, IRType srcType, IRValue operand, BasicBlock parent) {
-            super(CastOps.TRUNC, destType, srcType, operand, parent);
+        public TruncInst(IRValue src, IRType destType, BasicBlock parent) {
+            super(CastOps.TRUNC, src, destType, parent);
         }
     }
 
     // <result> = zext <ty> <value> to <ty2>
     public class ZExtInst extends CastInst {
-        public ZExtInst(IRType destType, IRType srcType, IRValue operand, BasicBlock parent) {
-            super(CastOps.ZEXT, destType, srcType, operand, parent);
+        public ZExtInst(IRValue src, IRType destType, BasicBlock parent) {
+            super(CastOps.ZEXT, src, destType, parent);
         }
     }
 
     // <result> = bitcast <ty> <value> to <ty2>
     public class BitCastInst extends CastInst {
-        public BitCastInst(IRType destType, IRType srcType, IRValue operand, BasicBlock parent) {
-            super(CastOps.BITCAST, destType, srcType, operand, parent);
+        public BitCastInst(IRValue src, IRType destType, BasicBlock parent) {
+            super(CastOps.BITCAST, src, destType, parent);
         }
     }
 }
