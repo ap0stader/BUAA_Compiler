@@ -17,6 +17,8 @@ public abstract class Instruction extends IRUser {
     public Instruction(IRType type, BasicBlock parent) {
         super(type);
         this.parent = parent;
+        // 加入到BasicBlock中
+        parent.appendInstruction(this);
     }
 
     // TODO：未完成开发时使用，后续应当改为抽象方法
@@ -26,6 +28,6 @@ public abstract class Instruction extends IRUser {
 
     @Override
     public String toString() {
-        return super.toString();
+        return this.llvmStr(new LLVMStrRegCounter());
     }
 }

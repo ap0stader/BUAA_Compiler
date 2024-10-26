@@ -18,10 +18,16 @@ public class BasicBlock extends IRValue {
         this.parent = parent;
     }
 
+    public void appendInstruction(Instruction instruction) {
+        this.instructions.add(instruction);
+    }
+
     public String llvmStr(LLVMStrRegCounter counter) {
         StringBuilder sb = new StringBuilder();
         for (Instruction instruction : instructions) {
+            sb.append("    ");
             sb.append(instruction.llvmStr(counter));
+            sb.append("\n");
         }
         return sb.toString();
     }

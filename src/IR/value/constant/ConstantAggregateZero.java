@@ -9,6 +9,6 @@ public class ConstantAggregateZero extends Constant {
 
     @Override
     public String llvmStr() {
-        return this.type.llvmStr() + " zeroinitializer";
+        return "zeroinitializer";
     }
 }

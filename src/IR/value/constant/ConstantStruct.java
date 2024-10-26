@@ -31,13 +31,10 @@ public class ConstantStruct extends Constant {
         StringBuilder sb = new StringBuilder();
         sb.append(this.type.llvmStr());
         sb.append(" <{ ");
-        // 可能存在没有成员的结构体
-        if (!this.constantValues.isEmpty()) {
-            sb.append(this.constantValues.get(0).llvmStr());
-            for (int i = 1; i < this.constantValues.size(); i++) {
-                sb.append(", ");
-                sb.append(this.constantValues.get(i).llvmStr());
-            }
+        for (int i = 0; i < this.constantValues.size(); i++) {
+            sb.append(i > 0 ? ", " : "");
+            sb.append(this.constantValues.get(i).type().llvmStr()).append(" ");
+            sb.append(this.constantValues.get(i).llvmStr());
         }
         sb.append(" }>");
         return sb.toString();

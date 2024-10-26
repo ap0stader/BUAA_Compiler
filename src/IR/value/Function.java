@@ -59,21 +59,29 @@ public class Function extends IRValue {
             }
         }
         sb.append(")");
-        if (!this.isLib) {
+        if (this.isLib) {
+            sb.append("\n");
+        } else {
             if (this.basicBlocks.isEmpty()) {
                 throw new RuntimeException("When Function.llvmStr(), the Function of " + this.name +
                         " has no basic blocks, but it is not a library function");
             } else {
                 sb.append(" {\n");
+                // 第一个基本块占用命名资源，但是不输出
                 counter.get(this.basicBlocks.get(0));
+                sb.append(this.basicBlocks.get(0).llvmStr(counter));
                 for (int i = 1; i < this.basicBlocks.size(); i++) {
-                    sb.append(this.basicBlocks.get(i));
-                    sb.append(":\n");
+                    sb.append(this.basicBlocks.get(i)).append(":\n");
                     sb.append(this.basicBlocks.get(i).llvmStr(counter));
                 }
                 sb.append("}\n");
             }
         }
         return sb.toString();
+    }
+
+    @Override
+    public String toString() {
+        return this.llvmStr();
     }
 }

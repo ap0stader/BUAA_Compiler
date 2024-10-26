@@ -25,12 +25,9 @@ public record FunctionType(
         sb.append(returnType.llvmStr());
         sb.append(" @(");
         for (int i = 0; i < parametersType.size(); i++) {
-            if (i > 0) {
-                sb.append(", ");
-            }
+            sb.append(i > 0 ? ", " : "");
             sb.append(parametersType.get(i).llvmStr());
-            sb.append(" %");
-            sb.append(i);
+            sb.append(" %").append(i);
         }
         sb.append(")");
         return sb.toString();

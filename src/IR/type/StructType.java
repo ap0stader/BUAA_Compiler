@@ -15,12 +15,9 @@ public record StructType(ArrayList<IRType> memberTypes)
     public String llvmStr() {
         StringBuilder sb = new StringBuilder();
         sb.append("<{ ");
-        if (!this.memberTypes.isEmpty()) {
-            sb.append(this.memberTypes.get(0).llvmStr());
-            for (int i = 1; i < this.memberTypes.size(); i++) {
-                sb.append(", ");
-                sb.append(this.memberTypes.get(i).llvmStr());
-            }
+        for (int i = 0; i < this.memberTypes.size(); i++) {
+            sb.append(i > 0 ? ", " : "");
+            sb.append(this.memberTypes.get(i).llvmStr());
         }
         sb.append(" }>");
         return sb.toString();

@@ -159,7 +159,12 @@ class Builder {
         return basicBlock;
     }
 
-    AllocaInst addLocalConstant(ConstSymbol constSymbol, BasicBlock basicBlock) {
-        return null;
+    AllocaInst addLocalConstant(ConstSymbol constSymbol, BasicBlock entryBlock) {
+        AllocaInst allocaInst = new AllocaInst(constSymbol.type(), entryBlock);
+        if (constSymbol.type() instanceof IntegerType) {
+            new StoreInst(new ConstantInt((IntegerType) constSymbol.type(), constSymbol.initVals().get(0)),
+                    allocaInst, entryBlock);
+        }
+        return allocaInst;
     }
 }

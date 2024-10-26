@@ -1,5 +1,6 @@
 package IR.value.constant;
 
+import IR.IRUser;
 import IR.IRValue;
 import IR.type.IRType;
 
@@ -10,6 +11,11 @@ public abstract class Constant extends IRValue {
     // 传递构造函数
     protected Constant(IRType type) {
         super(type);
+    }
+
+    // 对于Constant，即用即抛，不维护包括其的Use
+    @Override
+    protected void addUse(IRUser user) {
     }
 
     public abstract String llvmStr();

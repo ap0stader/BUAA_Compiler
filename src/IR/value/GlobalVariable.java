@@ -27,6 +27,7 @@ public class GlobalVariable extends IRValue {
         return "@" + this.name + " = " +
                 (this.isPrivate ? "private unnamed_addr" : "dso_local") + " " +
                 (this.isConstant ? "constant" : "global") + " " +
+                ((PointerType) this.type).referenceType().llvmStr() + " " +
                 this.initVals.llvmStr() + "\n";
     }
 

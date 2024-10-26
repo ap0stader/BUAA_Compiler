@@ -23,15 +23,11 @@ public class ConstantArray extends Constant {
     @Override
     public String llvmStr() {
         StringBuilder sb = new StringBuilder();
-        sb.append(this.type.llvmStr());
-        sb.append(" [");
-        // 可能存在长度为0的数组
-        if (!this.constantValues.isEmpty()) {
-            sb.append(this.constantValues.get(0).llvmStr());
-            for (int i = 1; i < this.constantValues.size(); i++) {
-                sb.append(", ");
-                sb.append(this.constantValues.get(i).llvmStr());
-            }
+        sb.append("[");
+        for (int i = 0; i < this.constantValues.size(); i++) {
+            sb.append(i > 0 ? ", " : "");
+            sb.append(this.constantValues.get(i).type().llvmStr()).append(" ");
+            sb.append(this.constantValues.get(i).llvmStr());
         }
         sb.append("]");
         return sb.toString();
