@@ -6,6 +6,9 @@ import IR.type.PointerType;
 import IR.value.constant.Constant;
 
 public class GlobalVariable extends IRValue {
+    // GlobalVariable是User的子类，因为GlobalVariable一旦定义后其地址是一定的
+    // 但是其使用的Constant已不维护Use，故直接提升为Value的子类
+
     private final boolean isConstant;
     private final boolean isPrivate;
     private final Constant initVals;

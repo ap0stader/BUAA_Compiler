@@ -75,8 +75,7 @@ class Calculator {
             } else if (unaryExp_unaryOp.unaryOp().symbol().type() == TokenType.MINU) {
                 return -this.calculateUnaryExp(unaryExp_unaryOp.unaryExp());
             } else {
-                throw new RuntimeException("When calculateUnaryExp(), got unexpected symbol "
-                        + unaryExp_unaryOp.unaryOp().symbol()
+                throw new RuntimeException("When calculateUnaryExp(), got unexpected symbol " + unaryExp_unaryOp.unaryOp().symbol()
                         + ", expected " + TokenType.PLUS + "/" + TokenType.MINU);
             }
         } else if (unaryExpExtract instanceof UnaryExp.UnaryExp_PrimaryExp unaryExp_primaryExp) {

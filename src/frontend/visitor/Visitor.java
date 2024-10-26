@@ -73,6 +73,8 @@ public class Visitor {
             for (Pair<VarSymbol, ArrayList<Integer>> varSymbol : this.visitGlobalVarDecl(varDecl)) {
                 varSymbol.key().setIRValue(this.builder.addGlobalVariable(varSymbol.key(), varSymbol.value()));
             }
+        } else {
+            throw new RuntimeException("When visitGlobalDecl(), got unknown type of Decl (" + decl.getClass().getSimpleName() + ")");
         }
     }
 
@@ -260,9 +262,9 @@ public class Visitor {
     private void visitFunctionBlock(ArrayList<BlockItem> blockItems) {
         BasicBlock entryBlock = this.builder.newBasicBlock();
         for (BlockItem item : blockItems) {
-            if (item instanceof Decl) {
-
-            } else if (item instanceof Stmt) {
+            if (item instanceof Decl decl) {
+                this.visitLocalDecl(decl, entryBlock);
+            } else if (item instanceof Stmt stmt) {
 
             } else {
                 throw new RuntimeException("When visitFunctionBlock(), got unknown type of BlockItem (" + item.getClass().getSimpleName() + ")");
@@ -271,4 +273,15 @@ public class Visitor {
     }
 
     // Decl → ConstDecl | VarDecl
+    private void visitLocalDecl(Decl decl, BasicBlock entryBlock) {
+        if (decl instanceof ConstDecl constDecl) {
+            for (ConstSymbol constSymbol : this.visitConstDecl(constDecl)) {
+                constSymbol.setIRValue(this.builder.addLocalConstant(constSymbol, entryBlock));
+            }
+        } else if (decl instanceof VarDecl varDecl) {
+
+        } else {
+            throw new RuntimeException("When visitLocalDecl(), got unknown type of Decl (" + decl.getClass().getSimpleName() + ")");
+        }
+    }
 }

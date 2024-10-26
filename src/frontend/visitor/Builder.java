@@ -16,6 +16,7 @@ import java.util.HashMap;
 class Builder {
     private final IRModule irModule;
 
+    // 库函数
     private final HashMap<String, Function> libFunctions;
     // 当前访问的函数
     private Function nowFunction = null;
@@ -23,6 +24,7 @@ class Builder {
     Builder(IRModule irModule) {
         this.irModule = irModule;
         this.libFunctions = getLibFunctions();
+        // 将库函数的定义添加到IRModule中
         getLibFunctions().forEach((name, function) -> irModule.appendFunctions(function));
     }
 
@@ -122,7 +124,7 @@ class Builder {
 
     private static ArrayList<Constant> convertIntegerArrayInitVal(ArrayType type, ArrayList<Integer> initVals, int endIndex) {
         ArrayList<Constant> constantValues = new ArrayList<>();
-        if (endIndex == -1) {
+        if (endIndex < 0) {
             endIndex = initVals.size() - 1;
         } else if (endIndex >= initVals.size()) {
             throw new IndexOutOfBoundsException("When convertIntegerArrayInitVal(), endIndex is greater than the size of initVals. " +
@@ -155,5 +157,9 @@ class Builder {
         BasicBlock basicBlock = new BasicBlock(this.nowFunction);
         this.nowFunction.appendBasicBlock(basicBlock);
         return basicBlock;
+    }
+
+    AllocaInst addLocalConstant(ConstSymbol constSymbol, BasicBlock basicBlock) {
+        return null;
     }
 }

@@ -8,6 +8,10 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 
 public class Function extends IRValue {
+    // Function是User的子类，因为Function一旦定义后其地址是一定的
+    // 但是在Sysy中，Function不会与任何其他的Value构成足够称为User的关系（Argument和BasicBlock类似属于关系），故直接提升为Value的子类
+    // 在Sysy中，对于Function的使用仅限于CallInst，并且做未被使用函数删除并没有显著效果，故不维护包括其的Use
+
     private final ArrayList<Argument> arguments;
     // TODO 根据实际需要修改使用的类，必要时自己构建
     private final LinkedList<BasicBlock> basicBlocks;

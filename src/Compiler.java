@@ -61,6 +61,7 @@ public class Compiler {
             DumpSymbolTable.dump(visitor.getSymbolTable());
         }
         tryContinue(3);
+        // 前端结束前，进行错误处理，避免错误扩散到中间代码生成
         if (errorTable.notEmpty()) {
             DumpErrorTable.dump(errorTable);
             exit(1);

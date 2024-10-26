@@ -1,10 +1,25 @@
 package IR.value.instruction;
 
-import IR.User;
+import IR.IRUser;
+import IR.type.IRType;
+import IR.value.BasicBlock;
 import util.LLVMStrRegCounter;
 
-public abstract class Instruction extends User {
-    // TODO：未完成开发时使用，后续应当改为抽象方法。
+public abstract class Instruction extends IRUser {
+    private final BasicBlock parent;
+
+    // TODO：未完成开发时使用，后续应当删除
+    public Instruction() {
+        super(null);
+        throw new UnsupportedOperationException("Unimplemented");
+    }
+
+    public Instruction(IRType type, BasicBlock parent) {
+        super(type);
+        this.parent = parent;
+    }
+
+    // TODO：未完成开发时使用，后续应当改为抽象方法
     public String llvmStr(LLVMStrRegCounter counter) {
         throw new UnsupportedOperationException("Unimplemented");
     }

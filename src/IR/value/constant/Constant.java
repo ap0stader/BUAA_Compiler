@@ -4,6 +4,9 @@ import IR.IRValue;
 import IR.type.IRType;
 
 public abstract class Constant extends IRValue {
+    // Constant是User的子类，但是在Sysy能生成的LLVM IR中，Constant类只有即用即抛的作用
+    // 故Constant直接提升为Value的子类，同时不维护包括其的Use
+
     // 传递构造函数
     protected Constant(IRType type) {
         super(type);
