@@ -22,4 +22,8 @@ public abstract class IRUser extends IRValue {
     public IRValue getOperand(int index) {
         return this.operands.get(index);
     }
+
+    public int getNumOperands() {
+        return this.operands.size();
+    }
 }
