@@ -8,8 +8,8 @@ import util.LLVMStrRegCounter;
 // ret <type> <value>
 // ret void
 public class ReturnInst extends Instruction {
-    public ReturnInst(IRValue returnValue, BasicBlock block) {
-        super(IRType.getVoidTy(), block);
+    public ReturnInst(IRValue returnValue, BasicBlock parent) {
+        super(IRType.getVoidTy(), parent);
         if (returnValue != null) {
             this.addOperand(returnValue);
         }
