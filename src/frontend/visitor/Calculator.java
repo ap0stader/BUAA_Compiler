@@ -56,7 +56,12 @@ class Calculator {
             if (mulExp.symbols().get(i).type() == TokenType.MULT) {
                 result *= this.calculateUnaryExp(mulExp.unaryExps().get(i + 1));
             } else if (mulExp.symbols().get(i).type() == TokenType.DIV) {
-                result /= this.calculateUnaryExp(mulExp.unaryExps().get(i + 1));
+                if (this.calculateUnaryExp(mulExp.unaryExps().get(i + 1)) == 0) {
+                    result = 0;
+                    System.out.println("When calculateMulExp(), caught a division of error, forced the result to 0!");
+                } else {
+                    result /= this.calculateUnaryExp(mulExp.unaryExps().get(i + 1));
+                }
             } else if (mulExp.symbols().get(i).type() == TokenType.MOD) {
                 result %= this.calculateUnaryExp(mulExp.unaryExps().get(i + 1));
             } else {
@@ -81,6 +86,7 @@ class Calculator {
         } else if (unaryExpExtract instanceof UnaryExp.UnaryExp_PrimaryExp unaryExp_primaryExp) {
             return this.calculatePrimaryExp(unaryExp_primaryExp.primaryExp());
         } else if (unaryExpExtract instanceof UnaryExp.UnaryExp_IdentFuncCall unaryExp_identFuncCall) {
+            // TODO BUG 此处因为涉及到函数调用和可能的符号使用，所以需要检查是否有函数调用的相关错误，不能直接抛错误了事
             throw new UseVariableContent("calculateUnaryExp()", unaryExp_identFuncCall.ident());
         } else {
             throw new RuntimeException("When calculateUnaryExp(), got unknown type of UnaryExp ("
@@ -118,6 +124,7 @@ class Calculator {
                             + lVal.getType() + ")");
                 }
             } else {
+                // TODO BUG 此处因为涉及到函数调用和可能的符号使用，所以需要检查是否有函数调用的相关错误，不能直接抛错误了事
                 throw new UseVariableContent("calculateLVal()", lVal.ident());
             }
         } else {

@@ -17,6 +17,9 @@ public class Config {
     // 语义分析，如果不允许抛出异常，默认处理方式为return null;或无操作
     public static boolean visitorThrowable = true;
 
+    // 生成LLVM IR时，是否禁止对长数组进行优化
+    public static final boolean disableLongArrayOptimization = false;
+
     /* 总共进行阶段数
        ==== 前端 ====
        1. 词法分析，生成TokenStream

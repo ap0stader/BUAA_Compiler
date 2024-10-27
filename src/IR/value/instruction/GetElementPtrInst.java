@@ -51,7 +51,7 @@ public class GetElementPtrInst extends Instruction {
         StringBuilder sb = new StringBuilder();
         sb.append(counter.get(this));
         sb.append(" = getelementptr inbounds ");
-        sb.append(((PointerType) this.getOperand(0).type()).referenceType().llvmStr()).append(" ");
+        sb.append(((PointerType) this.getOperand(0).type()).referenceType().llvmStr()).append(", ");
         sb.append(this.getOperand(0).type().llvmStr()).append(" ");
         sb.append(counter.get(this.getOperand(0))).append(" ");
         for (Integer index : indexList) {

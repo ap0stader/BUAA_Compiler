@@ -6,6 +6,7 @@ import IR.value.*;
 import IR.value.constant.*;
 import IR.value.instruction.*;
 import frontend.visitor.symbol.*;
+import global.Config;
 import util.Pair;
 
 import java.util.ArrayList;
@@ -58,7 +59,7 @@ class Builder {
                     true, false,
                     new ConstantInt((IntegerType) constSymbol.type(), constSymbol.initVals().get(0)));
         } else if (constSymbol.type() instanceof ArrayType) {
-            Pair<IRType, Constant> optimizedArray = optimizeArray((ArrayType) constSymbol.type(), constSymbol.initVals());
+            Pair<IRType, Constant> optimizedArray = optimizeGlobalArray((ArrayType) constSymbol.type(), constSymbol.initVals());
             globalConstant = new GlobalVariable(constSymbol.name(), optimizedArray.key(),
                     true, false,
                     optimizedArray.value());
@@ -77,7 +78,7 @@ class Builder {
                     false, false,
                     new ConstantInt((IntegerType) varSymbol.type(), initVals.get(0)));
         } else if (varSymbol.type() instanceof ArrayType) {
-            Pair<IRType, Constant> optimizedArray = optimizeArray((ArrayType) varSymbol.type(), initVals);
+            Pair<IRType, Constant> optimizedArray = optimizeGlobalArray((ArrayType) varSymbol.type(), initVals);
             globalConstant = new GlobalVariable(varSymbol.name(), optimizedArray.key(),
                     false, false,
                     optimizedArray.value());
@@ -89,7 +90,7 @@ class Builder {
         return globalConstant;
     }
 
-    private static Pair<IRType, Constant> optimizeArray(ArrayType originType, ArrayList<Integer> originInitVals) {
+    private static Pair<IRType, Constant> optimizeGlobalArray(ArrayType originType, ArrayList<Integer> originInitVals) {
         // 寻找最后一个不是0的数字
         int lastNotZero = originInitVals.size() - 1;
         while (lastNotZero >= 0 && originInitVals.get(lastNotZero) == 0) {
@@ -98,8 +99,8 @@ class Builder {
         if (lastNotZero == -1) {
             // 如果全是0，那么直接使用zeroinitializer
             return new Pair<>(originType, new ConstantAggregateZero(originType));
-        } else if (originInitVals.size() - 1 - lastNotZero < 10) {
-            // 如果结尾非0的数据不足10个，那么保留原样
+        } else if (Config.disableLongArrayOptimization || originInitVals.size() - 1 - lastNotZero < 10) {
+            // 如果不对长数组做优化或者结尾非0的数据不足10个，那么保留原样
             return new Pair<>(originType,
                     new ConstantArray(originType, convertIntegerArrayInitVal(originType, originInitVals, -1)));
         } else {
@@ -164,6 +165,15 @@ class Builder {
         if (constSymbol.type() instanceof IntegerType) {
             new StoreInst(new ConstantInt((IntegerType) constSymbol.type(), constSymbol.initVals().get(0)),
                     allocaInst, entryBlock);
+        } else if (constSymbol.type() instanceof ArrayType) {
+            // TODO 对于长数组进行优化
+            for (int i = 0; i < constSymbol.initVals().size(); i++) {
+                GetElementPtrInst arrayElementPointer = new GetElementPtrInst(allocaInst, new ArrayList<>(Arrays.asList(0, i)), entryBlock);
+                new StoreInst(new ConstantInt(IRType.getInt32Ty(), constSymbol.initVals().get(i)), arrayElementPointer, entryBlock);
+            }
+        } else {
+            throw new UnsupportedOperationException("When addLocalConstant(), illegal type. Got " + constSymbol.type() +
+                    ", expected IntegerType or ArrayType");
         }
         return allocaInst;
     }
