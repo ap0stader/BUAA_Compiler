@@ -22,6 +22,10 @@ public class BasicBlock extends IRValue {
         this.instructions.add(instruction);
     }
 
+    public Function parent() {
+        return parent;
+    }
+
     public String llvmStr(LLVMStrRegCounter counter) {
         StringBuilder sb = new StringBuilder();
         for (Instruction instruction : instructions) {

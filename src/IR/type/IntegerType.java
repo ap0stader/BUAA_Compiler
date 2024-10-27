@@ -3,6 +3,9 @@ package IR.type;
 public class IntegerType implements IRType, IRType.VarSymbolType, IRType.ConstSymbolType {
     private final int size;
 
+    static final IntegerType I1_INSTANCE = new IntegerType(1);
+    static final IntegerType I64_INSTANCE = new IntegerType(64);
+
     public IntegerType(int size) {
         this.size = size;
     }
@@ -36,7 +39,7 @@ public class IntegerType implements IRType, IRType.VarSymbolType, IRType.ConstSy
         }
     }
 
-    public static final class Int extends IntegerType {
+    static final class Int extends IntegerType {
         static final Int INSTANCE = new Int();
 
         private Int() {
@@ -49,7 +52,7 @@ public class IntegerType implements IRType, IRType.VarSymbolType, IRType.ConstSy
         }
     }
 
-    public static final class Char extends IntegerType {
+    static final class Char extends IntegerType {
         static final Char INSTANCE = new Char();
 
         private Char() {

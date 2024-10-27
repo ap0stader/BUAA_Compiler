@@ -2,6 +2,7 @@ package IR.value.instruction;
 
 import IR.IRValue;
 import IR.type.ArrayType;
+import IR.type.IRType;
 import IR.type.PointerType;
 import IR.type.StructType;
 import IR.value.BasicBlock;
@@ -55,7 +56,7 @@ public class GetElementPtrInst extends Instruction {
         sb.append(this.getOperand(0).type().llvmStr()).append(" ");
         sb.append(counter.get(this.getOperand(0))).append(" ");
         for (Integer index : indexList) {
-            sb.append(", i32 ");
+            sb.append(", ").append(IRType.getInt32Ty().llvmStr()).append(" ");
             sb.append(index);
         }
         return sb.toString();

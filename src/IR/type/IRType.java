@@ -15,19 +15,29 @@ public interface IRType {
         return LabelType.INSTANCE;
     }
 
-    static IntegerType.Int getInt32Ty() {
+    static IntegerType getInt1Ty() {
+        return IntegerType.I1_INSTANCE;
+    }
+
+    static IntegerType getInt8Ty() {
+        return IntegerType.Char.INSTANCE;
+    }
+
+    static IntegerType getInt32Ty() {
         return IntegerType.Int.INSTANCE;
     }
 
-    static IntegerType.Char getInt8Ty() {
-        return IntegerType.Char.INSTANCE;
+    static IntegerType getInt64Ty() {
+        return IntegerType.I64_INSTANCE;
     }
 
     static boolean isEqual(IRType type1, IRType type2) {
         return Objects.equals(type1, type2);
     }
 
-    interface VarSymbolType extends IRType {}
+    interface VarSymbolType extends IRType {
+    }
 
-    interface ConstSymbolType extends IRType {}
+    interface ConstSymbolType extends IRType {
+    }
 }

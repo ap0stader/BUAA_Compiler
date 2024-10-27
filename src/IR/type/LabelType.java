@@ -14,13 +14,13 @@ public final class LabelType implements IRType {
 
     @Override
     public String llvmStr() {
-        throw new UnsupportedOperationException("A LabelType have no LLVM represent.");
+        return "label";
     }
 
     // DEBUG 重写toString方法以供调试
     @Override
     public String toString() {
-        return "LabelType";
+        return this.llvmStr();
     }
 
     @Override
