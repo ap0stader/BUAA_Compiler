@@ -160,6 +160,17 @@ class Builder {
         return basicBlock;
     }
 
+    GetElementPtrInst addGetArrayElementPointer(IRValue pointer, IRValue index, BasicBlock insertBlock) {
+        if (pointer.type() instanceof ArrayType) {
+            return new GetElementPtrInst(pointer, new ArrayList<>(Arrays.asList(ConstantInt.zero_i32(), index)), insertBlock);
+        } else if (pointer.type() instanceof PointerType) {
+            return new GetElementPtrInst(pointer, new ArrayList<>(Collections.singletonList(index)), insertBlock);
+        } else {
+            throw new RuntimeException("When addGetArrayElementPointer(), illegal type. Got " + pointer.type() +
+                    ", expected ArrayType or PointerType");
+        }
+    }
+
     AllocaInst addLocalConstant(ConstSymbol constSymbol, BasicBlock entryBlock) {
         AllocaInst allocaInst = new AllocaInst(constSymbol.type(), entryBlock);
         if (constSymbol.type() instanceof IntegerType) {
@@ -168,8 +179,8 @@ class Builder {
         } else if (constSymbol.type() instanceof ArrayType) {
             // TODO 对于长数组进行优化
             for (int i = 0; i < constSymbol.initVals().size(); i++) {
-                GetElementPtrInst arrayElementPointer = new GetElementPtrInst(allocaInst,
-                        new ArrayList<>(Arrays.asList(ConstantInt.zero_i32(), new ConstantInt(IRType.getInt32Ty(), i))), entryBlock);
+                GetElementPtrInst arrayElementPointer =
+                        this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), entryBlock);
                 new StoreInst(new ConstantInt(IRType.getInt32Ty(), constSymbol.initVals().get(i)), arrayElementPointer, entryBlock);
             }
         } else {
@@ -179,8 +190,22 @@ class Builder {
         return allocaInst;
     }
 
-    AllocaInst addLocalVariable(VarSymbol varSymbol, BasicBlock entryBlock) {
-        return new AllocaInst(varSymbol.type(), entryBlock);
+    AllocaInst addLocalVariable(VarSymbol varSymbol, ArrayList<IRValue> initVals, BasicBlock entryBlock) {
+        AllocaInst allocaInst = new AllocaInst(varSymbol.type(), entryBlock);
+        if (varSymbol.type() instanceof IntegerType) {
+            new StoreInst(initVals.get(0), allocaInst, entryBlock);
+        } else if (varSymbol.type() instanceof ArrayType) {
+            // TODO 对于长数组进行优化
+            for (int i = 0; i < initVals.size(); i++) {
+                GetElementPtrInst arrayElementPointer =
+                        this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), entryBlock);
+                new StoreInst(initVals.get(i), arrayElementPointer, entryBlock);
+            }
+        } else {
+            throw new RuntimeException("When addLocalVariable(), illegal type. Got " + varSymbol.type() +
+                    ", expected IntegerType or ArrayType");
+        }
+        return allocaInst;
     }
 
     BinaryOperator addBinaryOperation(Token symbol, IRValue value1, IRValue value2, BasicBlock insertBlock) {
@@ -214,17 +239,6 @@ class Builder {
 
     CastInst addBitCastOperation(IRValue src, IRType destType, BasicBlock insertBlock) {
         return new CastInst.BitCastInst(src, destType, insertBlock);
-    }
-
-    GetElementPtrInst addGetArrayElementPointer(IRValue pointer, IRValue index, BasicBlock insertBlock) {
-        if (pointer.type() instanceof ArrayType) {
-            return new GetElementPtrInst(pointer, new ArrayList<>(Arrays.asList(ConstantInt.zero_i32(), index)), insertBlock);
-        } else if (pointer.type() instanceof PointerType) {
-            return new GetElementPtrInst(pointer, new ArrayList<>(Collections.singletonList(index)), insertBlock);
-        } else {
-            throw new RuntimeException("When addGetArrayElementPointer(), illegal type. Got " + pointer.type() +
-                    ", expected ArrayType or PointerType");
-        }
     }
 
     LoadInst addLoadValue(IRValue pointer, BasicBlock insertBlock) {

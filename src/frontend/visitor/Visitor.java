@@ -258,11 +258,12 @@ public class Visitor {
     // BlockItem → Decl | Stmt
     private void visitFunctionBlock(ArrayList<BlockItem> blockItems) {
         BasicBlock entryBlock = this.builder.newBasicBlock();
+        BasicBlock nowBlock = entryBlock;
         for (BlockItem item : blockItems) {
             if (item instanceof Decl decl) {
                 this.visitLocalDecl(decl, entryBlock);
             } else if (item instanceof Stmt stmt) {
-
+                // nowBlock = this.visitStmt(stmt, nowBlock);
             } else {
                 throw new RuntimeException("When visitFunctionBlock(), got unknown type of BlockItem (" + item.getClass().getSimpleName() + ")");
             }
@@ -296,27 +297,46 @@ public class Visitor {
                 newSymbol = new VarSymbol(Translator.getVarIRType(bType, null, false), ident);
                 if (varDef.initVal() != null) {
                     // 有初始值
+                    ArrayList<IRValue> initVals;
                     if (varDef.initVal().getType() == InitVal.Type.BASIC) {
-
+                        initVals = new ArrayList<>(Collections.singletonList(this.visitExp(varDef.initVal().exp(), entryBlock)));
+                        this.builder.addLocalVariable(newSymbol, initVals, entryBlock);
                     } else {
                         throw new RuntimeException("When visitLocalVarDecl(), initVals of identifier " + ident + " mismatch its type. " +
                                 "Got " + varDef.initVal().getType() + ", expected " + InitVal.Type.BASIC);
                     }
+                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, initVals, entryBlock));
+                } else {
+                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, null, entryBlock));
                 }
             } else {
                 Integer length = this.calculator.calculateConstExp(varDef.constExp());
                 newSymbol = new VarSymbol(Translator.getVarIRType(bType, length, false), ident);
                 // 数组
                 if (varDef.initVal() != null) {
+                    ArrayList<IRValue> initVals;
                     // 有初始值
                     if (varDef.initVal().getType() == InitVal.Type.ARRAY) {
-
+                        initVals = new ArrayList<>(varDef.initVal().exps().stream().map((exp -> this.visitExp(exp, entryBlock))).toList());
                     } else if (varDef.initVal().getType() == InitVal.Type.STRING) {
-
+                        initVals = new ArrayList<>(Translator.translateStringConst(varDef.initVal().stringConst()).stream()
+                                .map((character) -> new ConstantInt(IRType.getInt8Ty(), character)).toList());
                     } else {
                         throw new RuntimeException("When visitLocalVarDecl(), initVals of identifier " + ident + " mismatch its type. " +
                                 "Got " + varDef.initVal().getType() + ", expected " + InitVal.Type.ARRAY + "/" + InitVal.Type.STRING);
                     }
+                    if (initVals.size() > length) {
+                        throw new RuntimeException("When visitLocalVarDecl(), initVals of identifier " + ident + " is longer than its length");
+                    } else {
+                        // 补齐未显示写出的0
+                        IntegerType initValType = bType.type() == TokenType.CHARTK ? IRType.getInt8Ty() : IRType.getInt32Ty();
+                        for (int i = initVals.size(); i < length; i++) {
+                            initVals.add(new ConstantInt(initValType, 0));
+                        }
+                    }
+                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, initVals, entryBlock));
+                } else {
+                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, null, entryBlock));
                 }
             }
             // 即便插入不成功，生成了alloca指令也不会导致LLVM IR错误
@@ -502,5 +522,9 @@ public class Visitor {
                 return lValAddress;
             }
         }
+    }
+
+    private BasicBlock visitStmt(Stmt stmt, BasicBlock nowBlock) {
+        return null;
     }
 }

@@ -29,6 +29,7 @@ class Translator {
                     ret.add(charToInt(stringConstString.charAt(i)));
                 }
             }
+            // 主动补充结尾的\0
             ret.add(0);
             return ret;
         } catch (Exception e) {
