@@ -40,21 +40,21 @@ public abstract class CastInst extends Instruction {
     }
 
     // <result> = trunc <ty> <value> to <ty2>
-    public class TruncInst extends CastInst {
+    public static class TruncInst extends CastInst {
         public TruncInst(IRValue src, IRType destType, BasicBlock parent) {
             super(CastOps.TRUNC, src, destType, parent);
         }
     }
 
     // <result> = zext <ty> <value> to <ty2>
-    public class ZExtInst extends CastInst {
+    public static class ZExtInst extends CastInst {
         public ZExtInst(IRValue src, IRType destType, BasicBlock parent) {
             super(CastOps.ZEXT, src, destType, parent);
         }
     }
 
     // <result> = bitcast <ty> <value> to <ty2>
-    public class BitCastInst extends CastInst {
+    public static class BitCastInst extends CastInst {
         public BitCastInst(IRValue src, IRType destType, BasicBlock parent) {
             super(CastOps.BITCAST, src, destType, parent);
         }

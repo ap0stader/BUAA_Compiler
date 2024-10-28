@@ -5,6 +5,7 @@ import IR.type.*;
 import IR.value.*;
 import IR.value.constant.*;
 import IR.value.instruction.*;
+import frontend.lexer.Token;
 import frontend.visitor.symbol.*;
 import global.Config;
 import util.Pair;
@@ -47,7 +48,7 @@ class Builder {
         parameters = new ArrayList<>(Collections.singletonList(new PointerType(IRType.getInt8Ty(), false)));
         libFunctions.put("putstr", new Function("putstr", new FunctionType(IRType.getVoidTy(), parameters), new ArrayList<>(), true));
         // declare void @llvm.memset.p0i8.i64(i8*, i8, i64, i1)
-        parameters = new ArrayList<>(Arrays.asList(new PointerType(IRType.getInt8Ty(), false), IRType.getInt8Ty(), new IntegerType(64), new IntegerType(1)));
+        parameters = new ArrayList<>(Arrays.asList(new PointerType(IRType.getInt8Ty(), false), IRType.getInt8Ty(), IRType.getInt64Ty(), IRType.getInt1Ty()));
         libFunctions.put("memset", new Function("llvm.memset.p0i8.i64", new FunctionType(IRType.getVoidTy(), parameters), new ArrayList<>(), true));
         return libFunctions;
     }
@@ -64,14 +65,14 @@ class Builder {
                     true, false,
                     optimizedArray.value());
         } else {
-            throw new UnsupportedOperationException("When addGlobalConstant(), illegal type. Got " + constSymbol.type() +
+            throw new RuntimeException("When addGlobalConstant(), illegal type. Got " + constSymbol.type() +
                     ", expected IntegerType or ArrayType");
         }
         irModule.appendGlobalVariables(globalConstant);
         return globalConstant;
     }
 
-    GlobalVariable addGlobalVariable(VarSymbol varSymbol, ArrayList<Integer> initVals) {
+    void addGlobalVariable(VarSymbol varSymbol, ArrayList<Integer> initVals) {
         GlobalVariable globalConstant;
         if (varSymbol.type() instanceof IntegerType) {
             globalConstant = new GlobalVariable(varSymbol.name(), varSymbol.type(),
@@ -83,11 +84,10 @@ class Builder {
                     false, false,
                     optimizedArray.value());
         } else {
-            throw new UnsupportedOperationException("When addGlobalVariable(), illegal type. Got " + varSymbol.type() +
+            throw new RuntimeException("When addGlobalVariable(), illegal type. Got " + varSymbol.type() +
                     ", expected IntegerType or ArrayType");
         }
         irModule.appendGlobalVariables(globalConstant);
-        return globalConstant;
     }
 
     private static Pair<IRType, Constant> optimizeGlobalArray(ArrayType originType, ArrayList<Integer> originInitVals) {
@@ -168,13 +168,66 @@ class Builder {
         } else if (constSymbol.type() instanceof ArrayType) {
             // TODO 对于长数组进行优化
             for (int i = 0; i < constSymbol.initVals().size(); i++) {
-                GetElementPtrInst arrayElementPointer = new GetElementPtrInst(allocaInst, new ArrayList<>(Arrays.asList(0, i)), entryBlock);
+                GetElementPtrInst arrayElementPointer = new GetElementPtrInst(allocaInst,
+                        new ArrayList<>(Arrays.asList(ConstantInt.zero_i32(), new ConstantInt(IRType.getInt32Ty(), i))), entryBlock);
                 new StoreInst(new ConstantInt(IRType.getInt32Ty(), constSymbol.initVals().get(i)), arrayElementPointer, entryBlock);
             }
         } else {
-            throw new UnsupportedOperationException("When addLocalConstant(), illegal type. Got " + constSymbol.type() +
+            throw new RuntimeException("When addLocalConstant(), illegal type. Got " + constSymbol.type() +
                     ", expected IntegerType or ArrayType");
         }
         return allocaInst;
+    }
+
+    AllocaInst addLocalVariable(VarSymbol varSymbol, BasicBlock entryBlock) {
+        return new AllocaInst(varSymbol.type(), entryBlock);
+    }
+
+    BinaryOperator addBinaryOperation(Token symbol, IRValue value1, IRValue value2, BasicBlock insertBlock) {
+        return switch (symbol.type()) {
+            case PLUS -> new BinaryOperator(BinaryOperator.BinaryOps.ADD, value1, value2, insertBlock);
+            case MINU -> new BinaryOperator(BinaryOperator.BinaryOps.SUB, value1, value2, insertBlock);
+            case MULT -> new BinaryOperator(BinaryOperator.BinaryOps.MUL, value1, value2, insertBlock);
+            case DIV -> new BinaryOperator(BinaryOperator.BinaryOps.DIV, value1, value2, insertBlock);
+            case MOD -> new BinaryOperator(BinaryOperator.BinaryOps.MOD, value1, value2, insertBlock);
+            default ->
+                    throw new RuntimeException("When addBinaryOperation(), illegal symbol type. Got " + symbol.type());
+        };
+    }
+
+    CallInst addCallFunction(IRValue function, ArrayList<IRValue> arguments, BasicBlock insertBlock) {
+        // addCallFunction不处理对于函数不合法的调用，由Visitor予以检查
+        if (function instanceof Function) {
+            return new CallInst((Function) function, arguments, insertBlock);
+        } else {
+            throw new RuntimeException("When addCallFunction(), illegal function type. Got " + function.type());
+        }
+    }
+
+    CastInst addTruncOperation(IRValue src, IRType destType, BasicBlock insertBlock) {
+        return new CastInst.TruncInst(src, destType, insertBlock);
+    }
+
+    CastInst addExtendOperation(IRValue src, IRType destType, BasicBlock insertBlock) {
+        return new CastInst.ZExtInst(src, destType, insertBlock);
+    }
+
+    CastInst addBitCastOperation(IRValue src, IRType destType, BasicBlock insertBlock) {
+        return new CastInst.BitCastInst(src, destType, insertBlock);
+    }
+
+    GetElementPtrInst addGetArrayElementPointer(IRValue pointer, IRValue index, BasicBlock insertBlock) {
+        if (pointer.type() instanceof ArrayType) {
+            return new GetElementPtrInst(pointer, new ArrayList<>(Arrays.asList(ConstantInt.zero_i32(), index)), insertBlock);
+        } else if (pointer.type() instanceof PointerType) {
+            return new GetElementPtrInst(pointer, new ArrayList<>(Collections.singletonList(index)), insertBlock);
+        } else {
+            throw new RuntimeException("When addGetArrayElementPointer(), illegal type. Got " + pointer.type() +
+                    ", expected ArrayType or PointerType");
+        }
+    }
+
+    LoadInst addLoadValue(IRValue pointer, BasicBlock insertBlock) {
+        return new LoadInst(pointer, insertBlock);
     }
 }

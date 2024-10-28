@@ -7,6 +7,7 @@ import global.Config;
 import java.util.ArrayList;
 
 public class ConstSymbol extends Symbol<IRType.ConstSymbolType> {
+    // 由于只考虑一维数组，所以此处直接线性保存
     private final ArrayList<Integer> initVals;
 
     public ConstSymbol(IRType.ConstSymbolType type, Token ident, ArrayList<Integer> initVals) {

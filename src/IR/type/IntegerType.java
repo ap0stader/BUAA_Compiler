@@ -6,7 +6,10 @@ public class IntegerType implements IRType, IRType.VarSymbolType, IRType.ConstSy
     static final IntegerType I1_INSTANCE = new IntegerType(1);
     static final IntegerType I64_INSTANCE = new IntegerType(64);
 
-    public IntegerType(int size) {
+    private IntegerType(int size) {
+        if (size < 0) {
+            throw new IllegalArgumentException("When IntegerType(), got negative size");
+        }
         this.size = size;
     }
 
