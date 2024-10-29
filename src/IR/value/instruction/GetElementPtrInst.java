@@ -40,7 +40,7 @@ public class GetElementPtrInst extends Instruction<PointerType> {
             }
         }
         // 得到GetElementPtr得到的指针类型
-        return new PointerType(resultElementType, false);
+        return new PointerType(resultElementType);
     }
 
     @Override

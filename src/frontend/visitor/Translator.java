@@ -3,6 +3,7 @@ package frontend.visitor;
 import IR.type.*;
 import frontend.lexer.Token;
 import frontend.type.TokenType;
+import frontend.visitor.symbol.SymbolType;
 import global.Config;
 
 import java.util.ArrayList;
@@ -103,7 +104,7 @@ class Translator {
         };
     }
 
-    static IRType.ConstSymbolType getConstIRType(Token bType, Integer length) {
+    static SymbolType.Const getConstIRType(Token bType, Integer length) {
         if (bType.type() == TokenType.INTTK || bType.type() == TokenType.CHARTK) {
             if (length == null) {
                 // 数组长度可以为0，null表示没有长度
@@ -126,7 +127,31 @@ class Translator {
         }
     }
 
-    static IRType.VarSymbolType getVarIRType(Token bType, Integer length, boolean arrayDecay) {
+
+    static SymbolType.Var getVarIRType(Token bType, Integer length) {
+        if (bType.type() == TokenType.INTTK || bType.type() == TokenType.CHARTK) {
+            if (length == null) {
+                // 数组长度可以为0，null表示没有长度
+                if (bType.type() == TokenType.CHARTK) {
+                    return IRType.getInt8Ty();
+                } else { // bType.type() == TokenType.INTTK
+                    return IRType.getInt32Ty();
+                }
+            } else if (length >= 0) {
+                if (bType.type() == TokenType.CHARTK) {
+                    return new ArrayType(IRType.getInt8Ty(), length);
+                } else { // bType.type() == TokenType.INTTK
+                    return new ArrayType(IRType.getInt32Ty(), length);
+                }
+            } else {
+                throw new RuntimeException("When getVarIRType(), the length " + length + " of " + bType + " is illegal");
+            }
+        } else {
+            throw new RuntimeException("When getVarIRType(), got unexpected bType " + bType);
+        }
+    }
+
+    static SymbolType.Arg getArgIRType(Token bType, boolean arrayDecay) {
         if (bType.type() == TokenType.INTTK || bType.type() == TokenType.CHARTK) {
             if (arrayDecay) {
                 if (bType.type() == TokenType.CHARTK) {
@@ -135,29 +160,18 @@ class Translator {
                     return new PointerType(IRType.getInt32Ty(), true);
                 }
             } else {
-                if (length == null) {
-                    // 数组长度可以为0，null表示没有长度
-                    if (bType.type() == TokenType.CHARTK) {
-                        return IRType.getInt8Ty();
-                    } else { // bType.type() == TokenType.INTTK
-                        return IRType.getInt32Ty();
-                    }
-                } else if (length >= 0) {
-                    if (bType.type() == TokenType.CHARTK) {
-                        return new ArrayType(IRType.getInt8Ty(), length);
-                    } else { // bType.type() == TokenType.INTTK
-                        return new ArrayType(IRType.getInt32Ty(), length);
-                    }
-                } else {
-                    throw new RuntimeException("When getVarIRType(), the length " + length + " of " + bType + " is illegal");
+                if (bType.type() == TokenType.CHARTK) {
+                    return IRType.getInt8Ty();
+                } else { // bType.type() == TokenType.INTTK
+                    return IRType.getInt32Ty();
                 }
             }
         } else {
-            throw new RuntimeException("When getVarIRType(), got unexpected bType " + bType);
+            throw new RuntimeException("When getArgIRType(), got unexpected bType " + bType);
         }
     }
 
-    static FunctionType getFuncIRType(Token funcType, ArrayList<IRType> parameters) {
+    static FunctionType getFuncIRType(Token funcType, ArrayList<SymbolType.Arg> parameters) {
         IRType returnType;
         if (funcType.type() == TokenType.INTTK) {
             returnType = IRType.getInt32Ty();
@@ -168,6 +182,6 @@ class Translator {
         } else {
             throw new RuntimeException("When getFuncIRType(), got unexpected funcType " + funcType);
         }
-        return new FunctionType(returnType, parameters);
+        return new FunctionType(returnType, new ArrayList<>(parameters));
     }
 }

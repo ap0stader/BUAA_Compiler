@@ -11,7 +11,7 @@ public class AllocaInst extends Instruction<PointerType> {
 
     public AllocaInst(IRType type, BasicBlock parent) {
         // 自动转为对应的指针类型，不需要在传入时包装为指针类型
-        super(new PointerType(type, false), parent);
+        super(new PointerType(type), parent);
         this.allocType = type;
     }
 
