@@ -113,7 +113,7 @@ class Calculator {
     }
 
     private Integer calculateLVal(LVal lVal) {
-        Symbol<? extends IRType> symbol = this.symbolTable.searchOrError(lVal.ident());
+        Symbol<?, ?> symbol = this.symbolTable.searchOrError(lVal.ident());
         if (symbol != null) {
             if (symbol instanceof ConstSymbol constSymbol) {
                 if (lVal.getType() == LVal.Type.BASIC) {
