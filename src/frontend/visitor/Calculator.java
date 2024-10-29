@@ -1,6 +1,8 @@
 package frontend.visitor;
 
+import IR.type.ArrayType;
 import IR.type.IRType;
+import IR.type.IntegerType;
 import frontend.lexer.Token;
 import frontend.parser.expression.*;
 import frontend.type.TokenType;
@@ -116,12 +118,13 @@ class Calculator {
         Symbol<?, ?> symbol = this.symbolTable.searchOrError(lVal.ident());
         if (symbol != null) {
             if (symbol instanceof ConstSymbol constSymbol) {
-                if (lVal.getType() == LVal.Type.BASIC) {
+                if (constSymbol.type() instanceof IntegerType && lVal.getType() == LVal.Type.BASIC) {
                     return constSymbol.getInitValAtIndex(lVal.ident(), 0);
-                } else if (lVal.getType() == LVal.Type.ARRAY) {
+                } else if (constSymbol.type() instanceof ArrayType && lVal.getType() == LVal.Type.ARRAY) {
                     return constSymbol.getInitValAtIndex(lVal.ident(), this.calculateExp(lVal.exp()));
                 } else {
-                    throw new RuntimeException("When calculateLVal(), got unknown type of LVal (" + lVal.getType() + ")");
+                    throw new RuntimeException("When calculateLVal(), got unknown type of constSymbol (" + constSymbol.type() +
+                            ") and lVal (" + lVal.getType() + ")");
                 }
             } else {
                 throw new UseVariableContent("calculateLVal()", lVal.ident());
