@@ -3,10 +3,13 @@ package IR.type;
 import java.util.Objects;
 
 public interface IRType {
+    // 语义分析时输出的字符串
     String displayStr();
 
+    // LLVM IR输出的字符串
     String llvmStr();
 
+    // 获得不能任意创建的类型创建好的静态实例
     static VoidType getVoidTy() {
         return VoidType.INSTANCE;
     }
@@ -31,13 +34,22 @@ public interface IRType {
         return IntegerType.I64_INSTANCE;
     }
 
+    // 两种类型是否相等
     static boolean isEqual(IRType type1, IRType type2) {
         return Objects.equals(type1, type2);
     }
 
+    // 变量符号的登记类型
     interface VarSymbolType extends IRType {
     }
 
+    // 常量符号的登记类型
     interface ConstSymbolType extends IRType {
     }
+
+    // 参数符号的登记类型
+    interface ArgSymbolType extends IRType {
+    }
+
+    // 函数符号的登记类型直接使用FunctionType
 }

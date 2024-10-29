@@ -1,7 +1,7 @@
 package IR;
 
 public record IRUse(
-        IRUser user,
-        IRValue value
+        IRUser<?> user,
+        IRValue<?> value
 ) {
 }

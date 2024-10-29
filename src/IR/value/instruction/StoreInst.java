@@ -2,20 +2,20 @@ package IR.value.instruction;
 
 import IR.IRValue;
 import IR.type.IRType;
+import IR.type.IntegerType;
 import IR.type.PointerType;
+import IR.type.VoidType;
 import IR.value.BasicBlock;
 import util.LLVMStrRegCounter;
 
 // store <ty> <value>, <ty>* <pointer>
-public class StoreInst extends Instruction {
-    public StoreInst(IRValue valueOperand, IRValue pointerOperand, BasicBlock parent) {
+public class StoreInst extends Instruction<VoidType> {
+    // 在SysY中，store的数值一定是IntegerType
+
+    public StoreInst(IRValue<IntegerType> valueOperand, IRValue<PointerType> pointerOperand, BasicBlock parent) {
         super(IRType.getVoidTy(), parent);
         this.addOperand(valueOperand);
-        if (pointerOperand.type() instanceof PointerType) {
-            this.addOperand(pointerOperand);
-        } else {
-            throw new RuntimeException("When StoreInst(), the type of pointerOperand is not PointerType. Got " + pointerOperand);
-        }
+        this.addOperand(pointerOperand);
     }
 
     @Override

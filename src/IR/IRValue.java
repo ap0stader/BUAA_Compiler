@@ -4,20 +4,21 @@ import IR.type.IRType;
 
 import java.util.HashSet;
 
-public abstract class IRValue {
+public abstract class IRValue<T extends IRType> {
     protected final String name;
-    protected final IRType type;
+    protected final T type;
     // 使用HashSet防止有重复的use
-    // WARN 需十分留意User中有相同的
+    // WARNING 需十分留意User中有相同的操作数的情况下对于Use的删除操作
     private final HashSet<IRUse> useList;
 
-    public IRValue(IRType type) {
+    // 匿名初始化
+    public IRValue(T type) {
         this.name = null;
         this.type = type;
         this.useList = new HashSet<>();
     }
 
-    public IRValue(String name, IRType type) {
+    public IRValue(String name, T type) {
         this.name = name;
         this.type = type;
         this.useList = new HashSet<>();
@@ -27,7 +28,7 @@ public abstract class IRValue {
         return name;
     }
 
-    public IRType type() {
+    public T type() {
         return type;
     }
 
@@ -36,8 +37,7 @@ public abstract class IRValue {
     }
 
     // 传入User，维护User-Use关系
-    // TODO 界定可见性范围
-    protected void addUse(IRUser user) {
+    public void addUse(IRUser<?> user) {
         this.useList.add(new IRUse(user, this));
     }
 }

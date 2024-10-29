@@ -2,13 +2,17 @@ package IR.value.instruction;
 
 import IR.IRValue;
 import IR.type.IRType;
+import IR.type.IntegerType;
+import IR.type.VoidType;
 import IR.value.BasicBlock;
 import util.LLVMStrRegCounter;
 
 // ret <type> <value>
 // ret void
-public class ReturnInst extends Instruction {
-    public ReturnInst(IRValue returnValue, BasicBlock parent) {
+public class ReturnInst extends Instruction<VoidType> {
+    // 在SysY中，return的数值一定是IntegerType或者无返回值
+
+    public ReturnInst(IRValue<IntegerType> returnValue, BasicBlock parent) {
         super(IRType.getVoidTy(), parent);
         if (returnValue != null) {
             this.addOperand(returnValue);

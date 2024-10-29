@@ -2,10 +2,11 @@ package IR.value.instruction;
 
 import IR.IRValue;
 import IR.type.IRType;
+import IR.type.IntegerType;
 import IR.value.BasicBlock;
 import util.LLVMStrRegCounter;
 
-public abstract class CastInst extends Instruction {
+public abstract class CastInst<S extends IRType, D extends IRType> extends Instruction<D> {
     protected enum CastOps {
         TRUNC("trunc"),
         ZEXT("zext"),
@@ -26,7 +27,7 @@ public abstract class CastInst extends Instruction {
     // CastInst是UnaryInstruction的子类
     private final CastOps castOp;
 
-    private CastInst(CastOps castOp, IRValue src, IRType destType, BasicBlock parent) {
+    private CastInst(CastOps castOp, IRValue<S> src, D destType, BasicBlock parent) {
         super(destType, parent);
         this.castOp = castOp;
         this.addOperand(src);
@@ -40,22 +41,22 @@ public abstract class CastInst extends Instruction {
     }
 
     // <result> = trunc <ty> <value> to <ty2>
-    public static class TruncInst extends CastInst {
-        public TruncInst(IRValue src, IRType destType, BasicBlock parent) {
+    public static class TruncInst extends CastInst<IntegerType, IntegerType> {
+        public TruncInst(IRValue<IntegerType> src, IntegerType destType, BasicBlock parent) {
             super(CastOps.TRUNC, src, destType, parent);
         }
     }
 
     // <result> = zext <ty> <value> to <ty2>
-    public static class ZExtInst extends CastInst {
-        public ZExtInst(IRValue src, IRType destType, BasicBlock parent) {
+    public static class ZExtInst extends CastInst<IntegerType, IntegerType> {
+        public ZExtInst(IRValue<IntegerType> src, IntegerType destType, BasicBlock parent) {
             super(CastOps.ZEXT, src, destType, parent);
         }
     }
 
     // <result> = bitcast <ty> <value> to <ty2>
-    public static class BitCastInst extends CastInst {
-        public BitCastInst(IRValue src, IRType destType, BasicBlock parent) {
+    public static class BitCastInst<S extends IRType, D extends IRType> extends CastInst<S, D> {
+        public BitCastInst(IRValue<S> src, D destType, BasicBlock parent) {
             super(CastOps.BITCAST, src, destType, parent);
         }
     }

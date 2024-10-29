@@ -2,12 +2,13 @@ package IR.value;
 
 import IR.IRValue;
 import IR.type.FunctionType;
+import IR.type.IRType;
 import util.LLVMStrRegCounter;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 
-public class Function extends IRValue {
+public class Function extends IRValue<FunctionType> {
     // Function是User的子类，因为Function一旦定义后其地址是一定的
     // 但是在Sysy中，Function不会与任何其他的Value构成足够称为User的关系（Argument和BasicBlock类似属于关系），故直接提升为Value的子类
 
@@ -18,6 +19,18 @@ public class Function extends IRValue {
 
     public Function(String name, FunctionType type, ArrayList<Argument> arguments, boolean isLib) {
         super(name, type);
+        if (type.parametersType().size() != arguments.size()) {
+            throw new RuntimeException("When Function(), number of arguments mismatch. Got " + arguments.size() +
+                    ", expected " + type.parametersType().size() + "(declare at the type of function)");
+        } else {
+            for (int i = 0; i < type.parametersType().size(); i++) {
+                if (!IRType.isEqual(type.parametersType().get(i), arguments.get(i).type())) {
+                    throw new RuntimeException("When Function(), type mismatch. Got " + arguments.get(i).type() +
+                            " of argument " + arguments.get(i) +
+                            ", expected " + type.parametersType().get(i) + "(declare at the type of function)");
+                }
+            }
+        }
         this.arguments = arguments;
         this.basicBlocks = new LinkedList<>();
         this.isLib = isLib;
@@ -28,7 +41,6 @@ public class Function extends IRValue {
     }
 
     public String llvmStr() {
-        FunctionType functionType = (FunctionType) this.type;
         StringBuilder sb = new StringBuilder();
         LLVMStrRegCounter counter = new LLVMStrRegCounter();
         if (this.isLib) {
@@ -38,14 +50,14 @@ public class Function extends IRValue {
             // 函数的定义
             sb.append("define dso_local ");
         }
-        sb.append(functionType.returnType().llvmStr());
+        sb.append(this.type.returnType().llvmStr());
         sb.append(" @");
         sb.append(this.name);
         sb.append("(");
         if (this.isLib) {
-            for (int i = 0; i < functionType.parametersType().size(); i++) {
+            for (int i = 0; i < this.type.parametersType().size(); i++) {
                 sb.append(i > 0 ? ", " : "");
-                sb.append(functionType.parametersType().get(i).llvmStr());
+                sb.append(this.type.parametersType().get(i).llvmStr());
             }
         } else {
             for (int i = 0; i < this.arguments.size(); i++) {

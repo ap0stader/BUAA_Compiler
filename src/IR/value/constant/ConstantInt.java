@@ -3,21 +3,22 @@ package IR.value.constant;
 import IR.type.IRType;
 import IR.type.IntegerType;
 
-public class ConstantInt extends Constant {
+public class ConstantInt extends Constant<IntegerType> {
     private final Integer constantValue;
+
+    // 在多处需要使用到i32类型的0
+    public static ConstantInt zero_i32() {
+        return new ConstantInt(IRType.getInt32Ty(), 0);
+    }
 
     public ConstantInt(IntegerType type, Integer constantValue) {
         super(type);
         this.constantValue = constantValue;
     }
 
-    public static ConstantInt zero_i32() {
-        return new ConstantInt(IRType.getInt32Ty(), 0);
-    }
-
     @Override
     public String llvmStr() {
-        int integerSize = ((IntegerType) this.type).size();
+        int integerSize = this.type.size();
         // 根据type的size进行截断
         if (integerSize < 32) {
             int lowerMask = (1 << integerSize) - 1;

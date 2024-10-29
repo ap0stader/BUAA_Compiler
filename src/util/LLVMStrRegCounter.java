@@ -8,7 +8,7 @@ import IR.value.constant.Constant;
 import java.util.HashMap;
 
 public class LLVMStrRegCounter {
-    private final HashMap<IRValue, Integer> llvmRegTable;
+    private final HashMap<IRValue<?>, Integer> llvmRegTable;
     private int count;
 
     public LLVMStrRegCounter() {
@@ -16,10 +16,10 @@ public class LLVMStrRegCounter {
         this.count = 0;
     }
 
-    public String get(IRValue value) {
+    public String get(IRValue<?> value) {
         if (value instanceof GlobalVariable || value instanceof Function) {
             return "@" + value.name();
-        } else if (value instanceof Constant constant) {
+        } else if (value instanceof Constant<?> constant) {
             return constant.llvmStr();
         } else {
             if (this.llvmRegTable.containsKey(value)) {

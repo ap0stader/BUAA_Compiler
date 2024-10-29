@@ -2,7 +2,7 @@ package IR.value.constant;
 
 import IR.type.IRType;
 
-public class ConstantAggregateZero extends Constant {
+public class ConstantAggregateZero extends Constant<IRType> {
     public ConstantAggregateZero(IRType type) {
         super(type);
     }

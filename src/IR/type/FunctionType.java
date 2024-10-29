@@ -7,6 +7,9 @@ public record FunctionType(
         IRType returnType,
         ArrayList<IRType> parametersType
 ) implements IRType {
+    // 函数类型，在SysY中函数类型有无返回值(VoidType)和有返回值(IntegerType)两种函数，有返回值只能为int和char
+    // 函数类型可以作为符号表中函数符号的登记类型
+
     @Override
     public String displayStr() {
         return returnType.displayStr() + "Func";

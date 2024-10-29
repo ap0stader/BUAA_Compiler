@@ -1,6 +1,9 @@
 package IR.type;
 
 public final class LabelType implements IRType {
+    // 标签类型，专门用于LLVM IR的BasicBlock
+    // 标签类型的实例不能任意创建，需使用已经创建好的静态实例
+
     static final LabelType INSTANCE = new LabelType();
 
     private LabelType() {

@@ -6,7 +6,7 @@ import IR.value.BasicBlock;
 import util.LLVMStrRegCounter;
 
 // <result> = alloca <type>
-public class AllocaInst extends Instruction {
+public class AllocaInst extends Instruction<PointerType> {
     private final IRType allocType;
 
     public AllocaInst(IRType type, BasicBlock parent) {

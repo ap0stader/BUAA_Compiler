@@ -1,6 +1,7 @@
 package IR.value.instruction;
 
 import IR.IRValue;
+import IR.type.IRType;
 import IR.type.VoidType;
 import IR.value.BasicBlock;
 import IR.value.Function;
@@ -9,12 +10,14 @@ import util.LLVMStrRegCounter;
 import java.util.ArrayList;
 
 // <result> = call <ty> <fnptrval>(<function args>)
-public class CallInst extends Instruction {
+public class CallInst<T extends IRType> extends Instruction<IRType> {
     // CallInst不处理对于函数不合法的调用，由语义分析部分予以检查
-    public CallInst(Function function, ArrayList<IRValue> argsOperands, BasicBlock parent) {
+    // 同时无法静态确定CallInst的类型，需要动态进行检查
+
+    public CallInst(Function function, ArrayList<IRValue<?>> argsOperands, BasicBlock parent) {
         super(function.type(), parent);
         this.addOperand(argsOperands.get(0));
-        for (IRValue argument : argsOperands) {
+        for (IRValue<?> argument : argsOperands) {
             this.addOperand(argument);
         }
     }

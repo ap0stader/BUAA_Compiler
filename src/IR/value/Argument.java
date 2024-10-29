@@ -4,8 +4,9 @@ import IR.IRValue;
 import IR.type.IRType;
 import util.LLVMStrRegCounter;
 
-public class Argument extends IRValue {
-    public Argument(IRType.VarSymbolType type) {
+// 由于参数是直接使用的，符号表的登记类型与Argument的类型是一致的，所以此处限制为IRType.ArgSymbolType
+public class Argument extends IRValue<IRType.ArgSymbolType> {
+    public Argument(IRType.ArgSymbolType type) {
         super(type);
     }
 

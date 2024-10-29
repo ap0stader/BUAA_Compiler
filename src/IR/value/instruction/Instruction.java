@@ -5,10 +5,10 @@ import IR.type.IRType;
 import IR.value.BasicBlock;
 import util.LLVMStrRegCounter;
 
-public abstract class Instruction extends IRUser {
+public abstract class Instruction<IT extends IRType> extends IRUser<IT> {
     private final BasicBlock parent;
 
-    public Instruction(IRType type, BasicBlock parent) {
+    public Instruction(IT type, BasicBlock parent) {
         super(type);
         this.parent = parent;
         // 加入到BasicBlock中

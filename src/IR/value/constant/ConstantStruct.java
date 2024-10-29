@@ -5,10 +5,10 @@ import IR.type.StructType;
 import java.util.ArrayList;
 import java.util.Objects;
 
-public class ConstantStruct extends Constant {
-    private final ArrayList<Constant> constantValues;
+public class ConstantStruct extends Constant<StructType> {
+    private final ArrayList<Constant<?>> constantValues;
 
-    public ConstantStruct(StructType structType, ArrayList<Constant> constantValues) {
+    public ConstantStruct(StructType structType, ArrayList<Constant<?>> constantValues) {
         super(structType);
         // 检查类型是否匹配
         if (structType.memberTypes().size() != constantValues.size()) {
@@ -18,6 +18,7 @@ public class ConstantStruct extends Constant {
             for (int i = 0; i < structType.memberTypes().size(); i++) {
                 if (!Objects.equals(structType.memberTypes().get(i), constantValues.get(i).type())) {
                     throw new RuntimeException("When ConstantStruct(), type mismatch. Got " + constantValues.get(i).type() +
+                            " value " + constantValues.get(i) +
                             ", expected " + structType.memberTypes().get(i));
                 }
             }
