@@ -38,18 +38,4 @@ public interface IRType {
     static boolean isEqual(IRType type1, IRType type2) {
         return Objects.equals(type1, type2);
     }
-
-    // 变量符号的登记类型
-    interface VarSymbolType extends IRType {
-    }
-
-    // 常量符号的登记类型
-    interface ConstSymbolType extends IRType {
-    }
-
-    // 参数符号的登记类型
-    interface ArgSymbolType extends IRType {
-    }
-
-    // 函数符号的登记类型直接使用FunctionType
 }

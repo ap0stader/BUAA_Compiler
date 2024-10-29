@@ -1,11 +1,13 @@
 package IR.type;
 
+import frontend.visitor.symbol.SymbolType;
+
 import java.util.Objects;
 
 public record ArrayType(
         IRType elementType,
         int length
-) implements IRType, IRType.VarSymbolType, IRType.ConstSymbolType {
+) implements IRType, SymbolType.Var, SymbolType.Const {
     // 数组类型，在SysY中只有一维数组，数组元素的类型只有IntegerType，并且只能为int和char
     // 数组类型可以作为符号表中变量符号和常量符号的登记类型
 

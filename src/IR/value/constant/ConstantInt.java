@@ -7,7 +7,7 @@ public class ConstantInt extends Constant<IntegerType> {
     private final Integer constantValue;
 
     // 在多处需要使用到i32类型的0
-    public static ConstantInt zero_i32() {
+    public static ConstantInt ZERO_I32() {
         return new ConstantInt(IRType.getInt32Ty(), 0);
     }
 

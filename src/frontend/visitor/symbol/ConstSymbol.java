@@ -1,16 +1,17 @@
 package frontend.visitor.symbol;
 
-import IR.type.IRType;
+import IR.type.PointerType;
 import frontend.lexer.Token;
 import global.Config;
 
 import java.util.ArrayList;
 
-public class ConstSymbol extends Symbol<IRType.ConstSymbolType> {
+public class ConstSymbol extends Symbol<SymbolType.Const, PointerType> {
+    // ConstSymbol中存储的只可能是GlobalVariable和AllocaInst，所以irValue的类型为PointerType
     // 由于只考虑一维数组，所以此处直接线性保存
     private final ArrayList<Integer> initVals;
 
-    public ConstSymbol(IRType.ConstSymbolType type, Token ident, ArrayList<Integer> initVals) {
+    public ConstSymbol(SymbolType.Const type, Token ident, ArrayList<Integer> initVals) {
         super(type, ident);
         this.initVals = initVals;
     }

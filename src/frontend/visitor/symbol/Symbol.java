@@ -1,14 +1,15 @@
 package frontend.visitor.symbol;
 
 import IR.IRValue;
+import IR.type.IRType;
 import frontend.lexer.Token;
 import global.Config;
 
-public abstract class Symbol<T> {
+public abstract class Symbol<T extends IRType, VT extends IRType> {
     private final T type;
     private final String name;
     private final int line;
-    private IRValue irValue = null;
+    private IRValue<VT> irValue = null;
 
     protected Symbol(T type, Token ident) {
         this.type = type;
@@ -28,7 +29,7 @@ public abstract class Symbol<T> {
         return line;
     }
 
-    public IRValue irValue() {
+    public IRValue<VT> irValue() {
         if (this.irValue != null) {
             return this.irValue;
         } else {
@@ -41,7 +42,7 @@ public abstract class Symbol<T> {
         }
     }
 
-    public void setIRValue(IRValue irValue) {
+    public void setIRValue(IRValue<VT> irValue) {
         this.irValue = irValue;
     }
 }

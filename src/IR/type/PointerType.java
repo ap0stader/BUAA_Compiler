@@ -1,12 +1,14 @@
 package IR.type;
 
+import frontend.visitor.symbol.SymbolType;
+
 import java.util.Objects;
 
 public record PointerType(
         IRType referenceType,
         // arrayDecay是为语义分析的输出准备的，语义分析时要求参数为数组形式给出时仍然输出其为数组类型
         boolean arrayDecay
-) implements IRType, IRType.ArgSymbolType {
+) implements IRType, SymbolType.Arg {
     // 指针类型，在SysY中没有定义指针类型，但是在函数参数和左值转换中一维数组会退化为指针类型。同时全局变量，alloca的类型也是对应类型的指针类型
     // 指针类型可以作为符号表中参数符号的登记类型
 

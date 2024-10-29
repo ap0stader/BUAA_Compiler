@@ -1,7 +1,9 @@
 package IR.type;
 
+import frontend.visitor.symbol.SymbolType;
+
 public class IntegerType
-        implements IRType, IRType.VarSymbolType, IRType.ConstSymbolType, IRType.ArgSymbolType {
+        implements IRType, SymbolType.Var, SymbolType.Const, SymbolType.Arg {
     // 整数类型，在SysY中整数类型有int和char两种该类型的特定实例，同时会使用i1作为icmp的返回结果类型，同时部分库函数需要使用到i64
     // 整数类型可以作为符号表中变量符号、常量符号、参数符号的登记类型
     // 整数类型的实例不能任意创建，需使用已经创建好的静态实例
