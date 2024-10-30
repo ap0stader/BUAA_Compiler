@@ -25,7 +25,11 @@ public class DumpSymbolTable {
                                 + symbol.name() + " " + symbol.type() + "\n");
                     }
                 } else {
-                    out.write(level + " " + symbol.name() + " " + symbol.type().displayStr() + "\n");
+                    if (symbol instanceof ConstSymbol) {
+                        out.write(level + " " + symbol.name() + " Const" + symbol.type().displayStr() + "\n");
+                    } else {
+                        out.write(level + " " + symbol.name() + " " + symbol.type().displayStr() + "\n");
+                    }
                 }
             }
         }
