@@ -190,16 +190,16 @@ class Builder {
     AllocaInst addLocalVariable(VarSymbol varSymbol, ArrayList<IRValue<IntegerType>> initVals, BasicBlock entryBlock) {
         AllocaInst allocaInst = new AllocaInst(varSymbol.type(), entryBlock);
         if (initVals != null) {
-            if (varSymbol.type() instanceof IntegerType varSymbolType) {
+            if (varSymbol.type() instanceof IntegerType) {
                 IRValue<IntegerType> initVal = initVals.get(0);
-                this.storeLVal(initVal, varSymbolType, allocaInst, entryBlock);
-            } else if (varSymbol.type() instanceof ArrayType varSymbolType) {
+                this.addStoreLVal(initVal, allocaInst, entryBlock);
+            } else if (varSymbol.type() instanceof ArrayType) {
                 // TODO 对于长数组进行优化
                 for (int i = 0; i < initVals.size(); i++) {
                     GetElementPtrInst arrayElementPointer =
                             this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), entryBlock);
                     // CAST 由于BType只有int和char，此处强制转换不会出错
-                    this.storeLVal(initVals.get(i), (IntegerType) varSymbolType.elementType(), arrayElementPointer, entryBlock);
+                    this.addStoreLVal(initVals.get(i), arrayElementPointer, entryBlock);
                 }
             } else {
                 throw new RuntimeException("When addLocalVariable(), illegal type. Got " + varSymbol.type() +
@@ -209,15 +209,23 @@ class Builder {
         return allocaInst;
     }
 
-    private void storeLVal(IRValue<IntegerType> value, IntegerType lValType, IRValue<PointerType> lValAddress, BasicBlock insertBlock) {
-        if (value.type().size() < lValType.size()) {
-            // 短值向长值
-            value = this.addExtendOperation(value, lValType, insertBlock);
-        } else if (value.type().size() > lValType.size()) {
-            // 长值向短值
-            value = this.addTruncOperation(value, lValType, insertBlock);
+    void addStoreLVal(IRValue<IntegerType> value, IRValue<PointerType> lValAddress, BasicBlock insertBlock) {
+        // 在赋值的地址不为空的时候才创建StoreInst
+        if (lValAddress != null) {
+            if (lValAddress.type().referenceType() instanceof IntegerType lValType) {
+                if (value.type().size() < lValType.size()) {
+                    // 短值向长值
+                    value = this.addExtendOperation(value, lValType, insertBlock);
+                } else if (value.type().size() > lValType.size()) {
+                    // 长值向短值
+                    value = this.addTruncOperation(value, lValType, insertBlock);
+                }
+            } else {
+                throw new RuntimeException("When addStoreLVal(), the lValAddress is not a pointer to IntegerType. " +
+                        "Got " + lValAddress.type() + " lValAddress " + lValAddress);
+            }
+            new StoreInst(value, lValAddress, insertBlock);
         }
-        new StoreInst(value, lValAddress, insertBlock);
     }
 
     GetElementPtrInst addGetArrayElementPointer(IRValue<PointerType> pointer, IRValue<IntegerType> index, BasicBlock insertBlock) {
@@ -246,6 +254,15 @@ class Builder {
     CallInst addCallFunction(Function function, ArrayList<IRValue<?>> arguments, BasicBlock insertBlock) {
         // addCallFunction不处理对于函数不合法的调用，由Visitor予以检查
         return new CallInst(function, arguments, insertBlock);
+    }
+
+    CallInst addCallLibFunction(String functionName, ArrayList<IRValue<?>> arguments, BasicBlock insertBlock) {
+        // addCallLibFunction不处理对于函数不合法的调用，由Visitor予以检查
+        if (this.libFunctions.containsKey(functionName)) {
+            return new CallInst(this.libFunctions.get(functionName), arguments, insertBlock);
+        } else {
+            throw new RuntimeException("When addCallLibFunction(), illegal function name. Got " + functionName);
+        }
     }
 
     CastInst.TruncInst addTruncOperation(IRValue<IntegerType> src, IntegerType destType, BasicBlock insertBlock) {

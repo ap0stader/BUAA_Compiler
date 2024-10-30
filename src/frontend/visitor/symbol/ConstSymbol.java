@@ -3,6 +3,7 @@ package frontend.visitor.symbol;
 import IR.IRValue;
 import IR.type.PointerType;
 import frontend.lexer.Token;
+import frontend.type.Symbol;
 import global.Config;
 
 import java.util.ArrayList;

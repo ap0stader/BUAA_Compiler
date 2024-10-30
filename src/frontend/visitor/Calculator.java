@@ -6,7 +6,7 @@ import frontend.lexer.Token;
 import frontend.parser.expression.*;
 import frontend.type.TokenType;
 import frontend.visitor.symbol.ConstSymbol;
-import frontend.visitor.symbol.Symbol;
+import frontend.type.Symbol;
 
 class Calculator {
     private final SymbolTable symbolTable;

@@ -3,12 +3,8 @@ package frontend.visitor;
 import IR.IRModule;
 import IR.IRValue;
 import IR.type.*;
-import IR.value.Argument;
 import IR.value.BasicBlock;
-import IR.value.GlobalVariable;
 import IR.value.constant.ConstantInt;
-import IR.value.instruction.AllocaInst;
-import IR.value.instruction.GetElementPtrInst;
 import frontend.error.ErrorTable;
 import frontend.error.ErrorType;
 import frontend.lexer.Token;
@@ -19,6 +15,7 @@ import frontend.parser.declaration.function.*;
 import frontend.parser.declaration.variable.*;
 import frontend.parser.expression.*;
 import frontend.parser.statement.*;
+import frontend.type.Symbol;
 import frontend.type.TokenType;
 import frontend.visitor.symbol.*;
 import global.Config;
@@ -545,7 +542,7 @@ public class Visitor {
         Symbol<?, ?> searchedSymbol = this.symbolTable.searchOrError(lVal.ident());
         if (searchedSymbol instanceof FuncSymbol) {
             throw new RuntimeException("When visitLValEvaluation(), the search result of " + lVal.ident() + " is a function");
-        } else if (searchedSymbol instanceof ArgSymbol || searchedSymbol instanceof ConstSymbol || searchedSymbol instanceof VarSymbol) {
+        } else if (searchedSymbol instanceof ConstSymbol || searchedSymbol instanceof VarSymbol || searchedSymbol instanceof ArgSymbol) {
             // CAST 上方的instanceof确保转换正确
             IRValue<PointerType> lValAddress = IRValue.cast(searchedSymbol.irValue());
             // 处理由于优化初始化造成的符号对应的Value指向的类型与符号的登记类型不一致的问题
@@ -558,7 +555,7 @@ public class Visitor {
             } else if (lVal.getType() == LVal.Type.BASIC &&
                     (lValAddress.type().referenceType() instanceof ArrayType || lValAddress.type().referenceType() instanceof PointerType)) {
                 // 直接evaluation数组名，将会导致decay
-                // ，ArrayType是常量和变量的，PointerType是参数的
+                // ArrayType是常量和变量的，PointerType是参数的
                 return this.builder.addGetArrayElementPointer(lValAddress, ConstantInt.ZERO_I32(), insertBlock);
             } else if (lVal.getType() == LVal.Type.ARRAY &&
                     (lValAddress.type().referenceType() instanceof ArrayType || lValAddress.type().referenceType() instanceof PointerType)) {
@@ -566,8 +563,8 @@ public class Visitor {
                 // ArrayType是常量和变量的，PointerType是参数的
                 // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
                 IRValue<IntegerType> indexValue = IRValue.cast(this.visitExp(lVal.exp(), insertBlock));
-                GetElementPtrInst arrayElementPointer = this.builder.addGetArrayElementPointer(lValAddress, indexValue, insertBlock);
-                return this.builder.addLoadValue(arrayElementPointer, insertBlock);
+                lValAddress = this.builder.addGetArrayElementPointer(lValAddress, indexValue, insertBlock);
+                return this.builder.addLoadValue(lValAddress, insertBlock);
             } else {
                 throw new RuntimeException("When visitLValEvaluation(), illegal type of searchedSymbol (" + searchedSymbol.irValue().type() +
                         ") and LVal (" + lVal.getType() + ")");
@@ -638,16 +635,61 @@ public class Visitor {
 
     // Stmt → LVal '=' Exp ';'
     private void visitStmtLValAssign(Stmt.Stmt_LValAssign stmt_lValAssign, BasicBlock nowBlock) {
-
+        // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
+        IRValue<IntegerType> expValue = IRValue.cast(this.visitExp(stmt_lValAssign.exp(), nowBlock));
+        this.builder.addStoreLVal(expValue, this.visitLValAddress(stmt_lValAssign.lVal(), nowBlock), nowBlock);
     }
 
     // Stmt → LVal '=' 'getint' '(' ')' ';'
     private void visitStmtLValGetInt(Stmt.Stmt_LValGetint stmt_lValGetint, BasicBlock nowBlock) {
-
+        // CAST 库函数定义保证了正确性
+        IRValue<IntegerType> getintValue = IRValue.cast(this.builder.addCallLibFunction("getint", new ArrayList<>(), nowBlock));
+        this.builder.addStoreLVal(getintValue, this.visitLValAddress(stmt_lValGetint.lVal(), nowBlock), nowBlock);
     }
 
     // Stmt → LVal '=' 'getchar' '(' ')' ';'
     private void visitStmtLValGetChar(Stmt.Stmt_LValGetchar stmt_lValGetchar, BasicBlock nowBlock) {
+        // CAST 库函数定义保证了正确性
+        IRValue<IntegerType> getcharValue = IRValue.cast(this.builder.addCallLibFunction("getchar", new ArrayList<>(), nowBlock));
+        this.builder.addStoreLVal(getcharValue, this.visitLValAddress(stmt_lValGetchar.lVal(), nowBlock), nowBlock);
+    }
 
+    private IRValue<PointerType> visitLValAddress(LVal lVal, BasicBlock insertBlock) {
+        // LVal做evaluation，可能的返回的类型有int, char, int*, char*
+        Symbol<?, ?> searchedSymbol = this.symbolTable.searchOrError(lVal.ident());
+        if (searchedSymbol instanceof FuncSymbol) {
+            throw new RuntimeException("When visitLValEvaluation(), the search result of " + lVal.ident() + " is a function");
+        } else if (searchedSymbol instanceof VarSymbol || searchedSymbol instanceof ArgSymbol) {
+            // CAST 上方的instanceof确保转换正确
+            IRValue<PointerType> lValAddress = IRValue.cast(searchedSymbol.irValue());
+            // 处理由于优化初始化造成的符号对应的Value指向的类型与符号的登记类型不一致的问题
+            if (!IRType.isEqual(searchedSymbol.type(), lValAddress.type().referenceType())) {
+                lValAddress = this.builder.addBitCastOperation(searchedSymbol.irValue(), new PointerType(searchedSymbol.type()), insertBlock);
+            }
+            if (lVal.getType() == LVal.Type.BASIC && lValAddress.type().referenceType() instanceof IntegerType) {
+                // 变量、常量
+                return lValAddress;
+            } else if (lVal.getType() == LVal.Type.ARRAY &&
+                    (lValAddress.type().referenceType() instanceof ArrayType || lValAddress.type().referenceType() instanceof PointerType)) {
+                // 数组
+                // ArrayType是常量和变量的，PointerType是参数的
+                // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
+                IRValue<IntegerType> indexValue = IRValue.cast(this.visitExp(lVal.exp(), insertBlock));
+                return this.builder.addGetArrayElementPointer(lValAddress, indexValue, insertBlock);
+            } else {
+                throw new RuntimeException("When visitLValEvaluation(), illegal type of searchedSymbol (" + searchedSymbol.irValue().type() +
+                        ") and LVal (" + lVal.getType() + ")");
+            }
+        } else if (searchedSymbol instanceof ConstSymbol) {
+            // 查找到的符号为常量，返回null，配合Builder中的addStoreLVal为null时不生成StoreInst
+            this.errorTable.addErrorRecord(lVal.ident().line(), ErrorType.TRY_MODIFY_CONST,
+                    "Try modify a const '" + searchedSymbol.name() + "' defined at line " + searchedSymbol.line());
+            return null;
+        } else if (searchedSymbol == null) {
+            // 查找不到符号，返回null，配合Builder中的addStoreLVal为null时不生成StoreInst
+            return null;
+        } else {
+            throw new RuntimeException("When visitLValEvaluation(), got unknown type of searchedSymbol (" + searchedSymbol.getClass().getSimpleName() + ")");
+        }
     }
 }

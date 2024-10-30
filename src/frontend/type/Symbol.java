@@ -1,4 +1,4 @@
-package frontend.visitor.symbol;
+package frontend.type;
 
 import IR.IRValue;
 import IR.type.IRType;

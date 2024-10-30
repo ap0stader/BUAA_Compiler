@@ -1,7 +1,7 @@
 package output;
 
 import frontend.visitor.symbol.ConstSymbol;
-import frontend.visitor.symbol.Symbol;
+import frontend.type.Symbol;
 import frontend.visitor.SymbolTable;
 import global.Config;
 

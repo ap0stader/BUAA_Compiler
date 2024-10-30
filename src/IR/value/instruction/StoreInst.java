@@ -2,7 +2,6 @@ package IR.value.instruction;
 
 import IR.IRValue;
 import IR.type.IRType;
-import IR.type.IntegerType;
 import IR.type.PointerType;
 import IR.type.VoidType;
 import IR.value.BasicBlock;

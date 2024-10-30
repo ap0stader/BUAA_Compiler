@@ -3,7 +3,7 @@ package frontend.visitor;
 import frontend.error.ErrorTable;
 import frontend.error.ErrorType;
 import frontend.lexer.Token;
-import frontend.visitor.symbol.Symbol;
+import frontend.type.Symbol;
 import global.Config;
 
 import java.util.ArrayList;
