@@ -23,6 +23,9 @@ class Translator {
                     // 转义字符
                     if (i + 1 >= stringConstString.length() - 1) {
                         throw new RuntimeException("When translateCharConst(), the escape character at the end of the string is uncompleted.");
+                    } else {
+                        // 跳过转义符
+                        i++;
                     }
                     ret.add(escapeCharToInt(stringConstString.charAt(i + 1)));
                 } else {

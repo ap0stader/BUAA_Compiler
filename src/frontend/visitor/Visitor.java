@@ -443,8 +443,9 @@ public class Visitor {
                                                    Token indentFuncCall, FuncSymbol funcSymbol, BasicBlock insertBlock) {
         // 将函数的参数解析为对应IRValue，同时检查函数的参数类型是否合法
         ArrayList<IRType> parametersType = funcSymbol.type().parametersType();
-        ArrayList<IRValue<?>> funcRParamsValues = new ArrayList<>(funcRParams.exps().stream()
-                .map((exp) -> this.visitExp(exp, insertBlock)).toList());
+        // 需要判断是否有funcRParams
+        ArrayList<IRValue<?>> funcRParamsValues = funcRParams != null ? new ArrayList<>(funcRParams.exps().stream()
+                .map((exp) -> this.visitExp(exp, insertBlock)).toList()) : new ArrayList<>();
         // 一行只有一个错误，不重复报错
         if (parametersType.size() != funcRParamsValues.size()) {
             // 函数的参数数量不对应，不做对应检查，直接报错并返回结果
@@ -564,6 +565,9 @@ public class Visitor {
                 throw new RuntimeException("When visitLValEvaluation(), illegal type of searchedSymbol (" + searchedSymbol.irValue().type() +
                         ") and LVal (" + lVal.getType() + ")");
             }
+        } else if (searchedSymbol == null) {
+            // 查找不到符号，强制置为0
+            return ConstantInt.ZERO_I32();
         } else {
             throw new RuntimeException("When visitLValEvaluation(), got unknown type of searchedSymbol (" + searchedSymbol.getClass().getSimpleName() + ")");
         }

@@ -32,11 +32,7 @@ public class PrimaryExp extends ASTNodeWithOption<PrimaryExp.PrimaryExpOption> {
         } else if (stream.isNow(TokenType.CHRCON)) {
             return new PrimaryExp(new PrimaryExp_Character(stream));
         } else {
-            if (Config.parserThrowable) {
-                throw new RuntimeException("When PrimaryExp.parse(), unexpected token: " + stream.getNow());
-            } else {
-                return null;
-            }
+            throw new RuntimeException("When PrimaryExp.parse(), unexpected token: " + stream.getNow());
         }
     }
 

@@ -32,11 +32,7 @@ public class UnaryExp extends ASTNodeWithOption<UnaryExp.UnaryExpOption> {
         } else if (stream.isNow(TokenType.LPARENT, TokenType.IDENFR, TokenType.INTCON, TokenType.CHRCON)) {
             return new UnaryExp(new UnaryExp_PrimaryExp(stream));
         } else {
-            if (Config.parserThrowable) {
-                throw new RuntimeException("When UnaryExp.parse(), unexpected token: " + stream.getNow());
-            } else {
-                return null;
-            }
+            throw new RuntimeException("When UnaryExp.parse(), unexpected token: " + stream.getNow());
         }
     }
 
