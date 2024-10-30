@@ -602,12 +602,16 @@ public class Visitor {
             this.errorTable.addErrorRecord(stmt_break.breakToken().line(), ErrorType.BREAK_CONTINUE_OUTSIDE_LOOP);
         } else if (stmtOption instanceof Stmt.Stmt_Continue stmt_continue) {
             this.errorTable.addErrorRecord(stmt_continue.continueToken().line(), ErrorType.BREAK_CONTINUE_OUTSIDE_LOOP);
+        } else if (stmtOption instanceof Stmt.Stmt_If stmt_if) {
+            return this.visitStmtIf(stmt_if, nowBlock);
+        } else if (stmtOption instanceof Stmt.Stmt_For stmt_for) {
+            return this.visitStmtFor(stmt_for, nowBlock);
         } else {
-//            if (Config.visitorThrowable) {
-//                throw new RuntimeException("When visitStmt(), got unknown type of Stmt (" + stmt.getClass().getSimpleName() + ")");
-//            } else {
-//                return nowBlock;
-//            }
+            if (Config.visitorThrowable) {
+                throw new RuntimeException("When visitStmt(), got unknown type of Stmt (" + stmt.getClass().getSimpleName() + ")");
+            } else {
+                return nowBlock;
+            }
         }
         return nowBlock;
     }
@@ -711,7 +715,7 @@ public class Visitor {
         }
     }
 
-    // LVal → 'printf''('StringConst {','Exp}')'';'
+    // Stmt → 'printf''('StringConst {','Exp}')'';'
     private void visitStmtPrintf(Stmt.Stmt_Printf stmt_printf, BasicBlock nowBlock) {
         ArrayList<Integer> formatStringChar = Translator.translateStringConst(stmt_printf.stringConst());
         ArrayList<Integer> bufferStringChar = new ArrayList<>();
@@ -761,5 +765,15 @@ public class Visitor {
             this.errorTable.addErrorRecord(stmt_printf.printfToken().line(), ErrorType.PRINTF_RPARAMS_NUM_MISMATCH);
         }
         // MAYBE 由于不存在恶意换行，此处不分析剩余Exp的内容
+    }
+
+    // Stmt → 'if' '(' Cond ')' Stmt [ 'else' Stmt ]
+    private BasicBlock visitStmtIf(Stmt.Stmt_If stmt_if, BasicBlock nowBlock) {
+        return nowBlock;
+    }
+
+    // Stmt → 'for' '(' [ForStmt] ';' [Cond] ';' [ForStmt] ')' Stmt
+    private BasicBlock visitStmtFor(Stmt.Stmt_For stmt_for, BasicBlock nowBlock) {
+        return nowBlock;
     }
 }
