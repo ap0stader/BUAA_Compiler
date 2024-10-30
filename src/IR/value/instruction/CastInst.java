@@ -44,6 +44,11 @@ public abstract class CastInst<D extends IRType> extends Instruction<D> {
     public static class TruncInst extends CastInst<IntegerType> {
         public TruncInst(IRValue<IntegerType> src, IntegerType destType, BasicBlock parent) {
             super(CastOps.TRUNC, src, destType, parent);
+            if (src.type().size() <= destType.size()) {
+                throw new RuntimeException("When TruncInst(), src size are less than or equal to destType size. " +
+                        "Got " + src.type().size() + " src " + src +
+                        " and " + destType.size() + " destType ");
+            }
         }
     }
 
@@ -51,6 +56,11 @@ public abstract class CastInst<D extends IRType> extends Instruction<D> {
     public static class ZExtInst extends CastInst<IntegerType> {
         public ZExtInst(IRValue<IntegerType> src, IntegerType destType, BasicBlock parent) {
             super(CastOps.ZEXT, src, destType, parent);
+            if (src.type().size() >= destType.size()) {
+                throw new RuntimeException("When ZExtInst(), src size are bigger than or equal to destType size. " +
+                        "Got " + src.type().size() + " src " + src +
+                        " and " + destType.size() + " destType ");
+            }
         }
     }
 
