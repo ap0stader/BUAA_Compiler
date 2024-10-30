@@ -5,11 +5,11 @@ import IR.type.IRType;
 import frontend.lexer.Token;
 import global.Config;
 
-public abstract class Symbol<T extends IRType, VT extends IRType> {
+public abstract class Symbol<T extends IRType, VT extends IRValue<?>> {
     private final T type;
     private final String name;
     private final int line;
-    private IRValue<VT> irValue = null;
+    private VT irValue = null;
 
     protected Symbol(T type, Token ident) {
         this.type = type;
@@ -29,7 +29,7 @@ public abstract class Symbol<T extends IRType, VT extends IRType> {
         return line;
     }
 
-    public IRValue<VT> irValue() {
+    public VT irValue() {
         if (this.irValue != null) {
             return this.irValue;
         } else {
@@ -42,7 +42,7 @@ public abstract class Symbol<T extends IRType, VT extends IRType> {
         }
     }
 
-    public void setIRValue(IRValue<VT> irValue) {
+    public void setIRValue(VT irValue) {
         this.irValue = irValue;
     }
 }

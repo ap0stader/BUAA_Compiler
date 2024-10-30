@@ -1,7 +1,6 @@
 package frontend.visitor;
 
 import IR.type.ArrayType;
-import IR.type.IRType;
 import IR.type.IntegerType;
 import frontend.lexer.Token;
 import frontend.parser.expression.*;
@@ -117,7 +116,7 @@ class Calculator {
     private Integer calculateLVal(LVal lVal) {
         Symbol<?, ?> symbol = this.symbolTable.searchOrError(lVal.ident());
         if (symbol != null) {
-            if (symbol instanceof ConstSymbol constSymbol) {
+            if (symbol instanceof ConstSymbol<?> constSymbol) {
                 if (constSymbol.type() instanceof IntegerType && lVal.getType() == LVal.Type.BASIC) {
                     return constSymbol.getInitValAtIndex(lVal.ident(), 0);
                 } else if (constSymbol.type() instanceof ArrayType && lVal.getType() == LVal.Type.ARRAY) {

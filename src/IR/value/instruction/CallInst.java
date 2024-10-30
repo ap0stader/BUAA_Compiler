@@ -10,13 +10,12 @@ import util.LLVMStrRegCounter;
 import java.util.ArrayList;
 
 // <result> = call <ty> <fnptrval>(<function args>)
-public class CallInst<T extends IRType> extends Instruction<IRType> {
+public class CallInst extends Instruction<IRType> {
     // CallInst不处理对于函数不合法的调用，由语义分析部分予以检查
-    // 同时无法静态确定CallInst的类型，需要动态进行检查
 
     public CallInst(Function function, ArrayList<IRValue<?>> argsOperands, BasicBlock parent) {
-        super(function.type(), parent);
-        this.addOperand(argsOperands.get(0));
+        super(function.type().returnType(), parent);
+        this.addOperand(function);
         for (IRValue<?> argument : argsOperands) {
             this.addOperand(argument);
         }

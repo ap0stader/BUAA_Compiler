@@ -6,7 +6,7 @@ import IR.type.IntegerType;
 import IR.value.BasicBlock;
 import util.LLVMStrRegCounter;
 
-public abstract class CastInst<S extends IRType, D extends IRType> extends Instruction<D> {
+public abstract class CastInst<D extends IRType> extends Instruction<D> {
     protected enum CastOps {
         TRUNC("trunc"),
         ZEXT("zext"),
@@ -27,7 +27,7 @@ public abstract class CastInst<S extends IRType, D extends IRType> extends Instr
     // CastInst是UnaryInstruction的子类
     private final CastOps castOp;
 
-    private CastInst(CastOps castOp, IRValue<S> src, D destType, BasicBlock parent) {
+    private CastInst(CastOps castOp, IRValue<?> src, D destType, BasicBlock parent) {
         super(destType, parent);
         this.castOp = castOp;
         this.addOperand(src);
@@ -41,22 +41,22 @@ public abstract class CastInst<S extends IRType, D extends IRType> extends Instr
     }
 
     // <result> = trunc <ty> <value> to <ty2>
-    public static class TruncInst extends CastInst<IntegerType, IntegerType> {
+    public static class TruncInst extends CastInst<IntegerType> {
         public TruncInst(IRValue<IntegerType> src, IntegerType destType, BasicBlock parent) {
             super(CastOps.TRUNC, src, destType, parent);
         }
     }
 
     // <result> = zext <ty> <value> to <ty2>
-    public static class ZExtInst extends CastInst<IntegerType, IntegerType> {
+    public static class ZExtInst extends CastInst<IntegerType> {
         public ZExtInst(IRValue<IntegerType> src, IntegerType destType, BasicBlock parent) {
             super(CastOps.ZEXT, src, destType, parent);
         }
     }
 
     // <result> = bitcast <ty> <value> to <ty2>
-    public static class BitCastInst<S extends IRType, D extends IRType> extends CastInst<S, D> {
-        public BitCastInst(IRValue<S> src, D destType, BasicBlock parent) {
+    public static class BitCastInst<D extends IRType> extends CastInst<D> {
+        public BitCastInst(IRValue<?> src, D destType, BasicBlock parent) {
             super(CastOps.BITCAST, src, destType, parent);
         }
     }

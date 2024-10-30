@@ -55,7 +55,7 @@ public class BranchInst extends Instruction<VoidType> {
                     this.getOperand(0).type().llvmStr() + " " +
                     counter.get(this.getOperand(0));
         } else {
-            throw new RuntimeException("When llvmStr(), the number of operands(" + this.getNumOperands() + ") is incorrect, expected 3 or 1.");
+            throw new RuntimeException("When BranchInst.llvmStr(), the number of operands(" + this.getNumOperands() + ") is incorrect, expected 3 or 1.");
         }
     }
 }

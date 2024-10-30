@@ -24,6 +24,12 @@ public abstract class IRValue<T extends IRType> {
         this.useList = new HashSet<>();
     }
 
+    @SuppressWarnings("unchecked")
+    public static <U extends IRType> IRValue<U> cast(IRValue<?> value) {
+        // CAST 在确保合理的情况下，强制确定IRValue的类型
+        return (IRValue<U>) value;
+    }
+
     public String name() {
         return name;
     }

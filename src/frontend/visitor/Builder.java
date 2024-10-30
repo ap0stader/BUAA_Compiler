@@ -47,20 +47,21 @@ class Builder {
         // declare void @putstr(i8*)  输出字符串
         parameters = new ArrayList<>(Collections.singletonList(new PointerType(IRType.getInt8Ty(), false)));
         libFunctions.put("putstr", new Function("putstr", new FunctionType(IRType.getVoidTy(), parameters), new ArrayList<>(), true));
+        // TODO 对于长数组进行优化
         // declare void @llvm.memset.p0i8.i64(i8*, i8, i64, i1)
-        parameters = new ArrayList<>(Arrays.asList(new PointerType(IRType.getInt8Ty(), false), IRType.getInt8Ty(), IRType.getInt64Ty(), IRType.getInt1Ty()));
-        libFunctions.put("memset", new Function("llvm.memset.p0i8.i64", new FunctionType(IRType.getVoidTy(), parameters), new ArrayList<>(), true));
+        // parameters = new ArrayList<>(Arrays.asList(new PointerType(IRType.getInt8Ty(), false), IRType.getInt8Ty(), IRType.getInt64Ty(), IRType.getInt1Ty()));
+        // libFunctions.put("memset", new Function("llvm.memset.p0i8.i64", new FunctionType(IRType.getVoidTy(), parameters), new ArrayList<>(), true));
         return libFunctions;
     }
 
-    GlobalVariable addGlobalConstant(ConstSymbol constSymbol) {
+    GlobalVariable addGlobalConstant(ConstSymbol<GlobalVariable> constSymbol) {
         GlobalVariable globalConstant;
-        if (constSymbol.type() instanceof IntegerType) {
+        if (constSymbol.type() instanceof IntegerType constSymbolType) {
             globalConstant = new GlobalVariable(constSymbol.name(), constSymbol.type(),
                     true, false,
-                    new ConstantInt((IntegerType) constSymbol.type(), constSymbol.initVals().get(0)));
-        } else if (constSymbol.type() instanceof ArrayType) {
-            Pair<IRType, Constant> optimizedArray = optimizeGlobalArray((ArrayType) constSymbol.type(), constSymbol.initVals());
+                    new ConstantInt(constSymbolType, constSymbol.initVals().get(0)));
+        } else if (constSymbol.type() instanceof ArrayType constSymbolType) {
+            Pair<IRType, Constant<?>> optimizedArray = optimizeGlobalArray(constSymbolType, constSymbol.initVals());
             globalConstant = new GlobalVariable(constSymbol.name(), optimizedArray.key(),
                     true, false,
                     optimizedArray.value());
@@ -72,14 +73,14 @@ class Builder {
         return globalConstant;
     }
 
-    void addGlobalVariable(VarSymbol varSymbol, ArrayList<Integer> initVals) {
+    GlobalVariable addGlobalVariable(VarSymbol<GlobalVariable> varSymbol, ArrayList<Integer> initVals) {
         GlobalVariable globalConstant;
-        if (varSymbol.type() instanceof IntegerType) {
+        if (varSymbol.type() instanceof IntegerType varSymbolType) {
             globalConstant = new GlobalVariable(varSymbol.name(), varSymbol.type(),
                     false, false,
-                    new ConstantInt((IntegerType) varSymbol.type(), initVals.get(0)));
-        } else if (varSymbol.type() instanceof ArrayType) {
-            Pair<IRType, Constant> optimizedArray = optimizeGlobalArray((ArrayType) varSymbol.type(), initVals);
+                    new ConstantInt(varSymbolType, initVals.get(0)));
+        } else if (varSymbol.type() instanceof ArrayType varSymbolType) {
+            Pair<IRType, Constant<?>> optimizedArray = optimizeGlobalArray(varSymbolType, initVals);
             globalConstant = new GlobalVariable(varSymbol.name(), optimizedArray.key(),
                     false, false,
                     optimizedArray.value());
@@ -88,9 +89,10 @@ class Builder {
                     ", expected IntegerType or ArrayType");
         }
         irModule.appendGlobalVariables(globalConstant);
+        return globalConstant;
     }
 
-    private static Pair<IRType, Constant> optimizeGlobalArray(ArrayType originType, ArrayList<Integer> originInitVals) {
+    private static Pair<IRType, Constant<?>> optimizeGlobalArray(ArrayType originType, ArrayList<Integer> originInitVals) {
         // 寻找最后一个不是0的数字
         int lastNotZero = originInitVals.size() - 1;
         while (lastNotZero >= 0 && originInitVals.get(lastNotZero) == 0) {
@@ -101,8 +103,8 @@ class Builder {
             return new Pair<>(originType, new ConstantAggregateZero(originType));
         } else if (Config.disableLongArrayOptimization || originInitVals.size() - 1 - lastNotZero < 10) {
             // 如果不对长数组做优化或者结尾非0的数据不足10个，那么保留原样
-            return new Pair<>(originType,
-                    new ConstantArray(originType, convertIntegerArrayInitVal(originType, originInitVals, -1)));
+            ArrayList<Constant<?>> constantValues = new ArrayList<>(convertInitValIntegerArray(originType, originInitVals, -1));
+            return new Pair<>(originType, new ConstantArray(originType, constantValues));
         } else {
             // 如果结尾有较多的0，转换为结构体使用
             ArrayList<IRType> structMemberTypes = new ArrayList<>();
@@ -116,31 +118,35 @@ class Builder {
             // 结构体类型
             StructType structType = new StructType(structMemberTypes);
             // 有数据的部分的数据
-            ArrayList<Constant> constantValues = convertIntegerArrayInitVal(originType, originInitVals, lastNotZero);
+            ArrayList<Constant<?>> constantValues = new ArrayList<>(convertInitValIntegerArray(originType, originInitVals, lastNotZero));
             // 均为0的部分使用zeroinitializer
             constantValues.add(new ConstantAggregateZero(zeroPartType));
             return new Pair<>(structType, new ConstantStruct(structType, constantValues));
         }
     }
 
-    private static ArrayList<Constant> convertIntegerArrayInitVal(ArrayType type, ArrayList<Integer> initVals, int endIndex) {
-        ArrayList<Constant> constantValues = new ArrayList<>();
+    private static ArrayList<ConstantInt> convertInitValIntegerArray(ArrayType type, ArrayList<Integer> initVals, int endIndex) {
+        ArrayList<ConstantInt> constantValues = new ArrayList<>();
         if (endIndex < 0) {
             endIndex = initVals.size() - 1;
         } else if (endIndex >= initVals.size()) {
-            throw new IndexOutOfBoundsException("When convertIntegerArrayInitVal(), endIndex is greater than the size of initVals. " +
+            throw new IndexOutOfBoundsException("When convertInitValIntegerArray(), endIndex is greater than the size of initVals. " +
                     "Got " + endIndex + ", expected " + initVals.size());
         }
         for (int i = 0; i <= endIndex; i++) {
-            // 由于BType只有int和char，此处强制转换不会出错
+            // CAST 由于BType只有int和char，此处强制转换不会出错
             constantValues.add(new ConstantInt((IntegerType) type.elementType(), initVals.get(i)));
         }
         return constantValues;
     }
 
-    Function addFunction(FuncSymbol funcSymbol, ArrayList<VarSymbol> parameters) {
+    Argument addArgument(ArgSymbol argSymbol) {
+        return new Argument(argSymbol.type());
+    }
+
+    Function addFunction(FuncSymbol funcSymbol, ArrayList<ArgSymbol> argSymbols) {
         Function function = new Function(funcSymbol.name(), funcSymbol.type(),
-                new ArrayList<>(parameters.stream().map((parameter) -> new Argument(parameter.type())).toList()), false);
+                new ArrayList<>(argSymbols.stream().map(Symbol::irValue).toList()), false);
         irModule.appendFunctions(function);
         this.nowFunction = function;
         return function;
@@ -160,28 +166,18 @@ class Builder {
         return basicBlock;
     }
 
-    GetElementPtrInst addGetArrayElementPointer(IRValue pointer, IRValue index, BasicBlock insertBlock) {
-        if (pointer.type() instanceof ArrayType) {
-            return new GetElementPtrInst(pointer, new ArrayList<>(Arrays.asList(ConstantInt.zero_i32(), index)), insertBlock);
-        } else if (pointer.type() instanceof PointerType) {
-            return new GetElementPtrInst(pointer, new ArrayList<>(Collections.singletonList(index)), insertBlock);
-        } else {
-            throw new RuntimeException("When addGetArrayElementPointer(), illegal type. Got " + pointer.type() +
-                    ", expected ArrayType or PointerType");
-        }
-    }
-
-    AllocaInst addLocalConstant(ConstSymbol constSymbol, BasicBlock entryBlock) {
+    AllocaInst addLocalConstant(ConstSymbol<AllocaInst> constSymbol, BasicBlock entryBlock) {
         AllocaInst allocaInst = new AllocaInst(constSymbol.type(), entryBlock);
-        if (constSymbol.type() instanceof IntegerType) {
-            new StoreInst(new ConstantInt((IntegerType) constSymbol.type(), constSymbol.initVals().get(0)),
-                    allocaInst, entryBlock);
-        } else if (constSymbol.type() instanceof ArrayType) {
+        if (constSymbol.type() instanceof IntegerType constSymbolType) {
+            new StoreInst(new ConstantInt(constSymbolType, constSymbol.initVals().get(0)), allocaInst, entryBlock);
+        } else if (constSymbol.type() instanceof ArrayType constSymbolType) {
             // TODO 对于长数组进行优化
             for (int i = 0; i < constSymbol.initVals().size(); i++) {
                 GetElementPtrInst arrayElementPointer =
                         this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), entryBlock);
-                new StoreInst(new ConstantInt(IRType.getInt32Ty(), constSymbol.initVals().get(i)), arrayElementPointer, entryBlock);
+                // CAST 由于BType只有int和char，此处强制转换不会出错
+                new StoreInst(new ConstantInt((IntegerType) constSymbolType.elementType(), constSymbol.initVals().get(i)),
+                        arrayElementPointer, entryBlock);
             }
         } else {
             throw new RuntimeException("When addLocalConstant(), illegal type. Got " + constSymbol.type() +
@@ -190,25 +186,41 @@ class Builder {
         return allocaInst;
     }
 
-    AllocaInst addLocalVariable(VarSymbol varSymbol, ArrayList<IRValue> initVals, BasicBlock entryBlock) {
+    AllocaInst addLocalVariable(VarSymbol<AllocaInst> varSymbol, ArrayList<IRValue<IntegerType>> initVals, BasicBlock entryBlock) {
         AllocaInst allocaInst = new AllocaInst(varSymbol.type(), entryBlock);
-        if (varSymbol.type() instanceof IntegerType) {
-            new StoreInst(initVals.get(0), allocaInst, entryBlock);
-        } else if (varSymbol.type() instanceof ArrayType) {
-            // TODO 对于长数组进行优化
-            for (int i = 0; i < initVals.size(); i++) {
-                GetElementPtrInst arrayElementPointer =
-                        this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), entryBlock);
-                new StoreInst(initVals.get(i), arrayElementPointer, entryBlock);
+        if (initVals != null) {
+            if (varSymbol.type() instanceof IntegerType) {
+                new StoreInst(initVals.get(0), allocaInst, entryBlock);
+            } else if (varSymbol.type() instanceof ArrayType) {
+                // TODO 对于长数组进行优化
+                for (int i = 0; i < initVals.size(); i++) {
+                    GetElementPtrInst arrayElementPointer =
+                            this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), entryBlock);
+                    new StoreInst(initVals.get(i), arrayElementPointer, entryBlock);
+                }
+            } else {
+                throw new RuntimeException("When addLocalVariable(), illegal type. Got " + varSymbol.type() +
+                        ", expected IntegerType or ArrayType");
             }
-        } else {
-            throw new RuntimeException("When addLocalVariable(), illegal type. Got " + varSymbol.type() +
-                    ", expected IntegerType or ArrayType");
         }
         return allocaInst;
     }
 
-    BinaryOperator addBinaryOperation(Token symbol, IRValue value1, IRValue value2, BasicBlock insertBlock) {
+    GetElementPtrInst addGetArrayElementPointer(IRValue<PointerType> pointer, IRValue<IntegerType> index, BasicBlock insertBlock) {
+        // 在SysY中，只有一维数组，访问时就分为两种情况
+        if (pointer.type().referenceType() instanceof ArrayType) {
+            // 全局变量和局部变量
+            return new GetElementPtrInst(pointer, new ArrayList<>(Arrays.asList(ConstantInt.ZERO_I32(), index)), insertBlock);
+        } else if (pointer.type().referenceType() instanceof IntegerType) {
+            // 函数参数
+            return new GetElementPtrInst(pointer, new ArrayList<>(Collections.singletonList(index)), insertBlock);
+        } else {
+            throw new RuntimeException("When addGetArrayElementPointer(), illegal type. Got " + pointer.type() +
+                    ", expected ArrayType or PointerType");
+        }
+    }
+
+    BinaryOperator addBinaryOperation(Token symbol, IRValue<IntegerType> value1, IRValue<IntegerType> value2, BasicBlock insertBlock) {
         return switch (symbol.type()) {
             case PLUS -> new BinaryOperator(BinaryOperator.BinaryOps.ADD, value1, value2, insertBlock);
             case MINU -> new BinaryOperator(BinaryOperator.BinaryOps.SUB, value1, value2, insertBlock);
@@ -220,28 +232,24 @@ class Builder {
         };
     }
 
-    CallInst addCallFunction(IRValue function, ArrayList<IRValue> arguments, BasicBlock insertBlock) {
+    CallInst addCallFunction(Function function, ArrayList<IRValue<?>> arguments, BasicBlock insertBlock) {
         // addCallFunction不处理对于函数不合法的调用，由Visitor予以检查
-        if (function instanceof Function) {
-            return new CallInst((Function) function, arguments, insertBlock);
-        } else {
-            throw new RuntimeException("When addCallFunction(), illegal function type. Got " + function.type());
-        }
+        return new CallInst(function, arguments, insertBlock);
     }
 
-    CastInst addTruncOperation(IRValue src, IRType destType, BasicBlock insertBlock) {
+    CastInst.TruncInst addTruncOperation(IRValue<IntegerType> src, IntegerType destType, BasicBlock insertBlock) {
         return new CastInst.TruncInst(src, destType, insertBlock);
     }
 
-    CastInst addExtendOperation(IRValue src, IRType destType, BasicBlock insertBlock) {
+    CastInst.ZExtInst addExtendOperation(IRValue<IntegerType> src, IntegerType destType, BasicBlock insertBlock) {
         return new CastInst.ZExtInst(src, destType, insertBlock);
     }
 
-    CastInst addBitCastOperation(IRValue src, IRType destType, BasicBlock insertBlock) {
-        return new CastInst.BitCastInst(src, destType, insertBlock);
+    <D extends IRType> CastInst.BitCastInst<D> addBitCastOperation(IRValue<?> src, D destType, BasicBlock insertBlock) {
+        return new CastInst.BitCastInst<>(src, destType, insertBlock);
     }
 
-    LoadInst addLoadValue(IRValue pointer, BasicBlock insertBlock) {
+    LoadInst addLoadValue(IRValue<PointerType> pointer, BasicBlock insertBlock) {
         return new LoadInst(pointer, insertBlock);
     }
 }
