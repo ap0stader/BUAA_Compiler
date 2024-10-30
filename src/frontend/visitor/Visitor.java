@@ -3,6 +3,7 @@ package frontend.visitor;
 import IR.IRModule;
 import IR.IRValue;
 import IR.type.*;
+import IR.value.Argument;
 import IR.value.BasicBlock;
 import IR.value.GlobalVariable;
 import IR.value.constant.ConstantInt;
@@ -20,6 +21,7 @@ import frontend.parser.expression.*;
 import frontend.parser.statement.*;
 import frontend.type.TokenType;
 import frontend.visitor.symbol.*;
+import global.Config;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -71,8 +73,8 @@ public class Visitor {
     // Decl → ConstDecl | VarDecl
     private void visitGlobalDecl(Decl decl) {
         if (decl instanceof ConstDecl constDecl) {
-            ArrayList<ConstSymbol<GlobalVariable>> constSymbols = this.visitConstDecl(constDecl);
-            for (ConstSymbol<GlobalVariable> constSymbol : constSymbols) {
+            ArrayList<ConstSymbol> constSymbols = this.visitConstDecl(constDecl);
+            for (ConstSymbol constSymbol : constSymbols) {
                 constSymbol.setIRValue(this.builder.addGlobalConstant(constSymbol));
             }
         } else if (decl instanceof VarDecl varDecl) {
@@ -101,19 +103,16 @@ public class Visitor {
                 new ArrayList<>(funcFParams.stream().map(ArgSymbol::type).toList())), ident);
         // 函数尝试进入符号表，为了检查出尽可能多的错误，无论是否成功都继续
         this.symbolTable.insert(newFuncSymbol);
-        // 给参数符号对应的IRValue
-        for (ArgSymbol argSymbol : funcFParams) {
-            argSymbol.setIRValue(this.builder.addArgument(argSymbol));
-        }
         // 给函数符号对应的IRValue
-        newFuncSymbol.setIRValue(this.builder.addFunction(newFuncSymbol, funcFParams));
+        newFuncSymbol.setIRValue(this.builder.addFunction(newFuncSymbol,
+                new ArrayList<>(funcFParams.stream().map(ArgSymbol::argument).toList())));
         // 进入函数的作用域
         this.symbolTable.push();
         // 参数尝试进入符号表
         for (ArgSymbol argSymbol : funcFParams) {
             this.symbolTable.insert(argSymbol);
         }
-        this.visitFunctionBlock(funcDef.block().blockItems());
+        this.visitFunctionBlock(funcFParams, funcDef.block());
         // 离开函数的作用域
         this.symbolTable.pop();
     }
@@ -124,7 +123,7 @@ public class Visitor {
         this.builder.addMainFunction();
         // 进入主函数的作用域
         this.symbolTable.push();
-        this.visitFunctionBlock(mainFuncDef.block().blockItems());
+        this.visitFunctionBlock(new ArrayList<>(), mainFuncDef.block());
         // 离开主函数的作用域
         this.symbolTable.pop();
     }
@@ -132,13 +131,13 @@ public class Visitor {
     // ConstDecl → 'const' BType ConstDef { ',' ConstDef } ';'
     // BType → 'int' | 'char'
     // ConstDef → Ident [ '[' ConstExp ']' ] '=' ConstInitVal
-    private <VT extends IRValue<PointerType>> ArrayList<ConstSymbol<VT>> visitConstDecl(ConstDecl constDecl) {
-        ArrayList<ConstSymbol<VT>> ret = new ArrayList<>();
+    private ArrayList<ConstSymbol> visitConstDecl(ConstDecl constDecl) {
+        ArrayList<ConstSymbol> ret = new ArrayList<>();
         Token bType = constDecl.typeToken();
         // visitConstDef()
         for (ConstDef constDef : constDecl.constDefs()) {
             Token ident = constDef.ident();
-            ConstSymbol<VT> newSymbol;
+            ConstSymbol newSymbol;
             ArrayList<Integer> constInitVals;
             // 必定有初始值
             constInitVals = this.visitConstInitVal(constDef.constInitVal());
@@ -151,7 +150,7 @@ public class Visitor {
                 if (constInitVals.size() != 1) {
                     throw new RuntimeException("When visitConstDecl(), constInitVals of identifier " + ident + " mismatch its type");
                 }
-                newSymbol = new ConstSymbol<>(Translator.getConstIRType(bType, null), ident, constInitVals);
+                newSymbol = new ConstSymbol(Translator.getConstIRType(bType, null), ident, constInitVals);
             } else {
                 // 数组
                 int length = this.calculator.calculateConstExp(constDef.constExp());
@@ -163,7 +162,7 @@ public class Visitor {
                         constInitVals.add(0);
                     }
                 }
-                newSymbol = new ConstSymbol<>(Translator.getConstIRType(bType, length), ident, constInitVals);
+                newSymbol = new ConstSymbol(Translator.getConstIRType(bType, length), ident, constInitVals);
             }
             // 上方已经对初始值进行了分析，为了避免LLVM IR错误，判断了成功插入再添加GlobalVariable
             if (this.symbolTable.insert(newSymbol)) {
@@ -196,7 +195,7 @@ public class Visitor {
         // visitVarDef()
         for (VarDef varDef : varDecl.varDefs()) {
             Token ident = varDef.ident();
-            VarSymbol<GlobalVariable> newSymbol;
+            VarSymbol newSymbol;
             ArrayList<Integer> initVals;
             // 全局变量必有初始值
             if (varDef.initVal() == null) {
@@ -215,7 +214,7 @@ public class Visitor {
                 if (initVals.size() != 1) {
                     throw new RuntimeException("When visitGlobalVarDecl(), initVals of identifier " + ident + " mismatch its type");
                 }
-                newSymbol = new VarSymbol<>(Translator.getVarIRType(bType, null), ident);
+                newSymbol = new VarSymbol(Translator.getVarIRType(bType, null), ident);
             } else {
                 // 数组
                 Integer length = this.calculator.calculateConstExp(varDef.constExp());
@@ -227,7 +226,7 @@ public class Visitor {
                         initVals.add(0);
                     }
                 }
-                newSymbol = new VarSymbol<>(Translator.getVarIRType(bType, length), ident);
+                newSymbol = new VarSymbol(Translator.getVarIRType(bType, length), ident);
             }
             // 上方已经对初始值进行了分析，为了避免LLVM IR错误，判断了成功插入再添加GlobalVariable
             if (this.symbolTable.insert(newSymbol)) {
@@ -268,25 +267,41 @@ public class Visitor {
     }
 
     // BlockItem → Decl | Stmt
-    private void visitFunctionBlock(ArrayList<BlockItem> blockItems) {
+    private void visitFunctionBlock(ArrayList<ArgSymbol> funcFParams, Block block) {
         BasicBlock entryBlock = this.builder.newBasicBlock();
+        // 给参数符号对应的IRValue
+        for (ArgSymbol argSymbol : funcFParams) {
+            argSymbol.setIRValue(this.builder.addArgument(argSymbol.argument(), entryBlock));
+        }
         BasicBlock nowBlock = entryBlock;
-        for (BlockItem item : blockItems) {
-            if (item instanceof Decl decl) {
+        for (BlockItem blockItem : block.blockItems()) {
+            if (blockItem instanceof Decl decl) {
                 this.visitLocalDecl(decl, entryBlock);
-            } else if (item instanceof Stmt stmt) {
-                // nowBlock = this.visitStmt(stmt, nowBlock);
+            } else if (blockItem instanceof Stmt stmt) {
+                nowBlock = this.visitStmt(stmt, entryBlock, nowBlock);
             } else {
-                throw new RuntimeException("When visitFunctionBlock(), got unknown type of BlockItem (" + item.getClass().getSimpleName() + ")");
+                throw new RuntimeException("When visitFunctionBlock(), got unknown type of BlockItem (" + blockItem.getClass().getSimpleName() + ")");
             }
+        }
+        // 有返回值的函数缺少return语句（且只判断有没有 return 语句，不需要考虑 return 语句是否有返回值）
+        // 也不需要检查函数体内其他的 return 语句是否有值
+        if (!(entryBlock.parent().type().returnType() instanceof VoidType)
+                // 没有语句
+                && (block.blockItems().isEmpty() ||
+                // 不是语句
+                !(block.blockItems().get(block.blockItems().size() - 1) instanceof Stmt) ||
+                // 是语句但是不是返回语句
+                (block.blockItems().get(block.blockItems().size() - 1) instanceof Stmt stmt && !(stmt.extract() instanceof Stmt.Stmt_Return)))) {
+            // 报错行号为函数结尾的’}’所在行号。
+            this.errorTable.addErrorRecord(block.rbraceToken().line(), ErrorType.MISSING_RETURN);
         }
     }
 
     // Decl → ConstDecl | VarDecl
     private void visitLocalDecl(Decl decl, BasicBlock entryBlock) {
         if (decl instanceof ConstDecl constDecl) {
-            ArrayList<ConstSymbol<AllocaInst>> constSymbols = this.visitConstDecl(constDecl);
-            for (ConstSymbol<AllocaInst> constSymbol : constSymbols) {
+            ArrayList<ConstSymbol> constSymbols = this.visitConstDecl(constDecl);
+            for (ConstSymbol constSymbol : constSymbols) {
                 constSymbol.setIRValue(this.builder.addLocalConstant(constSymbol, entryBlock));
             }
         } else if (decl instanceof VarDecl varDecl) {
@@ -304,10 +319,10 @@ public class Visitor {
         // visitVarDef()
         for (VarDef varDef : varDecl.varDefs()) {
             Token ident = varDef.ident();
-            VarSymbol<AllocaInst> newSymbol;
+            VarSymbol newSymbol;
             if (varDef.constExp() == null) {
                 // 非数组
-                newSymbol = new VarSymbol<>(Translator.getVarIRType(bType, null), ident);
+                newSymbol = new VarSymbol(Translator.getVarIRType(bType, null), ident);
                 if (varDef.initVal() != null) {
                     // 有初始值
                     ArrayList<IRValue<IntegerType>> initVals;
@@ -315,7 +330,6 @@ public class Visitor {
                         // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
                         initVals = new ArrayList<>(Collections.singletonList(
                                 IRValue.cast(this.visitExp(varDef.initVal().exp(), entryBlock))));
-                        this.builder.addLocalVariable(newSymbol, initVals, entryBlock);
                     } else {
                         throw new RuntimeException("When visitLocalVarDecl(), initVals of identifier " + ident + " mismatch its type. " +
                                 "Got " + varDef.initVal().getType() + ", expected " + InitVal.Type.BASIC);
@@ -326,7 +340,7 @@ public class Visitor {
                 }
             } else {
                 Integer length = this.calculator.calculateConstExp(varDef.constExp());
-                newSymbol = new VarSymbol<>(Translator.getVarIRType(bType, length), ident);
+                newSymbol = new VarSymbol(Translator.getVarIRType(bType, length), ident);
                 // 数组
                 if (varDef.initVal() != null) {
                     ArrayList<IRValue<IntegerType>> initVals;
@@ -403,7 +417,6 @@ public class Visitor {
 
     // UnaryExp → PrimaryExp | Ident '(' [FuncRParams] ')' | UnaryOp UnaryExp
     // UnaryOp → '+' | '−' | '!'
-    // FuncRParams → Exp { ',' Exp }
     private IRValue<?> visitUnaryExp(UnaryExp unaryExp, BasicBlock insertBlock) {
         UnaryExp.UnaryExpOption unaryExpExtract = unaryExp.extract();
         if (unaryExpExtract instanceof UnaryExp.UnaryExp_UnaryOp unaryExp_unaryOp) {
@@ -439,13 +452,20 @@ public class Visitor {
         }
     }
 
+    // FuncRParams → Exp { ',' Exp }
     private ArrayList<IRValue<?>> visitFuncRParams(FuncRParams funcRParams,
                                                    Token indentFuncCall, FuncSymbol funcSymbol, BasicBlock insertBlock) {
         // 将函数的参数解析为对应IRValue，同时检查函数的参数类型是否合法
         ArrayList<IRType> parametersType = funcSymbol.type().parametersType();
         // 需要判断是否有funcRParams
-        ArrayList<IRValue<?>> funcRParamsValues = funcRParams != null ? new ArrayList<>(funcRParams.exps().stream()
-                .map((exp) -> this.visitExp(exp, insertBlock)).toList()) : new ArrayList<>();
+        ArrayList<IRValue<?>> funcRParamsValues;
+        if (funcRParams == null) {
+            // 无参数
+            funcRParamsValues = new ArrayList<>();
+        } else {
+            // 有参数
+            funcRParamsValues = new ArrayList<>(funcRParams.exps().stream().map((exp) -> this.visitExp(exp, insertBlock)).toList());
+        }
         // 一行只有一个错误，不重复报错
         if (parametersType.size() != funcRParamsValues.size()) {
             // 函数的参数数量不对应，不做对应检查，直接报错并返回结果
@@ -525,24 +545,7 @@ public class Visitor {
         Symbol<?, ?> searchedSymbol = this.symbolTable.searchOrError(lVal.ident());
         if (searchedSymbol instanceof FuncSymbol) {
             throw new RuntimeException("When visitLValEvaluation(), the search result of " + lVal.ident() + " is a function");
-        } else if (searchedSymbol instanceof ArgSymbol argSymbol) {
-            // 参数
-            if (lVal.getType() == LVal.Type.BASIC) {
-                // 没有数组访问操作，变量返回值，数组（指针）返回指针
-                return argSymbol.irValue();
-            } else if (argSymbol.irValue().type() instanceof PointerType && lVal.getType() == LVal.Type.ARRAY) {
-                // 数组
-                // CAST 上方的instanceof确保转换正确
-                IRValue<PointerType> arrayPointer = IRValue.cast(argSymbol.irValue());
-                // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
-                IRValue<IntegerType> indexValue = IRValue.cast(this.visitExp(lVal.exp(), insertBlock));
-                GetElementPtrInst arrayElementPointer = this.builder.addGetArrayElementPointer(arrayPointer, indexValue, insertBlock);
-                return this.builder.addLoadValue(arrayElementPointer, insertBlock);
-            } else {
-                throw new RuntimeException("When visitLValEvaluation(), illegal type of argSymbol (" + argSymbol.irValue().type() +
-                        ") and LVal (" + lVal.getType() + ")");
-            }
-        } else if (searchedSymbol instanceof ConstSymbol<?> || searchedSymbol instanceof VarSymbol<?>) {
+        } else if (searchedSymbol instanceof ArgSymbol || searchedSymbol instanceof ConstSymbol || searchedSymbol instanceof VarSymbol) {
             // CAST 上方的instanceof确保转换正确
             IRValue<PointerType> lValAddress = IRValue.cast(searchedSymbol.irValue());
             // 处理由于优化初始化造成的符号对应的Value指向的类型与符号的登记类型不一致的问题
@@ -552,11 +555,15 @@ public class Visitor {
             if (lVal.getType() == LVal.Type.BASIC && lValAddress.type().referenceType() instanceof IntegerType) {
                 // 变量、常量
                 return this.builder.addLoadValue(lValAddress, insertBlock);
-            } else if (lVal.getType() == LVal.Type.BASIC && lValAddress.type().referenceType() instanceof ArrayType) {
+            } else if (lVal.getType() == LVal.Type.BASIC &&
+                    (lValAddress.type().referenceType() instanceof ArrayType || lValAddress.type().referenceType() instanceof PointerType)) {
                 // 直接evaluation数组名，将会导致decay
+                // ，ArrayType是常量和变量的，PointerType是参数的
                 return this.builder.addGetArrayElementPointer(lValAddress, ConstantInt.ZERO_I32(), insertBlock);
-            } else if (lVal.getType() == LVal.Type.ARRAY && lValAddress.type().referenceType() instanceof ArrayType) {
+            } else if (lVal.getType() == LVal.Type.ARRAY &&
+                    (lValAddress.type().referenceType() instanceof ArrayType || lValAddress.type().referenceType() instanceof PointerType)) {
                 // 数组
+                // ArrayType是常量和变量的，PointerType是参数的
                 // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
                 IRValue<IntegerType> indexValue = IRValue.cast(this.visitExp(lVal.exp(), insertBlock));
                 GetElementPtrInst arrayElementPointer = this.builder.addGetArrayElementPointer(lValAddress, indexValue, insertBlock);
@@ -573,7 +580,74 @@ public class Visitor {
         }
     }
 
-    private BasicBlock visitStmt(Stmt stmt, BasicBlock nowBlock) {
-        return null;
+    // Stmt
+    private BasicBlock visitStmt(Stmt stmt, BasicBlock entryBlock, BasicBlock nowBlock) {
+        Stmt.StmtOption stmtOption = stmt.extract();
+        if (stmtOption instanceof Stmt.Stmt_Semicn) {
+            // Stmt → ';'
+            return nowBlock;
+        } else if (stmtOption instanceof Stmt.Stmt_Block stmt_block) {
+            return this.visitStmtBlock(stmt_block.block(), entryBlock, nowBlock);
+        } else if (stmtOption instanceof Stmt.Stmt_Exp stmt_exp) {
+            // Stmt → Exp ';'
+            this.visitExp(stmt_exp.exp(), entryBlock);
+        } else if (stmtOption instanceof Stmt.Stmt_Return stmt_return) {
+            this.visitStmtReturn(stmt_return, nowBlock);
+        } else if (stmtOption instanceof Stmt.Stmt_LValAssign stmt_lValAssign) {
+            this.visitStmtLValAssign(stmt_lValAssign, nowBlock);
+        } else if (stmtOption instanceof Stmt.Stmt_LValGetint stmt_lValGetint) {
+            this.visitStmtLValGetInt(stmt_lValGetint, nowBlock);
+        } else if (stmtOption instanceof Stmt.Stmt_LValGetchar stmt_lValGetchar) {
+            this.visitStmtLValGetChar(stmt_lValGetchar, nowBlock);
+        } else {
+            if (Config.visitorThrowable) {
+                throw new RuntimeException("When visitStmt(), got unknown type of Stmt (" + stmt.getClass().getSimpleName() + ")");
+            } else {
+                return nowBlock;
+            }
+        }
+        return nowBlock;
+    }
+
+    // Stmt → Block
+    private BasicBlock visitStmtBlock(Block block, BasicBlock entryBlock, BasicBlock nowBlock) {
+        this.symbolTable.push();
+        for (BlockItem blockItem : block.blockItems()) {
+            if (blockItem instanceof Decl decl) {
+                this.visitLocalDecl(decl, entryBlock);
+            } else if (blockItem instanceof Stmt stmt) {
+                nowBlock = this.visitStmt(stmt, entryBlock, nowBlock);
+            } else {
+                throw new RuntimeException("When visitFunctionBlock(), got unknown type of BlockItem (" + blockItem.getClass().getSimpleName() + ")");
+            }
+        }
+        this.symbolTable.pop();
+        return nowBlock;
+    }
+
+    // Stmt → 'return' [Exp] ';'
+    private void visitStmtReturn(Stmt.Stmt_Return stmt_return, BasicBlock nowBlock) {
+        if (stmt_return.exp() == null) {
+            this.builder.addReturn(null, nowBlock);
+        } else {
+            // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
+            IRValue<IntegerType> returnValue = IRValue.cast(this.visitExp(stmt_return.exp(), nowBlock));
+            this.builder.addReturn(returnValue, nowBlock);
+        }
+    }
+
+    // Stmt → LVal '=' Exp ';'
+    private void visitStmtLValAssign(Stmt.Stmt_LValAssign stmt_lValAssign, BasicBlock nowBlock) {
+
+    }
+
+    // Stmt → LVal '=' 'getint' '(' ')' ';'
+    private void visitStmtLValGetInt(Stmt.Stmt_LValGetint stmt_lValGetint, BasicBlock nowBlock) {
+
+    }
+
+    // Stmt → LVal '=' 'getchar' '(' ')' ';'
+    private void visitStmtLValGetChar(Stmt.Stmt_LValGetchar stmt_lValGetchar, BasicBlock nowBlock) {
+
     }
 }

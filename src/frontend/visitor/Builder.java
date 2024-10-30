@@ -54,7 +54,7 @@ class Builder {
         return libFunctions;
     }
 
-    GlobalVariable addGlobalConstant(ConstSymbol<GlobalVariable> constSymbol) {
+    GlobalVariable addGlobalConstant(ConstSymbol constSymbol) {
         GlobalVariable globalConstant;
         if (constSymbol.type() instanceof IntegerType constSymbolType) {
             globalConstant = new GlobalVariable(constSymbol.name(), constSymbol.type(),
@@ -73,7 +73,7 @@ class Builder {
         return globalConstant;
     }
 
-    GlobalVariable addGlobalVariable(VarSymbol<GlobalVariable> varSymbol, ArrayList<Integer> initVals) {
+    GlobalVariable addGlobalVariable(VarSymbol varSymbol, ArrayList<Integer> initVals) {
         GlobalVariable globalConstant;
         if (varSymbol.type() instanceof IntegerType varSymbolType) {
             globalConstant = new GlobalVariable(varSymbol.name(), varSymbol.type(),
@@ -140,13 +140,8 @@ class Builder {
         return constantValues;
     }
 
-    Argument addArgument(ArgSymbol argSymbol) {
-        return new Argument(argSymbol.type());
-    }
-
-    Function addFunction(FuncSymbol funcSymbol, ArrayList<ArgSymbol> argSymbols) {
-        Function function = new Function(funcSymbol.name(), funcSymbol.type(),
-                new ArrayList<>(argSymbols.stream().map(Symbol::irValue).toList()));
+    Function addFunction(FuncSymbol funcSymbol, ArrayList<Argument> arguments) {
+        Function function = new Function(funcSymbol.name(), funcSymbol.type(), arguments);
         irModule.appendFunctions(function);
         this.nowFunction = function;
         return function;
@@ -166,7 +161,13 @@ class Builder {
         return basicBlock;
     }
 
-    AllocaInst addLocalConstant(ConstSymbol<AllocaInst> constSymbol, BasicBlock entryBlock) {
+    AllocaInst addArgument(Argument argument, BasicBlock entryBlock) {
+        AllocaInst allocaInst = new AllocaInst(argument.type(), entryBlock);
+        new StoreInst(argument, allocaInst, entryBlock);
+        return allocaInst;
+    }
+
+    AllocaInst addLocalConstant(ConstSymbol constSymbol, BasicBlock entryBlock) {
         AllocaInst allocaInst = new AllocaInst(constSymbol.type(), entryBlock);
         if (constSymbol.type() instanceof IntegerType constSymbolType) {
             new StoreInst(new ConstantInt(constSymbolType, constSymbol.initVals().get(0)), allocaInst, entryBlock);
@@ -186,7 +187,7 @@ class Builder {
         return allocaInst;
     }
 
-    AllocaInst addLocalVariable(VarSymbol<AllocaInst> varSymbol, ArrayList<IRValue<IntegerType>> initVals, BasicBlock entryBlock) {
+    AllocaInst addLocalVariable(VarSymbol varSymbol, ArrayList<IRValue<IntegerType>> initVals, BasicBlock entryBlock) {
         AllocaInst allocaInst = new AllocaInst(varSymbol.type(), entryBlock);
         if (initVals != null) {
             if (varSymbol.type() instanceof IntegerType varSymbolType) {
@@ -221,12 +222,9 @@ class Builder {
 
     GetElementPtrInst addGetArrayElementPointer(IRValue<PointerType> pointer, IRValue<IntegerType> index, BasicBlock insertBlock) {
         // 在SysY中，只有一维数组，访问时就分为两种情况
-        if (pointer.type().referenceType() instanceof ArrayType) {
-            // 全局变量和局部变量
+        if (pointer.type().referenceType() instanceof ArrayType || pointer.type().referenceType() instanceof PointerType) {
+            // ArrayType是常量和变量的，PointerType是参数的
             return new GetElementPtrInst(pointer, new ArrayList<>(Arrays.asList(ConstantInt.ZERO_I32(), index)), insertBlock);
-        } else if (pointer.type().referenceType() instanceof IntegerType) {
-            // 函数参数
-            return new GetElementPtrInst(pointer, new ArrayList<>(Collections.singletonList(index)), insertBlock);
         } else {
             throw new RuntimeException("When addGetArrayElementPointer(), illegal type. Got " + pointer.type() +
                     ", expected ArrayType or PointerType");
@@ -264,5 +262,9 @@ class Builder {
 
     LoadInst addLoadValue(IRValue<PointerType> pointer, BasicBlock insertBlock) {
         return new LoadInst(pointer, insertBlock);
+    }
+
+    void addReturn(IRValue<IntegerType> returnValue, BasicBlock insertBlock) {
+        new ReturnInst(returnValue, insertBlock);
     }
 }

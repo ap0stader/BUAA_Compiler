@@ -38,4 +38,8 @@ public class Block implements ASTNode {
     public ArrayList<BlockItem> blockItems() {
         return blockItems;
     }
+
+    public Token rbraceToken() {
+        return rbraceToken;
+    }
 }

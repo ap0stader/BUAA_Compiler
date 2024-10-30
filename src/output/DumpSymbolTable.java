@@ -17,7 +17,7 @@ public class DumpSymbolTable {
         for (int level = 1; level <= subSymbolLists.size(); level++) {
             for (Symbol<?, ?> symbol : subSymbolLists.get(level - 1)) {
                 if (Config.dumpSymbolTableDetail) {
-                    if (symbol instanceof ConstSymbol<?> constSymbol) {
+                    if (symbol instanceof ConstSymbol constSymbol) {
                         out.write(level + " " + symbol.line() + " "
                                 + symbol.name() + " " + symbol.type() + " " + constSymbol.initVals() + "\n");
                     } else {

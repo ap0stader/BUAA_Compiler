@@ -7,7 +7,7 @@ import global.Config;
 
 import java.util.ArrayList;
 
-public class ConstSymbol<VT extends IRValue<PointerType>> extends Symbol<SymbolType.Const, VT> {
+public class ConstSymbol extends Symbol<SymbolType.Const, IRValue<PointerType>> {
     // ConstSymbol中存储的只可能是GlobalVariable和AllocaInst，所以irValue的类型为PointerType
     // 由于只考虑一维数组，所以此处直接线性保存
     private final ArrayList<Integer> initVals;
