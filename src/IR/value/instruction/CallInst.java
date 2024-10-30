@@ -33,7 +33,7 @@ public class CallInst extends Instruction<IRType> {
         sb.append("(");
         for (int i = 1; i < this.getNumOperands(); i++) {
             sb.append(i > 1 ? ", " : "");
-            sb.append(this.getOperand(i).type().llvmStr());
+            sb.append(this.getOperand(i).type().llvmStr()).append(" ");
             sb.append(counter.get(this.getOperand(i)));
         }
         sb.append(")");
