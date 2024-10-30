@@ -178,7 +178,7 @@ public class Visitor {
         if (constInitVal.getType() == ConstInitVal.Type.BASIC) {
             return new ArrayList<>(Collections.singletonList(this.calculator.calculateConstExp(constInitVal.constExp())));
         } else if (constInitVal.getType() == ConstInitVal.Type.STRING) {
-            // 只有char数组能用字符串值进行初始化，此处并没有进行检查，如果给int[]初始化，按照每个字符转为int进行，在局部常量时会由StoreInst报错
+            // 只有char数组能用字符串值进行初始化，此处并没有进行检查，如果给int[]初始化，按照每个字符转为int进行
             return Translator.translateStringConst(constInitVal.stringConst());
         } else if (constInitVal.getType() == ConstInitVal.Type.ARRAY) {
             // 由于只考虑一维数组，所以此处直接解析计算
@@ -336,7 +336,7 @@ public class Visitor {
                         initVals = new ArrayList<>(varDef.initVal().exps().stream()
                                 .map((exp -> IRValue.<IntegerType>cast(this.visitExp(exp, entryBlock)))).toList());
                     } else if (varDef.initVal().getType() == InitVal.Type.STRING) {
-                        // 只有char数组能用字符串值进行初始化，此处强制指定类型为char，如果给int[]初始化，将由StoreInst报错
+                        // 只有char数组能用字符串值进行初始化，此处强制指定类型为char，如果给int[]初始化，会出现CastInst
                         initVals = new ArrayList<>(Translator.translateStringConst(varDef.initVal().stringConst()).stream()
                                 .map((character) -> new ConstantInt(IRType.getInt8Ty(), character)).toList());
                     } else {

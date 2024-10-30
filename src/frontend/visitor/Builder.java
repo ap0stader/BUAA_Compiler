@@ -189,14 +189,16 @@ class Builder {
     AllocaInst addLocalVariable(VarSymbol<AllocaInst> varSymbol, ArrayList<IRValue<IntegerType>> initVals, BasicBlock entryBlock) {
         AllocaInst allocaInst = new AllocaInst(varSymbol.type(), entryBlock);
         if (initVals != null) {
-            if (varSymbol.type() instanceof IntegerType) {
-                new StoreInst(initVals.get(0), allocaInst, entryBlock);
-            } else if (varSymbol.type() instanceof ArrayType) {
+            if (varSymbol.type() instanceof IntegerType varSymbolType) {
+                IRValue<IntegerType> initVal = initVals.get(0);
+                this.storeLVal(initVal, varSymbolType, allocaInst, entryBlock);
+            } else if (varSymbol.type() instanceof ArrayType varSymbolType) {
                 // TODO 对于长数组进行优化
                 for (int i = 0; i < initVals.size(); i++) {
                     GetElementPtrInst arrayElementPointer =
                             this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), entryBlock);
-                    new StoreInst(initVals.get(i), arrayElementPointer, entryBlock);
+                    // CAST 由于BType只有int和char，此处强制转换不会出错
+                    this.storeLVal(initVals.get(i), (IntegerType) varSymbolType.elementType(), arrayElementPointer, entryBlock);
                 }
             } else {
                 throw new RuntimeException("When addLocalVariable(), illegal type. Got " + varSymbol.type() +
@@ -204,6 +206,17 @@ class Builder {
             }
         }
         return allocaInst;
+    }
+
+    private void storeLVal(IRValue<IntegerType> value, IntegerType lValType, IRValue<PointerType> lValAddress, BasicBlock insertBlock) {
+        if (value.type().size() < lValType.size()) {
+            // 短值向长值
+            value = this.addExtendOperation(value, lValType, insertBlock);
+        } else if (value.type().size() > lValType.size()) {
+            // 长值向短值
+            value = this.addTruncOperation(value, lValType, insertBlock);
+        }
+        new StoreInst(value, lValAddress, insertBlock);
     }
 
     GetElementPtrInst addGetArrayElementPointer(IRValue<PointerType> pointer, IRValue<IntegerType> index, BasicBlock insertBlock) {
