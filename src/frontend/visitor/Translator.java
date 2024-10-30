@@ -27,7 +27,7 @@ class Translator {
                         // 跳过转义符
                         i++;
                     }
-                    ret.add(escapeCharToInt(stringConstString.charAt(i + 1)));
+                    ret.add(escapeCharToInt(stringConstString.charAt(i)));
                 } else {
                     // 普通字符
                     ret.add(charToInt(stringConstString.charAt(i)));

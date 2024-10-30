@@ -551,7 +551,7 @@ public class Visitor {
             }
             if (lVal.getType() == LVal.Type.BASIC && lValAddress.type().referenceType() instanceof IntegerType) {
                 // 变量、常量
-                return this.builder.addLoadValue(lValAddress, insertBlock);
+                return this.builder.loadLVal(lValAddress, insertBlock);
             } else if (lVal.getType() == LVal.Type.BASIC &&
                     (lValAddress.type().referenceType() instanceof ArrayType || lValAddress.type().referenceType() instanceof PointerType)) {
                 // 直接evaluation数组名，将会导致decay
@@ -564,7 +564,7 @@ public class Visitor {
                 // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
                 IRValue<IntegerType> indexValue = IRValue.cast(this.visitExp(lVal.exp(), insertBlock));
                 lValAddress = this.builder.addGetArrayElementPointer(lValAddress, indexValue, insertBlock);
-                return this.builder.addLoadValue(lValAddress, insertBlock);
+                return this.builder.loadLVal(lValAddress, insertBlock);
             } else {
                 throw new RuntimeException("When visitLValEvaluation(), illegal type of searchedSymbol (" + searchedSymbol.irValue().type() +
                         ") and LVal (" + lVal.getType() + ")");
@@ -636,15 +636,15 @@ public class Visitor {
                 // MAYBE 由于不存在恶意换行，此处不分析Exp的内容
             }
             // 无返回值函数无论是否给定Exp，都返回void
-            this.builder.addReturn(null, nowBlock);
+            this.builder.addReturnInstruction(null, nowBlock);
         } else {
             if (stmt_return.exp() == null) {
                 // 有返回值函数如果没有给定Exp，强制返回0
-                this.builder.addReturn(ConstantInt.ZERO_I32(), nowBlock);
+                this.builder.addReturnInstruction(ConstantInt.ZERO_I32(), nowBlock);
             } else {
                 // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
                 IRValue<IntegerType> returnValue = IRValue.cast(this.visitExp(stmt_return.exp(), nowBlock));
-                this.builder.addReturn(returnValue, nowBlock);
+                this.builder.addReturnInstruction(returnValue, nowBlock);
             }
         }
     }
@@ -653,21 +653,21 @@ public class Visitor {
     private void visitStmtLValAssign(Stmt.Stmt_LValAssign stmt_lValAssign, BasicBlock nowBlock) {
         // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
         IRValue<IntegerType> expValue = IRValue.cast(this.visitExp(stmt_lValAssign.exp(), nowBlock));
-        this.builder.addStoreLVal(expValue, this.visitLValAddress(stmt_lValAssign.lVal(), nowBlock), nowBlock);
+        this.builder.storeLVal(expValue, this.visitLValAddress(stmt_lValAssign.lVal(), nowBlock), nowBlock);
     }
 
     // Stmt → LVal '=' 'getint' '(' ')' ';'
     private void visitStmtLValGetInt(Stmt.Stmt_LValGetint stmt_lValGetint, BasicBlock nowBlock) {
         // CAST 库函数定义保证了正确性
         IRValue<IntegerType> getintValue = IRValue.cast(this.builder.addCallLibFunction("getint", new ArrayList<>(), nowBlock));
-        this.builder.addStoreLVal(getintValue, this.visitLValAddress(stmt_lValGetint.lVal(), nowBlock), nowBlock);
+        this.builder.storeLVal(getintValue, this.visitLValAddress(stmt_lValGetint.lVal(), nowBlock), nowBlock);
     }
 
     // Stmt → LVal '=' 'getchar' '(' ')' ';'
     private void visitStmtLValGetChar(Stmt.Stmt_LValGetchar stmt_lValGetchar, BasicBlock nowBlock) {
         // CAST 库函数定义保证了正确性
         IRValue<IntegerType> getcharValue = IRValue.cast(this.builder.addCallLibFunction("getchar", new ArrayList<>(), nowBlock));
-        this.builder.addStoreLVal(getcharValue, this.visitLValAddress(stmt_lValGetchar.lVal(), nowBlock), nowBlock);
+        this.builder.storeLVal(getcharValue, this.visitLValAddress(stmt_lValGetchar.lVal(), nowBlock), nowBlock);
     }
 
     // LVal → Ident ['[' Exp ']']
@@ -712,7 +712,54 @@ public class Visitor {
     }
 
     // LVal → 'printf''('StringConst {','Exp}')'';'
-    private void visitStmtPrintf(Stmt.Stmt_Printf stmtPrintf, BasicBlock nowBlock) {
-
+    private void visitStmtPrintf(Stmt.Stmt_Printf stmt_printf, BasicBlock nowBlock) {
+        ArrayList<Integer> formatStringChar = Translator.translateStringConst(stmt_printf.stringConst());
+        ArrayList<Integer> bufferStringChar = new ArrayList<>();
+        int expIndex = 0;
+        for (int i = 0; i < formatStringChar.size(); i++) {
+            if (formatStringChar.get(i) != '%') {
+                bufferStringChar.add(formatStringChar.get(i));
+            } else {
+                if (formatStringChar.get(i + 1) == 'c' || formatStringChar.get(i + 1) == 'd') {
+                    // 跳过格式控制符
+                    i++;
+                    if (!bufferStringChar.isEmpty()) {
+                        bufferStringChar.add(0);
+                        this.builder.addCallLibFunction("putstr",
+                                new ArrayList<>(Collections.singletonList(this.builder.loadConstStringPointer(bufferStringChar, nowBlock))),
+                                nowBlock);
+                        bufferStringChar.clear();
+                    }
+                    IRValue<IntegerType> printValue;
+                    if (expIndex >= stmt_printf.exps().size()) {
+                        // 每行只报一个错误由errorTable保证
+                        this.errorTable.addErrorRecord(stmt_printf.printfToken().line(), ErrorType.PRINTF_RPARAMS_NUM_MISMATCH);
+                        printValue = ConstantInt.ZERO_I32();
+                    } else {
+                        // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
+                        printValue = IRValue.cast(this.visitExp(stmt_printf.exps().get(expIndex), nowBlock));
+                    }
+                    expIndex++;
+                    if (formatStringChar.get(i) == 'c') {
+                        this.builder.addCallLibFunction("putch", new ArrayList<>(Collections.singletonList(printValue)), nowBlock);
+                    } else { // formatStringChar.get(i) == 'd'
+                        this.builder.addCallLibFunction("putint", new ArrayList<>(Collections.singletonList(printValue)), nowBlock);
+                    }
+                } else {
+                    bufferStringChar.add(formatStringChar.get(i));
+                }
+            }
+        }
+        if (bufferStringChar.size() > 1) {
+            // Translator会自动补充一个0在结尾
+            this.builder.addCallLibFunction("putstr",
+                    new ArrayList<>(Collections.singletonList(this.builder.loadConstStringPointer(bufferStringChar, nowBlock))),
+                    nowBlock);
+        }
+        // 每行只报一个错误由errorTable保证
+        if (expIndex < stmt_printf.exps().size()) {
+            this.errorTable.addErrorRecord(stmt_printf.printfToken().line(), ErrorType.PRINTF_RPARAMS_NUM_MISMATCH);
+        }
+        // MAYBE 由于不存在恶意换行，此处不分析剩余Exp的内容
     }
 }

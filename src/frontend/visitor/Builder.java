@@ -20,12 +20,15 @@ class Builder {
 
     // 库函数
     private final HashMap<String, Function> libFunctions;
+    // 静态字符串
+    private final HashMap<String, GlobalVariable> constStr;
     // 当前访问的函数
     private Function nowFunction = null;
 
     Builder(IRModule irModule) {
         this.irModule = irModule;
         this.libFunctions = getLibFunctions();
+        this.constStr = new HashMap<>();
         // 将库函数的定义添加到IRModule中
         getLibFunctions().forEach((name, function) -> irModule.appendFunctions(function));
     }
@@ -192,14 +195,14 @@ class Builder {
         if (initVals != null) {
             if (varSymbol.type() instanceof IntegerType) {
                 IRValue<IntegerType> initVal = initVals.get(0);
-                this.addStoreLVal(initVal, allocaInst, entryBlock);
+                this.storeLVal(initVal, allocaInst, entryBlock);
             } else if (varSymbol.type() instanceof ArrayType) {
                 // TODO 对于长数组进行优化
                 for (int i = 0; i < initVals.size(); i++) {
                     GetElementPtrInst arrayElementPointer =
                             this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), entryBlock);
                     // CAST 由于BType只有int和char，此处强制转换不会出错
-                    this.addStoreLVal(initVals.get(i), arrayElementPointer, entryBlock);
+                    this.storeLVal(initVals.get(i), arrayElementPointer, entryBlock);
                 }
             } else {
                 throw new RuntimeException("When addLocalVariable(), illegal type. Got " + varSymbol.type() +
@@ -207,25 +210,6 @@ class Builder {
             }
         }
         return allocaInst;
-    }
-
-    void addStoreLVal(IRValue<IntegerType> value, IRValue<PointerType> lValAddress, BasicBlock insertBlock) {
-        // 在赋值的地址不为空的时候才创建StoreInst
-        if (lValAddress != null) {
-            if (lValAddress.type().referenceType() instanceof IntegerType lValType) {
-                if (value.type().size() < lValType.size()) {
-                    // 短值向长值
-                    value = this.addExtendOperation(value, lValType, insertBlock);
-                } else if (value.type().size() > lValType.size()) {
-                    // 长值向短值
-                    value = this.addTruncOperation(value, lValType, insertBlock);
-                }
-            } else {
-                throw new RuntimeException("When addStoreLVal(), the lValAddress is not a pointer to IntegerType. " +
-                        "Got " + lValAddress.type() + " lValAddress " + lValAddress);
-            }
-            new StoreInst(value, lValAddress, insertBlock);
-        }
     }
 
     GetElementPtrInst addGetArrayElementPointer(IRValue<PointerType> pointer, IRValue<IntegerType> index, BasicBlock insertBlock) {
@@ -237,6 +221,47 @@ class Builder {
             throw new RuntimeException("When addGetArrayElementPointer(), illegal type. Got " + pointer.type() +
                     ", expected ArrayType or PointerType");
         }
+    }
+
+    void storeLVal(IRValue<IntegerType> value, IRValue<PointerType> lValAddress, BasicBlock insertBlock) {
+        // 在赋值的地址不为空的时候才创建StoreInst
+        if (lValAddress != null) {
+            if (lValAddress.type().referenceType() instanceof IntegerType lValType) {
+                if (value.type().size() < lValType.size()) {
+                    // 短值向长值
+                    value = this.addExtendOperation(value, lValType, insertBlock);
+                } else if (value.type().size() > lValType.size()) {
+                    // 长值向短值
+                    value = this.addTruncOperation(value, lValType, insertBlock);
+                }
+            } else {
+                throw new RuntimeException("When storeLVal(), the lValAddress is not a pointer to IntegerType. " +
+                        "Got " + lValAddress.type() + " lValAddress " + lValAddress);
+            }
+            new StoreInst(value, lValAddress, insertBlock);
+        }
+    }
+
+    LoadInst loadLVal(IRValue<PointerType> lValAddress, BasicBlock insertBlock) {
+        return new LoadInst(lValAddress, insertBlock);
+    }
+
+    GetElementPtrInst loadConstStringPointer(ArrayList<Integer> strChar, BasicBlock insertBlock) {
+        StringBuilder sb = new StringBuilder();
+        strChar.forEach(c -> sb.append((char) c.byteValue()));
+        String str = sb.toString();
+        if (!this.constStr.containsKey(str)) {
+            ArrayType constStrArrayType = new ArrayType(IRType.getInt8Ty(), strChar.size());
+            ConstantArray constStrArray = new ConstantArray(constStrArrayType,
+                    new ArrayList<>(strChar.stream().map(c -> new ConstantInt(IRType.getInt8Ty(), c)).toList()));
+            GlobalVariable constStrGlobalVariable =
+                    new GlobalVariable(".str." + this.constStr.size(), constStrArrayType,
+                            true, true,
+                            constStrArray);
+            irModule.appendGlobalVariables(constStrGlobalVariable);
+            this.constStr.put(str, constStrGlobalVariable);
+        }
+        return this.addGetArrayElementPointer(this.constStr.get(str), ConstantInt.ZERO_I32(), insertBlock);
     }
 
     BinaryOperator addBinaryOperation(Token symbol, IRValue<IntegerType> value1, IRValue<IntegerType> value2, BasicBlock insertBlock) {
@@ -277,11 +302,7 @@ class Builder {
         return new CastInst.BitCastInst<>(src, destType, insertBlock);
     }
 
-    LoadInst addLoadValue(IRValue<PointerType> pointer, BasicBlock insertBlock) {
-        return new LoadInst(pointer, insertBlock);
-    }
-
-    void addReturn(IRValue<IntegerType> returnValue, BasicBlock insertBlock) {
+    void addReturnInstruction(IRValue<IntegerType> returnValue, BasicBlock insertBlock) {
         new ReturnInst(returnValue, insertBlock);
     }
 }

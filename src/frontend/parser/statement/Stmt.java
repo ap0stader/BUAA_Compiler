@@ -484,6 +484,10 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             return ret;
         }
 
+        public Token printfToken() {
+            return printfToken;
+        }
+
         public Token stringConst() {
             return stringConst;
         }
