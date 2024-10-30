@@ -35,22 +35,22 @@ class Builder {
         // 库函数均为声明，无需给出Argument
         ArrayList<IRType> parameters;
         // declare i32 @getint()      读取一个整数
-        libFunctions.put("getint", new Function("getint", new FunctionType(IRType.getInt32Ty(), new ArrayList<>()), new ArrayList<>(), true));
+        libFunctions.put("getint", new Function("getint", new FunctionType(IRType.getInt32Ty(), new ArrayList<>())));
         // declare i32 @getchar()     读取一个字符
-        libFunctions.put("getchar", new Function("getchar", new FunctionType(IRType.getInt32Ty(), new ArrayList<>()), new ArrayList<>(), true));
+        libFunctions.put("getchar", new Function("getchar", new FunctionType(IRType.getInt32Ty(), new ArrayList<>())));
         // declare void @putint(i32)  输出一个整数
         parameters = new ArrayList<>(Collections.singletonList(IRType.getInt32Ty()));
-        libFunctions.put("putint", new Function("putint", new FunctionType(IRType.getVoidTy(), parameters), new ArrayList<>(), true));
+        libFunctions.put("putint", new Function("putint", new FunctionType(IRType.getVoidTy(), parameters)));
         // declare void @putch(i32)   输出一个字符
         parameters = new ArrayList<>(Collections.singletonList(IRType.getInt32Ty()));
-        libFunctions.put("putch", new Function("putch", new FunctionType(IRType.getVoidTy(), parameters), new ArrayList<>(), true));
+        libFunctions.put("putch", new Function("putch", new FunctionType(IRType.getVoidTy(), parameters)));
         // declare void @putstr(i8*)  输出字符串
         parameters = new ArrayList<>(Collections.singletonList(new PointerType(IRType.getInt8Ty(), false)));
-        libFunctions.put("putstr", new Function("putstr", new FunctionType(IRType.getVoidTy(), parameters), new ArrayList<>(), true));
+        libFunctions.put("putstr", new Function("putstr", new FunctionType(IRType.getVoidTy(), parameters)));
         // TODO 对于长数组进行优化
         // declare void @llvm.memset.p0i8.i64(i8*, i8, i64, i1)
         // parameters = new ArrayList<>(Arrays.asList(new PointerType(IRType.getInt8Ty(), false), IRType.getInt8Ty(), IRType.getInt64Ty(), IRType.getInt1Ty()));
-        // libFunctions.put("memset", new Function("llvm.memset.p0i8.i64", new FunctionType(IRType.getVoidTy(), parameters), new ArrayList<>(), true));
+        // libFunctions.put("memset", new Function("llvm.memset.p0i8.i64", new FunctionType(IRType.getVoidTy(), parameters)));
         return libFunctions;
     }
 
@@ -146,7 +146,7 @@ class Builder {
 
     Function addFunction(FuncSymbol funcSymbol, ArrayList<ArgSymbol> argSymbols) {
         Function function = new Function(funcSymbol.name(), funcSymbol.type(),
-                new ArrayList<>(argSymbols.stream().map(Symbol::irValue).toList()), false);
+                new ArrayList<>(argSymbols.stream().map(Symbol::irValue).toList()));
         irModule.appendFunctions(function);
         this.nowFunction = function;
         return function;
@@ -155,7 +155,7 @@ class Builder {
     void addMainFunction() {
         // 主函数返回值为0，没有参数
         Function mainFunction = new Function("main", new FunctionType(IRType.getInt32Ty(), new ArrayList<>()),
-                new ArrayList<>(), false);
+                new ArrayList<>());
         irModule.appendFunctions(mainFunction);
         this.nowFunction = mainFunction;
     }

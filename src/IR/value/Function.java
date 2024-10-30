@@ -17,8 +17,15 @@ public class Function extends IRValue<FunctionType> {
     private final LinkedList<BasicBlock> basicBlocks;
     private final boolean isLib;
 
-    public Function(String name, FunctionType type, ArrayList<Argument> arguments, boolean isLib) {
-        super(name, type);
+    public Function(String name, FunctionType functionType) {
+        super(name, functionType);
+        this.arguments = null;
+        this.basicBlocks = null;
+        this.isLib = true;
+    }
+
+    public Function(String name, FunctionType functionType, ArrayList<Argument> arguments) {
+        super(name, functionType);
         if (type.parametersType().size() != arguments.size()) {
             throw new RuntimeException("When Function(), number of arguments mismatch. Got " + arguments.size() +
                     ", expected " + type.parametersType().size() + "(declare at the type of function)");
@@ -33,7 +40,7 @@ public class Function extends IRValue<FunctionType> {
         }
         this.arguments = arguments;
         this.basicBlocks = new LinkedList<>();
-        this.isLib = isLib;
+        this.isLib = false;
     }
 
     public void appendBasicBlock(BasicBlock basicBlock) {
