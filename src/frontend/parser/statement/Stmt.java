@@ -296,6 +296,10 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             ret.add(semicnToken);
             return ret;
         }
+
+        public Token breakToken() {
+            return breakToken;
+        }
     }
 
     // Stmt → 'continue' ';'
@@ -315,6 +319,10 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             ret.add(continueToken);
             ret.add(semicnToken);
             return ret;
+        }
+
+        public Token continueToken() {
+            return continueToken;
         }
     }
 
@@ -352,6 +360,10 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             }
             ret.add(semicnToken);
             return ret;
+        }
+
+        public Token returnToken() {
+            return returnToken;
         }
 
         public Exp exp() {

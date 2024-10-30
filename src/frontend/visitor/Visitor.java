@@ -596,12 +596,18 @@ public class Visitor {
             this.visitStmtLValGetInt(stmt_lValGetint, nowBlock);
         } else if (stmtOption instanceof Stmt.Stmt_LValGetchar stmt_lValGetchar) {
             this.visitStmtLValGetChar(stmt_lValGetchar, nowBlock);
+        } else if (stmtOption instanceof Stmt.Stmt_Printf stmt_printf) {
+            this.visitStmtPrintf(stmt_printf, nowBlock);
+        } else if (stmtOption instanceof Stmt.Stmt_Break stmt_break) {
+            this.errorTable.addErrorRecord(stmt_break.breakToken().line(), ErrorType.BREAK_CONTINUE_OUTSIDE_LOOP);
+        } else if (stmtOption instanceof Stmt.Stmt_Continue stmt_continue) {
+            this.errorTable.addErrorRecord(stmt_continue.continueToken().line(), ErrorType.BREAK_CONTINUE_OUTSIDE_LOOP);
         } else {
-            if (Config.visitorThrowable) {
-                throw new RuntimeException("When visitStmt(), got unknown type of Stmt (" + stmt.getClass().getSimpleName() + ")");
-            } else {
-                return nowBlock;
-            }
+//            if (Config.visitorThrowable) {
+//                throw new RuntimeException("When visitStmt(), got unknown type of Stmt (" + stmt.getClass().getSimpleName() + ")");
+//            } else {
+//                return nowBlock;
+//            }
         }
         return nowBlock;
     }
@@ -624,12 +630,22 @@ public class Visitor {
 
     // Stmt → 'return' [Exp] ';'
     private void visitStmtReturn(Stmt.Stmt_Return stmt_return, BasicBlock nowBlock) {
-        if (stmt_return.exp() == null) {
+        if (nowBlock.parent().type().returnType() instanceof VoidType) {
+            if (stmt_return.exp() != null) {
+                this.errorTable.addErrorRecord(stmt_return.returnToken().line(), ErrorType.RETURN_TYPE_MISMATCH);
+                // MAYBE 由于不存在恶意换行，此处不分析Exp的内容
+            }
+            // 无返回值函数无论是否给定Exp，都返回void
             this.builder.addReturn(null, nowBlock);
         } else {
-            // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
-            IRValue<IntegerType> returnValue = IRValue.cast(this.visitExp(stmt_return.exp(), nowBlock));
-            this.builder.addReturn(returnValue, nowBlock);
+            if (stmt_return.exp() == null) {
+                // 有返回值函数如果没有给定Exp，强制返回0
+                this.builder.addReturn(ConstantInt.ZERO_I32(), nowBlock);
+            } else {
+                // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
+                IRValue<IntegerType> returnValue = IRValue.cast(this.visitExp(stmt_return.exp(), nowBlock));
+                this.builder.addReturn(returnValue, nowBlock);
+            }
         }
     }
 
@@ -654,6 +670,7 @@ public class Visitor {
         this.builder.addStoreLVal(getcharValue, this.visitLValAddress(stmt_lValGetchar.lVal(), nowBlock), nowBlock);
     }
 
+    // LVal → Ident ['[' Exp ']']
     private IRValue<PointerType> visitLValAddress(LVal lVal, BasicBlock insertBlock) {
         // LVal做evaluation，可能的返回的类型有int, char, int*, char*
         Symbol<?, ?> searchedSymbol = this.symbolTable.searchOrError(lVal.ident());
@@ -684,6 +701,7 @@ public class Visitor {
             // 查找到的符号为常量，返回null，配合Builder中的addStoreLVal为null时不生成StoreInst
             this.errorTable.addErrorRecord(lVal.ident().line(), ErrorType.TRY_MODIFY_CONST,
                     "Try modify a const '" + searchedSymbol.name() + "' defined at line " + searchedSymbol.line());
+            // MAYBE 由于不存在恶意换行，此处不分析数组下标的内容
             return null;
         } else if (searchedSymbol == null) {
             // 查找不到符号，返回null，配合Builder中的addStoreLVal为null时不生成StoreInst
@@ -691,5 +709,10 @@ public class Visitor {
         } else {
             throw new RuntimeException("When visitLValEvaluation(), got unknown type of searchedSymbol (" + searchedSymbol.getClass().getSimpleName() + ")");
         }
+    }
+
+    // LVal → 'printf''('StringConst {','Exp}')'';'
+    private void visitStmtPrintf(Stmt.Stmt_Printf stmtPrintf, BasicBlock nowBlock) {
+
     }
 }
