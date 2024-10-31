@@ -22,6 +22,7 @@ import global.Config;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedList;
 
 public class Visitor {
     private final CompUnit compUnit;
@@ -30,6 +31,8 @@ public class Visitor {
     private final SymbolTable symbolTable;
     private final Calculator calculator;
     private final Builder builder;
+    private final LinkedList<BasicBlock> forEndBlocks;
+    private final LinkedList<BasicBlock> forTailBlocks;
 
     private final ErrorTable errorTable;
 
@@ -40,6 +43,8 @@ public class Visitor {
         this.errorTable = errorTable;
         this.symbolTable = new SymbolTable(errorTable);
         this.calculator = new Calculator(this.symbolTable);
+        this.forEndBlocks = new LinkedList<>();
+        this.forTailBlocks = new LinkedList<>();
         this.irModule = new IRModule();
         this.builder = new Builder(this.irModule);
     }
@@ -581,8 +586,6 @@ public class Visitor {
         if (stmtOption instanceof Stmt.Stmt_Semicn) {
             // Stmt → ';'
             return nowBlock;
-        } else if (stmtOption instanceof Stmt.Stmt_Block stmt_block) {
-            return this.visitStmtBlock(stmt_block.block(), entryBlock, nowBlock);
         } else if (stmtOption instanceof Stmt.Stmt_Exp stmt_exp) {
             // Stmt → Exp ';'
             this.visitExp(stmt_exp.exp(), entryBlock);
@@ -597,9 +600,21 @@ public class Visitor {
         } else if (stmtOption instanceof Stmt.Stmt_Printf stmt_printf) {
             this.visitStmtPrintf(stmt_printf, nowBlock);
         } else if (stmtOption instanceof Stmt.Stmt_Break stmt_break) {
-            this.errorTable.addErrorRecord(stmt_break.breakToken().line(), ErrorType.BREAK_CONTINUE_OUTSIDE_LOOP);
+            // Stmt → 'break' ';'
+            if (this.forEndBlocks.isEmpty()) {
+                this.errorTable.addErrorRecord(stmt_break.breakToken().line(), ErrorType.BREAK_CONTINUE_OUTSIDE_LOOP);
+            } else {
+                this.builder.addBranchInstruction(null, this.forEndBlocks.peek(), null, nowBlock);
+            }
         } else if (stmtOption instanceof Stmt.Stmt_Continue stmt_continue) {
-            this.errorTable.addErrorRecord(stmt_continue.continueToken().line(), ErrorType.BREAK_CONTINUE_OUTSIDE_LOOP);
+            // Stmt → 'continue' ';'
+            if (this.forTailBlocks.isEmpty()) {
+                this.errorTable.addErrorRecord(stmt_continue.continueToken().line(), ErrorType.BREAK_CONTINUE_OUTSIDE_LOOP);
+            } else {
+                this.builder.addBranchInstruction(null, this.forTailBlocks.peek(), null, nowBlock);
+            }
+        } else if (stmtOption instanceof Stmt.Stmt_Block stmt_block) {
+            return this.visitStmtBlock(stmt_block.block(), entryBlock, nowBlock);
         } else if (stmtOption instanceof Stmt.Stmt_If stmt_if) {
             return this.visitStmtIf(stmt_if, entryBlock, nowBlock);
         } else if (stmtOption instanceof Stmt.Stmt_For stmt_for) {
@@ -713,7 +728,7 @@ public class Visitor {
         }
     }
 
-    // Stmt → 'printf''('StringConst {','Exp}')'';'
+    // Stmt → 'printf' '(' StringConst { ',' Exp} ')' ';'
     private void visitStmtPrintf(Stmt.Stmt_Printf stmt_printf, BasicBlock nowBlock) {
         ArrayList<Integer> formatStringChar = Translator.translateStringConst(stmt_printf.stringConst());
         ArrayList<Integer> bufferStringChar = new ArrayList<>();
@@ -779,8 +794,6 @@ public class Visitor {
             this.builder.appendBasicBlock(ifBodyBlock);
             BasicBlock ifBodyLastBlock = this.visitStmt(stmt_if.ifStmt(), entryBlock, ifBodyBlock);
             this.builder.addBranchInstruction(null, ifEndBlock, null, ifBodyLastBlock);
-            // if语句后
-            this.builder.appendBasicBlock(ifEndBlock);
         } else {
             // 有else语句
             BasicBlock ifElseBlock = this.builder.newBasicBlock();
@@ -793,50 +806,50 @@ public class Visitor {
             this.builder.appendBasicBlock(ifElseBlock);
             BasicBlock ifElseLastBlock = this.visitStmt(stmt_if.elseStmt(), entryBlock, ifElseBlock);
             this.builder.addBranchInstruction(null, ifEndBlock, null, ifElseLastBlock);
-            // if语句后
-            this.builder.appendBasicBlock(ifEndBlock);
         }
+        // if语句后
+        this.builder.appendBasicBlock(ifEndBlock);
         return ifEndBlock;
     }
 
     // Cond → LOrExp
-    private void visitCond(Cond cond, BasicBlock trueBlock, BasicBlock falseBlock, BasicBlock nowBlock) {
-        this.visitLOrExp(cond.lOrExp(), trueBlock, falseBlock, nowBlock);
+    private void visitCond(Cond cond, BasicBlock trueBlock, BasicBlock falseBlock, BasicBlock insertBlock) {
+        this.visitLOrExp(cond.lOrExp(), trueBlock, falseBlock, insertBlock);
     }
 
     // LOrExp → LAndExp | LOrExp '||' LAndExp
-    private void visitLOrExp(LOrExp lOrExp, BasicBlock trueBlock, BasicBlock falseBlock, BasicBlock nowBlock) {
+    private void visitLOrExp(LOrExp lOrExp, BasicBlock trueBlock, BasicBlock falseBlock, BasicBlock insertBlock) {
         for (int i = 0; i < lOrExp.lAndExps().size(); i++) {
             if (i == lOrExp.lAndExps().size() - 1) {
                 // 最后一个LAndExp，为假时要跳转到falseBlock
-                this.visitLAndExp(lOrExp.lAndExps().get(i), trueBlock, falseBlock, nowBlock);
+                this.visitLAndExp(lOrExp.lAndExps().get(i), trueBlock, falseBlock, insertBlock);
             } else {
                 // 不是最后一个LAndExp，为假时跳转到下一个判断条件所在的block
                 // 真则直接进入trueBlock，实现短路求值
                 BasicBlock nextBlock = this.builder.newBasicBlock();
-                this.visitLAndExp(lOrExp.lAndExps().get(i), trueBlock, nextBlock, nowBlock);
+                this.visitLAndExp(lOrExp.lAndExps().get(i), trueBlock, nextBlock, insertBlock);
                 // 进入新的BasicBlock，判断下一个LAndExp
                 this.builder.appendBasicBlock(nextBlock);
-                nowBlock = nextBlock;
+                insertBlock = nextBlock;
             }
         }
     }
 
     // LAndExp → EqExp | LAndExp '&&' EqExp
-    private void visitLAndExp(LAndExp lAndExp, BasicBlock trueBlock, BasicBlock falseBlock, BasicBlock nowBlock) {
+    private void visitLAndExp(LAndExp lAndExp, BasicBlock trueBlock, BasicBlock falseBlock, BasicBlock insertBlock) {
         for (int i = 0; i < lAndExp.eqExps().size(); i++) {
-            IRValue<IntegerType> icmpResult = this.visitEqExp(lAndExp.eqExps().get(i), nowBlock);
+            IRValue<IntegerType> icmpResult = this.visitEqExp(lAndExp.eqExps().get(i), insertBlock);
             if (i == lAndExp.eqExps().size() - 1) {
                 // 最后一个EqExp，为真时要跳转到trueBlock
-                this.builder.addBranchInstruction(icmpResult, trueBlock, falseBlock, nowBlock);
+                this.builder.addBranchInstruction(icmpResult, trueBlock, falseBlock, insertBlock);
             } else {
                 // 不是最后一个EqExp，为真时跳转到下一个判断条件所在的block
                 // 假则直接进入falseBlock，实现短路求值
                 BasicBlock nextBlock = this.builder.newBasicBlock();
-                this.builder.addBranchInstruction(icmpResult, nextBlock, falseBlock, nowBlock);
+                this.builder.addBranchInstruction(icmpResult, nextBlock, falseBlock, insertBlock);
                 // 进入新的BasicBlock，判断下一个EqExp
                 this.builder.appendBasicBlock(nextBlock);
-                nowBlock = nextBlock;
+                insertBlock = nextBlock;
             }
         }
     }
@@ -872,6 +885,51 @@ public class Visitor {
 
     // Stmt → 'for' '(' [ForStmt] ';' [Cond] ';' [ForStmt] ')' Stmt
     private BasicBlock visitStmtFor(Stmt.Stmt_For stmt_for, BasicBlock entryBlock, BasicBlock nowBlock) {
-        return nowBlock;
+        if (stmt_for.initForStmt() != null) {
+            this.visitForStmt(stmt_for.initForStmt(), nowBlock);
+        }
+        BasicBlock forBodyBlock = this.builder.newBasicBlock();
+        BasicBlock forEndBlock = this.builder.newBasicBlock();
+        BasicBlock forHeadBlock;
+        if (stmt_for.cond() == null) {
+            // 无判断条件，直接进入循环体
+            this.builder.addBranchInstruction(null, forBodyBlock, null, nowBlock);
+            forHeadBlock = forBodyBlock;
+        } else {
+            // 有判断条件，进入判断条件体
+            BasicBlock forCondBlock = this.builder.newBasicBlock();
+            this.builder.addBranchInstruction(null, forCondBlock, null, nowBlock);
+            this.visitCond(stmt_for.cond(), forBodyBlock, forEndBlock, forCondBlock);
+            this.builder.appendBasicBlock(forCondBlock);
+            forHeadBlock = forCondBlock;
+        }
+        this.builder.appendBasicBlock(forBodyBlock);
+        if (stmt_for.tailForStmt() == null) {
+            // 无结尾ForStmt，直接回到头
+            this.forTailBlocks.push(forHeadBlock);
+            this.forEndBlocks.push(forEndBlock);
+            this.visitStmt(stmt_for.stmt(), entryBlock, forBodyBlock);
+        } else {
+            // 有结尾ForStmt，进入结尾ForStmt
+            BasicBlock forTailBlock = this.builder.newBasicBlock();
+            this.visitForStmt(stmt_for.tailForStmt(), forTailBlock);
+            this.builder.addBranchInstruction(null, forHeadBlock, null, forTailBlock);
+            this.forTailBlocks.push(forTailBlock);
+            this.forEndBlocks.push(forEndBlock);
+            this.visitStmt(stmt_for.stmt(), entryBlock, forBodyBlock);
+            this.builder.appendBasicBlock(forTailBlock);
+        }
+        // for语句后
+        this.builder.appendBasicBlock(forEndBlock);
+        this.forTailBlocks.pop();
+        this.forEndBlocks.pop();
+        return forEndBlock;
+    }
+
+    // ForStmt → LVal '=' Exp
+    private void visitForStmt(ForStmt forStmt, BasicBlock nowBlock) {
+        // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
+        IRValue<IntegerType> expValue = IRValue.cast(this.visitExp(forStmt.exp(), nowBlock));
+        this.builder.storeLVal(expValue, this.visitLValAddress(forStmt.lVal(), nowBlock), nowBlock);
     }
 }

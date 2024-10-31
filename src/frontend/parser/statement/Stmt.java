@@ -219,7 +219,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         private final Token fisrtSemicnToken;
         private final Cond cond;
         private final Token secondSemicnToken;
-        private final ForStmt afterForStmt;
+        private final ForStmt tailForStmt;
         private final Token rparentToken;
         private final Stmt stmt;
 
@@ -231,7 +231,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             fisrtSemicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
             cond = stream.getNow().type() != TokenType.SEMICN ? new Cond(stream) : null;
             secondSemicnToken = stream.consumeOrThrow(place, TokenType.SEMICN);
-            afterForStmt = stream.getNow().type() != TokenType.RPARENT ? new ForStmt(stream) : null;
+            tailForStmt = stream.getNow().type() != TokenType.RPARENT ? new ForStmt(stream) : null;
             rparentToken = stream.consumeOrThrow(place, TokenType.RPARENT);
             stmt = Stmt.parse(stream);
         }
@@ -249,8 +249,8 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
                 ret.add(cond);
             }
             ret.add(secondSemicnToken);
-            if (afterForStmt != null) {
-                ret.add(afterForStmt);
+            if (tailForStmt != null) {
+                ret.add(tailForStmt);
             }
             ret.add(rparentToken);
             ret.add(stmt);
@@ -265,8 +265,8 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             return cond;
         }
 
-        public ForStmt afterForStmt() {
-            return afterForStmt;
+        public ForStmt tailForStmt() {
+            return tailForStmt;
         }
 
         public Stmt stmt() {
