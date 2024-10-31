@@ -206,10 +206,6 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             return ifStmt;
         }
 
-        public Token elseToken() {
-            return elseToken;
-        }
-
         public Stmt elseStmt() {
             return elseStmt;
         }

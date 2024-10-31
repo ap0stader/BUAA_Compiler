@@ -34,10 +34,11 @@ public class BranchInst extends Instruction<VoidType> {
     // 无条件跳转
     public BranchInst(BasicBlock dest, BasicBlock parent) {
         super(IRType.getVoidTy(), parent);
-        if (!IRType.isEqual(dest.type(), IRType.getInt1Ty())) {
+        if (!Objects.equals(dest.parent(), parent.parent())) {
             throw new RuntimeException("When BranchInst(), the parent of dest is not the function where the instruction in. " +
                     "Instruction: " + parent.parent().name() + " dest: " + dest.parent().name());
         }
+        this.addOperand(dest);
     }
 
     @Override

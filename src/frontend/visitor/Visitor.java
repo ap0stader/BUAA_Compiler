@@ -601,7 +601,7 @@ public class Visitor {
         } else if (stmtOption instanceof Stmt.Stmt_Continue stmt_continue) {
             this.errorTable.addErrorRecord(stmt_continue.continueToken().line(), ErrorType.BREAK_CONTINUE_OUTSIDE_LOOP);
         } else if (stmtOption instanceof Stmt.Stmt_If stmt_if) {
-            return this.visitStmtIf(stmt_if, nowBlock);
+            return this.visitStmtIf(stmt_if, entryBlock, nowBlock);
         } else if (stmtOption instanceof Stmt.Stmt_For stmt_for) {
             return this.visitStmtFor(stmt_for, nowBlock);
         } else {
@@ -766,8 +766,34 @@ public class Visitor {
     }
 
     // Stmt → 'if' '(' Cond ')' Stmt [ 'else' Stmt ]
-    private BasicBlock visitStmtIf(Stmt.Stmt_If stmt_if, BasicBlock nowBlock) {
-        return nowBlock;
+    private BasicBlock visitStmtIf(Stmt.Stmt_If stmt_if, BasicBlock entryBlock, BasicBlock nowBlock) {
+        BasicBlock ifBodyBlock = this.builder.newBasicBlock();
+        BasicBlock ifEndBlock = this.builder.newBasicBlock();
+        if (stmt_if.elseStmt() == null) {
+            // 无else语句
+            this.visitCond(stmt_if.cond(), ifBodyBlock, ifEndBlock, nowBlock);
+            // if语句体
+            this.builder.appendBasicBlock(ifBodyBlock);
+            BasicBlock ifBodyLastBlock = this.visitStmt(stmt_if.ifStmt(), entryBlock, ifBodyBlock);
+            this.builder.addBranchInstruction(null, ifEndBlock, null, ifBodyLastBlock);
+            // if语句后
+            this.builder.appendBasicBlock(ifEndBlock);
+        } else {
+            // 有else语句
+            BasicBlock ifElseBlock = this.builder.newBasicBlock();
+            this.visitCond(stmt_if.cond(), ifBodyBlock, ifElseBlock, nowBlock);
+            // if语句体
+            this.builder.appendBasicBlock(ifBodyBlock);
+            BasicBlock ifBodyLastBlock = this.visitStmt(stmt_if.ifStmt(), entryBlock, ifBodyBlock);
+            this.builder.addBranchInstruction(null, ifEndBlock, null, ifBodyLastBlock);
+            // else语句体
+            this.builder.appendBasicBlock(ifElseBlock);
+            BasicBlock ifElseLastBlock = this.visitStmt(stmt_if.elseStmt(), entryBlock, ifElseBlock);
+            this.builder.addBranchInstruction(null, ifEndBlock, null, ifElseLastBlock);
+            // if语句后
+            this.builder.appendBasicBlock(ifEndBlock);
+        }
+        return ifEndBlock;
     }
 
     // Cond → LOrExp
@@ -777,40 +803,38 @@ public class Visitor {
 
     // LOrExp → LAndExp | LOrExp '||' LAndExp
     private void visitLOrExp(LOrExp lOrExp, BasicBlock trueBlock, BasicBlock falseBlock, BasicBlock nowBlock) {
-        BasicBlock nextBlock;
         for (int i = 0; i < lOrExp.lAndExps().size(); i++) {
-            if (i + 1 < lOrExp.lAndExps().size()) {
+            if (i == lOrExp.lAndExps().size() - 1) {
                 // 最后一个LAndExp，为假时要跳转到falseBlock
-                nextBlock = falseBlock;
+                this.visitLAndExp(lOrExp.lAndExps().get(i), trueBlock, falseBlock, nowBlock);
             } else {
                 // 不是最后一个LAndExp，为假时跳转到下一个判断条件所在的block
-                nextBlock = this.builder.newBasicBlock();
+                // 真则直接进入trueBlock，实现短路求值
+                BasicBlock nextBlock = this.builder.newBasicBlock();
+                this.visitLAndExp(lOrExp.lAndExps().get(i), trueBlock, nextBlock, nowBlock);
+                // 进入新的BasicBlock，判断下一个LAndExp
+                this.builder.appendBasicBlock(nextBlock);
+                nowBlock = nextBlock;
             }
-            // 真则直接进入trueBlock，实现短路求值
-            this.visitLAndExp(lOrExp.lAndExps().get(i), trueBlock, nextBlock, nowBlock);
-            // 进入新的BasicBlock，判断下一个LAndExp
-            this.builder.appendBasicBlock(nextBlock);
-            nowBlock = nextBlock;
         }
     }
 
     // LAndExp → EqExp | LAndExp '&&' EqExp
     private void visitLAndExp(LAndExp lAndExp, BasicBlock trueBlock, BasicBlock falseBlock, BasicBlock nowBlock) {
-        BasicBlock nextBlock;
         for (int i = 0; i < lAndExp.eqExps().size(); i++) {
-            if (i + 1 < lAndExp.eqExps().size()) {
+            IRValue<IntegerType> icmpResult = this.visitEqExp(lAndExp.eqExps().get(i), nowBlock);
+            if (i == lAndExp.eqExps().size() - 1) {
                 // 最后一个EqExp，为真时要跳转到trueBlock
-                nextBlock = trueBlock;
+                this.builder.addBranchInstruction(icmpResult, trueBlock, falseBlock, nowBlock);
             } else {
                 // 不是最后一个EqExp，为真时跳转到下一个判断条件所在的block
-                nextBlock = this.builder.newBasicBlock();
+                // 假则直接进入falseBlock，实现短路求值
+                BasicBlock nextBlock = this.builder.newBasicBlock();
+                this.builder.addBranchInstruction(icmpResult, nextBlock, falseBlock, nowBlock);
+                // 进入新的BasicBlock，判断下一个EqExp
+                this.builder.appendBasicBlock(nextBlock);
+                nowBlock = nextBlock;
             }
-            IRValue<IntegerType> icmpResult = this.visitEqExp(lAndExp.eqExps().get(i), nowBlock);
-            // 假则直接进入falseBlock，实现短路求值
-            this.builder.addBranchInstruction(icmpResult, nextBlock, falseBlock, nowBlock);
-            // 进入新的BasicBlock，判断下一个EqExp
-            this.builder.appendBasicBlock(nextBlock);
-            nowBlock = nextBlock;
         }
     }
 

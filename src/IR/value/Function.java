@@ -85,7 +85,8 @@ public class Function extends IRValue<FunctionType> {
                 counter.get(this.basicBlocks.get(0));
                 sb.append(this.basicBlocks.get(0).llvmStr(counter));
                 for (int i = 1; i < this.basicBlocks.size(); i++) {
-                    sb.append(this.basicBlocks.get(i)).append(":\n");
+                    sb.append("\n");
+                    sb.append(counter.get(this.basicBlocks.get(i)).substring(1)).append(":\n");
                     sb.append(this.basicBlocks.get(i).llvmStr(counter));
                 }
                 sb.append("}\n");

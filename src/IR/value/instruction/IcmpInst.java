@@ -1,6 +1,7 @@
 package IR.value.instruction;
 
 import IR.IRValue;
+import IR.type.IRType;
 import IR.type.IntegerType;
 import IR.value.BasicBlock;
 import util.LLVMStrRegCounter;
@@ -30,7 +31,7 @@ public class IcmpInst extends Instruction<IntegerType> {
     private final Predicate predicate;
 
     public IcmpInst(Predicate predicate, IRValue<IntegerType> operand1, IRValue<IntegerType> operand2, BasicBlock parent) {
-        super(operand1.type(), parent);
+        super(IRType.getInt1Ty(), parent);
         if (operand1.type().size() != operand2.type().size()) {
             throw new RuntimeException("When IcmpInst(), two operands size are mismatch. " +
                     "Got " + operand1.type().size() + " operand1 " + operand1 +
@@ -44,7 +45,7 @@ public class IcmpInst extends Instruction<IntegerType> {
     @Override
     public String llvmStr(LLVMStrRegCounter counter) {
         return counter.get(this) + " = icmp " + this.predicate + " " +
-                this.type.llvmStr() + " " +
+                this.getOperand(0).type().llvmStr() + " " +
                 counter.get(this.getOperand(0)) + ", " +
                 counter.get(this.getOperand(1));
     }

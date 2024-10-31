@@ -22,12 +22,13 @@ public class LLVMStrRegCounter {
         } else if (value instanceof Constant<?> constant) {
             return constant.llvmStr();
         } else {
+            // 由于实际上在后续才输出的内容先申请到了寄存器，故临时加入T跳过LLVM的检测
             if (this.llvmRegTable.containsKey(value)) {
-                return "%" + this.llvmRegTable.get(value);
+                return "%T" + this.llvmRegTable.get(value);
             } else {
                 // 为Value分配新的编号
                 this.llvmRegTable.put(value, this.count);
-                return "%" + this.count++;
+                return "%T" + this.count++;
             }
         }
     }
