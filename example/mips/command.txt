@@ -1,0 +1,7 @@
+clang -S --target=mipsel-unknown-linux-gnu mips.c -o mips.S
+
+mipsel-linux-gnu-gcc main.c -o main -O0 -g
+
+readelf -h main
+
+mipsel-linux-gnu-objdump -DS main

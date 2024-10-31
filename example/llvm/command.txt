@@ -1,0 +1,4 @@
+clang -S -emit-llvm main.c -o main.ll -O0
+clang -S -emit-llvm libsysy.c -o lib.ll -O0
+
+llvm-link main.ll lib.ll -S -o out.ll
