@@ -424,8 +424,12 @@ public class Visitor {
             } else if (unaryExp_unaryOp.unaryOp().symbol().type() == TokenType.MINU) {
                 // CAST 并非函数调用处，SysY保证UnaryExp经过evaluation的类型为IntegerType
                 IRValue<IntegerType> subValue = IRValue.cast(this.visitUnaryExp(unaryExp_unaryOp.unaryExp(), insertBlock));
-                return this.builder.addBinaryOperation(unaryExp_unaryOp.unaryOp().symbol(),
-                        ConstantInt.ZERO_I32(), subValue, insertBlock);
+                return this.builder.addBinaryOperation(unaryExp_unaryOp.unaryOp().symbol(), ConstantInt.ZERO_I32(), subValue, insertBlock);
+            } else if (unaryExp_unaryOp.unaryOp().symbol().type() == TokenType.NOT) {
+                // 仅在条件表达式中有可能出现
+                // CAST 并非函数调用处，SysY保证UnaryExp经过evaluation的类型为IntegerType
+                IRValue<IntegerType> notValue = IRValue.cast(this.visitUnaryExp(unaryExp_unaryOp.unaryExp(), insertBlock));
+                return this.builder.addIcmpOperation(unaryExp_unaryOp.unaryOp().symbol(), notValue, null, insertBlock);
             } else {
                 throw new RuntimeException("When visitUnaryExp(), got unexpected symbol " + unaryExp_unaryOp.unaryOp().symbol()
                         + ", expected " + TokenType.PLUS + "/" + TokenType.MINU);
@@ -514,21 +518,11 @@ public class Visitor {
         if (primaryExpExtract instanceof PrimaryExp.PrimaryExp_Exp primaryExp_exp) {
             return this.visitExp(primaryExp_exp.exp(), insertBlock);
         } else if (primaryExpExtract instanceof PrimaryExp.PrimaryExp_LVal primaryExp_lVal) {
-            IRValue<?> lValValue = this.visitLValEvaluation(primaryExp_lVal.lVal(), insertBlock);
-            if (IRType.isEqual(lValValue.type(), IRType.getInt8Ty())) {
-                // 对于char类型，扩展后参与运算
-                // CAST 上方的IRType.isEqual确保转换正确
-                return this.builder.addExtendOperation(IRValue.cast(lValValue), IRType.getInt32Ty(), insertBlock);
-            } else if (IRType.isEqual(lValValue.type(), IRType.getInt32Ty()) || lValValue.type() instanceof PointerType) {
-                // 对于int类型或者指针类型，直接返回
-                return lValValue;
-            } else {
-                throw new RuntimeException("When visitPrimaryExp(), got illegal type after evaluation of LVal. Got " + lValValue.type());
-            }
+            return this.visitLValEvaluation(primaryExp_lVal.lVal(), insertBlock);
         } else if (primaryExpExtract instanceof PrimaryExp.PrimaryExp_Number primaryExp_number) {
             return new ConstantInt(IRType.getInt32Ty(), Integer.parseInt(primaryExp_number.number().intConst().strVal()));
         } else if (primaryExpExtract instanceof PrimaryExp.PrimaryExp_Character primaryExp_character) {
-            // 由于char参加运算的方式为先零拓展为int再参加运算，故此处可以直接提升为int
+            // 根据C语言的标准，字符的类型为int
             return new ConstantInt(IRType.getInt32Ty(), Translator.translateCharConst(primaryExp_character.character().charConst()));
         } else {
             throw new RuntimeException("When visitPrimaryExp(), got unknown type of PrimaryExp ("
@@ -643,7 +637,7 @@ public class Visitor {
             this.builder.addReturnInstruction(null, nowBlock);
         } else {
             if (stmt_return.exp() == null) {
-                // 有返回值函数如果没有给定Exp，强制返回0
+                // 有返回值函数如果没有给定Exp，强制置为0
                 this.builder.addReturnInstruction(ConstantInt.ZERO_I32(), nowBlock);
             } else {
                 // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType

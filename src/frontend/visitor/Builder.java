@@ -6,6 +6,7 @@ import IR.value.*;
 import IR.value.constant.*;
 import IR.value.instruction.*;
 import frontend.lexer.Token;
+import frontend.type.TokenType;
 import frontend.visitor.symbol.*;
 import global.Config;
 import util.Pair;
@@ -265,6 +266,12 @@ class Builder {
     }
 
     BinaryOperator addBinaryOperation(Token symbol, IRValue<IntegerType> value1, IRValue<IntegerType> value2, BasicBlock insertBlock) {
+        // 自动处理类型转换
+        if (value1.type().size() < value2.type().size()) {
+            value1 = this.addExtendOperation(value1, value2.type(), insertBlock);
+        } else if (value1.type().size() > value2.type().size()) {
+            value2 = this.addExtendOperation(value2, value1.type(), insertBlock);
+        }
         return switch (symbol.type()) {
             case PLUS -> new BinaryOperator(BinaryOperator.BinaryOps.ADD, value1, value2, insertBlock);
             case MINU -> new BinaryOperator(BinaryOperator.BinaryOps.SUB, value1, value2, insertBlock);
@@ -300,6 +307,31 @@ class Builder {
 
     <D extends IRType> CastInst.BitCastInst<D> addBitCastOperation(IRValue<?> src, D destType, BasicBlock insertBlock) {
         return new CastInst.BitCastInst<>(src, destType, insertBlock);
+    }
+
+    IcmpInst addIcmpOperation(Token symbol, IRValue<IntegerType> value1, IRValue<IntegerType> value2, BasicBlock insertBlock) {
+        if (value2 != null) {
+            // 自动处理类型转换
+            if (value1.type().size() < value2.type().size()) {
+                value1 = this.addExtendOperation(value1, value2.type(), insertBlock);
+            } else if (value1.type().size() > value2.type().size()) {
+                value2 = this.addExtendOperation(value2, value1.type(), insertBlock);
+            }
+            return switch (symbol.type()) {
+                case LSS -> new IcmpInst(IcmpInst.Predicate.LT, value1, value2, insertBlock);
+                case GRE -> new IcmpInst(IcmpInst.Predicate.GT, value1, value2, insertBlock);
+                case LEQ -> new IcmpInst(IcmpInst.Predicate.LE, value1, value2, insertBlock);
+                case GEQ -> new IcmpInst(IcmpInst.Predicate.GE, value1, value2, insertBlock);
+                default ->
+                        throw new RuntimeException("When addIcmpOperation(), illegal symbol type. Got " + symbol.type());
+            };
+        } else {
+            if (symbol.type() == TokenType.NOT) {
+                return new IcmpInst(IcmpInst.Predicate.EQ, value1, new ConstantInt(value1.type(), 0), insertBlock);
+            } else {
+                throw new RuntimeException("When addIcmpOperation(), value2 is null but the symbol type is not " + TokenType.NOT);
+            }
+        }
     }
 
     void addReturnInstruction(IRValue<IntegerType> returnValue, BasicBlock insertBlock) {
