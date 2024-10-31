@@ -199,19 +199,20 @@ class Builder {
         return allocaInst;
     }
 
-    AllocaInst addLocalVariable(VarSymbol varSymbol, ArrayList<IRValue<IntegerType>> initVals, BasicBlock entryBlock) {
+    AllocaInst addLocalVariable(VarSymbol varSymbol, ArrayList<IRValue<IntegerType>> initVals,
+                                BasicBlock entryBlock, BasicBlock nowBlock) {
         AllocaInst allocaInst = new AllocaInst(varSymbol.type(), entryBlock);
         if (initVals != null) {
             if (varSymbol.type() instanceof IntegerType) {
                 IRValue<IntegerType> initVal = initVals.get(0);
-                this.storeLVal(initVal, allocaInst, entryBlock);
+                this.storeLVal(initVal, allocaInst, nowBlock);
             } else if (varSymbol.type() instanceof ArrayType) {
                 // TODO 对于长数组进行优化
                 for (int i = 0; i < initVals.size(); i++) {
                     GetElementPtrInst arrayElementPointer =
-                            this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), entryBlock);
+                            this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), nowBlock);
                     // CAST 由于BType只有int和char，此处强制转换不会出错
-                    this.storeLVal(initVals.get(i), arrayElementPointer, entryBlock);
+                    this.storeLVal(initVals.get(i), arrayElementPointer, nowBlock);
                 }
             } else {
                 throw new RuntimeException("When addLocalVariable(), illegal type. Got " + varSymbol.type() +

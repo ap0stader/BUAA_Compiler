@@ -283,7 +283,7 @@ public class Visitor {
         this.builder.appendBasicBlock(nowBlock);
         for (BlockItem blockItem : block.blockItems()) {
             if (blockItem instanceof Decl decl) {
-                this.visitLocalDecl(decl, entryBlock);
+                this.visitLocalDecl(decl, entryBlock, nowBlock);
             } else if (blockItem instanceof Stmt stmt) {
                 nowBlock = this.visitStmt(stmt, entryBlock, nowBlock);
             } else {
@@ -310,14 +310,14 @@ public class Visitor {
     }
 
     // Decl → ConstDecl | VarDecl
-    private void visitLocalDecl(Decl decl, BasicBlock entryBlock) {
+    private void visitLocalDecl(Decl decl, BasicBlock entryBlock, BasicBlock nowBlock) {
         if (decl instanceof ConstDecl constDecl) {
             ArrayList<ConstSymbol> constSymbols = this.visitConstDecl(constDecl);
             for (ConstSymbol constSymbol : constSymbols) {
                 constSymbol.setIRValue(this.builder.addLocalConstant(constSymbol, entryBlock));
             }
         } else if (decl instanceof VarDecl varDecl) {
-            this.visitLocalVarDecl(varDecl, entryBlock);
+            this.visitLocalVarDecl(varDecl, entryBlock, nowBlock);
         } else {
             throw new RuntimeException("When visitLocalDecl(), got unknown type of Decl (" + decl.getClass().getSimpleName() + ")");
         }
@@ -326,7 +326,7 @@ public class Visitor {
     // VarDecl → BType VarDef { ',' VarDef } ';'
     // BType → 'int' | 'char'
     // VarDef → Ident [ '[' ConstExp ']' ] [ '=' InitVal ]
-    private void visitLocalVarDecl(VarDecl varDecl, BasicBlock entryBlock) {
+    private void visitLocalVarDecl(VarDecl varDecl, BasicBlock entryBlock, BasicBlock nowBlock) {
         Token bType = varDecl.typeToken();
         // visitVarDef()
         for (VarDef varDef : varDecl.varDefs()) {
@@ -341,14 +341,14 @@ public class Visitor {
                     if (varDef.initVal().getType() == InitVal.Type.BASIC) {
                         // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
                         initVals = new ArrayList<>(Collections.singletonList(
-                                IRValue.cast(this.visitExp(varDef.initVal().exp(), entryBlock))));
+                                IRValue.cast(this.visitExp(varDef.initVal().exp(), nowBlock))));
                     } else {
                         throw new RuntimeException("When visitLocalVarDecl(), initVals of identifier " + ident + " mismatch its type. " +
                                 "Got " + varDef.initVal().getType() + ", expected " + InitVal.Type.BASIC);
                     }
-                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, initVals, entryBlock));
+                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, initVals, entryBlock, nowBlock));
                 } else {
-                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, null, entryBlock));
+                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, null, entryBlock, nowBlock));
                 }
             } else {
                 Integer length = this.calculator.calculateConstExp(varDef.constExp());
@@ -360,7 +360,7 @@ public class Visitor {
                     if (varDef.initVal().getType() == InitVal.Type.ARRAY) {
                         // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
                         initVals = new ArrayList<>(varDef.initVal().exps().stream()
-                                .map((exp -> IRValue.<IntegerType>cast(this.visitExp(exp, entryBlock)))).toList());
+                                .map((exp -> IRValue.<IntegerType>cast(this.visitExp(exp, nowBlock)))).toList());
                     } else if (varDef.initVal().getType() == InitVal.Type.STRING) {
                         // 只有char数组能用字符串值进行初始化，此处强制指定类型为char，如果给int[]初始化，会出现CastInst
                         initVals = new ArrayList<>(Translator.translateStringConst(varDef.initVal().stringConst()).stream()
@@ -378,9 +378,9 @@ public class Visitor {
                             initVals.add(new ConstantInt(initValType, 0));
                         }
                     }
-                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, initVals, entryBlock));
+                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, initVals, entryBlock, nowBlock));
                 } else {
-                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, null, entryBlock));
+                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, null, entryBlock, nowBlock));
                 }
             }
             // 即便插入不成功，生成了alloca指令也不会导致LLVM IR错误
@@ -640,7 +640,7 @@ public class Visitor {
         this.symbolTable.push();
         for (BlockItem blockItem : block.blockItems()) {
             if (blockItem instanceof Decl decl) {
-                this.visitLocalDecl(decl, entryBlock);
+                this.visitLocalDecl(decl, entryBlock, nowBlock);
             } else if (blockItem instanceof Stmt stmt) {
                 nowBlock = this.visitStmt(stmt, entryBlock, nowBlock);
             } else {
