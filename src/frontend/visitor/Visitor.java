@@ -266,6 +266,7 @@ public class Visitor {
     // BlockItem → Decl | Stmt
     private void visitFunctionBlock(ArrayList<ArgSymbol> funcFParams, Block block) {
         BasicBlock entryBlock = this.builder.newBasicBlock();
+        this.builder.appendBasicBlock(entryBlock);
         // 给参数符号对应的IRValue
         for (ArgSymbol argSymbol : funcFParams) {
             argSymbol.setIRValue(this.builder.addArgument(argSymbol.argument(), entryBlock));
@@ -280,17 +281,20 @@ public class Visitor {
                 throw new RuntimeException("When visitFunctionBlock(), got unknown type of BlockItem (" + blockItem.getClass().getSimpleName() + ")");
             }
         }
-        // 有返回值的函数缺少return语句（且只判断有没有 return 语句，不需要考虑 return 语句是否有返回值）
-        // 也不需要检查函数体内其他的 return 语句是否有值
-        if (!(entryBlock.parent().type().returnType() instanceof VoidType)
-                // 没有语句
-                && (block.blockItems().isEmpty() ||
-                // 不是语句
-                !(block.blockItems().get(block.blockItems().size() - 1) instanceof Stmt) ||
-                // 是语句但是不是返回语句
-                (block.blockItems().get(block.blockItems().size() - 1) instanceof Stmt stmt && !(stmt.extract() instanceof Stmt.Stmt_Return)))) {
-            // 报错行号为函数结尾的’}’所在行号。
-            this.errorTable.addErrorRecord(block.rbraceToken().line(), ErrorType.MISSING_RETURN);
+        if (block.blockItems().isEmpty() || // 没有语句
+                !(block.blockItems().get(block.blockItems().size() - 1) instanceof Stmt) || // 最后一条语句不是Stmt
+                (block.blockItems().get(block.blockItems().size() - 1) instanceof Stmt stmt // 最后一条语句是Stmt但是不是返回语句
+                        && !(stmt.extract() instanceof Stmt.Stmt_Return))) {
+            if (entryBlock.parent().type().returnType() instanceof VoidType) {
+                // 无返回值的函数，补充一条返回语句
+                this.builder.addReturnInstruction(null, nowBlock);
+            } else if (entryBlock.parent().type().returnType() instanceof IntegerType returnIntegerType) {
+                // 有返回值的函数缺少return语句（且只判断有没有 return 语句，不需要考虑 return 语句是否有返回值）
+                // 也不需要检查函数体内其他的 return 语句是否有值
+                // 报错，报错行号为函数结尾的’}’所在行号。强制补充一条返回0
+                this.errorTable.addErrorRecord(block.rbraceToken().line(), ErrorType.MISSING_RETURN);
+                this.builder.addReturnInstruction(new ConstantInt(returnIntegerType, 0), nowBlock);
+            }
         }
     }
 
@@ -635,10 +639,10 @@ public class Visitor {
             }
             // 无返回值函数无论是否给定Exp，都返回void
             this.builder.addReturnInstruction(null, nowBlock);
-        } else {
+        } else if (nowBlock.parent().type().returnType() instanceof IntegerType returnIntegerType) {
             if (stmt_return.exp() == null) {
                 // 有返回值函数如果没有给定Exp，强制置为0
-                this.builder.addReturnInstruction(ConstantInt.ZERO_I32(), nowBlock);
+                this.builder.addReturnInstruction(new ConstantInt(returnIntegerType, 0), nowBlock);
             } else {
                 // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
                 IRValue<IntegerType> returnValue = IRValue.cast(this.visitExp(stmt_return.exp(), nowBlock));
@@ -764,6 +768,79 @@ public class Visitor {
     // Stmt → 'if' '(' Cond ')' Stmt [ 'else' Stmt ]
     private BasicBlock visitStmtIf(Stmt.Stmt_If stmt_if, BasicBlock nowBlock) {
         return nowBlock;
+    }
+
+    // Cond → LOrExp
+    private void visitCond(Cond cond, BasicBlock trueBlock, BasicBlock falseBlock, BasicBlock nowBlock) {
+        this.visitLOrExp(cond.lOrExp(), trueBlock, falseBlock, nowBlock);
+    }
+
+    // LOrExp → LAndExp | LOrExp '||' LAndExp
+    private void visitLOrExp(LOrExp lOrExp, BasicBlock trueBlock, BasicBlock falseBlock, BasicBlock nowBlock) {
+        BasicBlock nextBlock;
+        for (int i = 0; i < lOrExp.lAndExps().size(); i++) {
+            if (i + 1 < lOrExp.lAndExps().size()) {
+                // 最后一个LAndExp，为假时要跳转到falseBlock
+                nextBlock = falseBlock;
+            } else {
+                // 不是最后一个LAndExp，为假时跳转到下一个判断条件所在的block
+                nextBlock = this.builder.newBasicBlock();
+            }
+            // 真则直接进入trueBlock，实现短路求值
+            this.visitLAndExp(lOrExp.lAndExps().get(i), trueBlock, nextBlock, nowBlock);
+            // 进入新的BasicBlock，判断下一个LAndExp
+            this.builder.appendBasicBlock(nextBlock);
+            nowBlock = nextBlock;
+        }
+    }
+
+    // LAndExp → EqExp | LAndExp '&&' EqExp
+    private void visitLAndExp(LAndExp lAndExp, BasicBlock trueBlock, BasicBlock falseBlock, BasicBlock nowBlock) {
+        BasicBlock nextBlock;
+        for (int i = 0; i < lAndExp.eqExps().size(); i++) {
+            if (i + 1 < lAndExp.eqExps().size()) {
+                // 最后一个EqExp，为真时要跳转到trueBlock
+                nextBlock = trueBlock;
+            } else {
+                // 不是最后一个EqExp，为真时跳转到下一个判断条件所在的block
+                nextBlock = this.builder.newBasicBlock();
+            }
+            IRValue<IntegerType> icmpResult = this.visitEqExp(lAndExp.eqExps().get(i), nowBlock);
+            // 假则直接进入falseBlock，实现短路求值
+            this.builder.addBranchInstruction(icmpResult, nextBlock, falseBlock, nowBlock);
+            // 进入新的BasicBlock，判断下一个EqExp
+            this.builder.appendBasicBlock(nextBlock);
+            nowBlock = nextBlock;
+        }
+    }
+
+    // EqExp → RelExp | EqExp ('==' | '!=') RelExp
+    private IRValue<IntegerType> visitEqExp(EqExp eqExp, BasicBlock insertBlock) {
+        IRValue<IntegerType> resultValue = this.visitRelExp(eqExp.relExps().get(0), insertBlock);
+        // 有多个RelExp
+        for (int i = 0; i < eqExp.symbols().size(); i++) {
+            IRValue<IntegerType> newValue = IRValue.cast(this.visitRelExp(eqExp.relExps().get(i + 1), insertBlock));
+            resultValue = this.builder.addIcmpOperation(eqExp.symbols().get(i), resultValue, newValue, insertBlock);
+        }
+        if (IRType.isEqual(resultValue.type(), IRType.getInt1Ty())) {
+            return resultValue;
+        } else {
+            // 如果EqExp层和RelExp层都没有做过比较那么在离开EqExp层需要做一次比较
+            return this.builder.addIcmpOperation(null, resultValue, null, insertBlock);
+        }
+    }
+
+    // RelExp → AddExp | RelExp ('<' | '>' | '<=' | '>=') AddExp
+    private IRValue<IntegerType> visitRelExp(RelExp relExp, BasicBlock insertBlock) {
+        // CAST 并非函数调用处，SysY保证AddExp经过evaluation的类型为IntegerType
+        IRValue<IntegerType> resultValue = IRValue.cast(this.visitAddExp(relExp.addExps().get(0), insertBlock));
+        // 可能有多个AddExp
+        for (int i = 0; i < relExp.symbols().size(); i++) {
+            // CAST SysY语法保证多个AddExp的类型为IntegerType
+            IRValue<IntegerType> newValue = IRValue.cast(this.visitAddExp(relExp.addExps().get(i + 1), insertBlock));
+            resultValue = this.builder.addIcmpOperation(relExp.symbols().get(i), resultValue, newValue, insertBlock);
+        }
+        return resultValue;
     }
 
     // Stmt → 'for' '(' [ForStmt] ';' [Cond] ';' [ForStmt] ')' Stmt

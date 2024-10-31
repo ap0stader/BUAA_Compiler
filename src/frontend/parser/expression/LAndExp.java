@@ -48,8 +48,4 @@ public class LAndExp implements ASTNode {
     public ArrayList<EqExp> eqExps() {
         return eqExps;
     }
-
-    public ArrayList<Token> symbols() {
-        return symbols;
-    }
 }

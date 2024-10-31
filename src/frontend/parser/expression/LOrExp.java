@@ -48,8 +48,4 @@ public class LOrExp implements ASTNode {
     public ArrayList<LAndExp> lAndExps() {
         return lAndExps;
     }
-
-    public ArrayList<Token> symbols() {
-        return symbols;
-    }
 }

@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Objects;
 
 class Builder {
     private final IRModule irModule;
@@ -160,9 +161,16 @@ class Builder {
     }
 
     BasicBlock newBasicBlock() {
-        BasicBlock basicBlock = new BasicBlock(this.nowFunction);
-        this.nowFunction.appendBasicBlock(basicBlock);
-        return basicBlock;
+        return new BasicBlock(this.nowFunction);
+    }
+
+    void appendBasicBlock(BasicBlock basicBlock) {
+        if (Objects.equals(this.nowFunction, basicBlock.parent())) {
+            this.nowFunction.appendBasicBlock(basicBlock);
+        } else {
+            throw new RuntimeException("When appendBasicBlock(), parent of basicBlock is not nowFunction. " +
+                    "Got " + basicBlock.parent().name() + ", expected " + this.nowFunction.name());
+        }
     }
 
     AllocaInst addArgument(Argument argument, BasicBlock entryBlock) {
@@ -318,15 +326,21 @@ class Builder {
                 value2 = this.addExtendOperation(value2, value1.type(), insertBlock);
             }
             return switch (symbol.type()) {
-                case LSS -> new IcmpInst(IcmpInst.Predicate.LT, value1, value2, insertBlock);
-                case GRE -> new IcmpInst(IcmpInst.Predicate.GT, value1, value2, insertBlock);
-                case LEQ -> new IcmpInst(IcmpInst.Predicate.LE, value1, value2, insertBlock);
-                case GEQ -> new IcmpInst(IcmpInst.Predicate.GE, value1, value2, insertBlock);
+                case LSS -> new IcmpInst(IcmpInst.Predicate.LT, value1, value2, insertBlock); // <
+                case GRE -> new IcmpInst(IcmpInst.Predicate.GT, value1, value2, insertBlock); // >
+                case LEQ -> new IcmpInst(IcmpInst.Predicate.LE, value1, value2, insertBlock); // <=
+                case GEQ -> new IcmpInst(IcmpInst.Predicate.GE, value1, value2, insertBlock); // >=
+                case EQL -> new IcmpInst(IcmpInst.Predicate.EQ, value1, value2, insertBlock); // ==
+                case NEQ -> new IcmpInst(IcmpInst.Predicate.NE, value1, value2, insertBlock); // !=
                 default ->
                         throw new RuntimeException("When addIcmpOperation(), illegal symbol type. Got " + symbol.type());
             };
         } else {
-            if (symbol.type() == TokenType.NOT) {
+            if (symbol == null) {
+                // 如果EqExp层和RelExp层都没有做过比较那么在离开EqExp层需要做一次比较
+                return new IcmpInst(IcmpInst.Predicate.NE, value1, new ConstantInt(value1.type(), 0), insertBlock);
+            } else if (symbol.type() == TokenType.NOT) {
+                // UnaryExp中的'!' UnaryExp
                 return new IcmpInst(IcmpInst.Predicate.EQ, value1, new ConstantInt(value1.type(), 0), insertBlock);
             } else {
                 throw new RuntimeException("When addIcmpOperation(), value2 is null but the symbol type is not " + TokenType.NOT);
@@ -336,5 +350,15 @@ class Builder {
 
     void addReturnInstruction(IRValue<IntegerType> returnValue, BasicBlock insertBlock) {
         new ReturnInst(returnValue, insertBlock);
+    }
+
+    void addBranchInstruction(IRValue<IntegerType> cond, BasicBlock trueBlock, BasicBlock falseBlock, BasicBlock insertBlock) {
+        if (cond == null && falseBlock == null) {
+            new BranchInst(trueBlock, insertBlock);
+        } else if (cond == null || falseBlock == null) {
+            throw new RuntimeException("When addBranchInstruction(), cond is null or falseBlock is null, but not both of them are null.");
+        } else {
+            new BranchInst(cond, trueBlock, falseBlock, insertBlock);
+        }
     }
 }
