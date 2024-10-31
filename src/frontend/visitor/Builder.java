@@ -281,10 +281,11 @@ class Builder {
 
     BinaryOperator addBinaryOperation(Token symbol, IRValue<IntegerType> value1, IRValue<IntegerType> value2, BasicBlock insertBlock) {
         // 自动处理类型转换
-        if (value1.type().size() < value2.type().size()) {
-            value1 = this.addExtendOperation(value1, value2.type(), insertBlock);
-        } else if (value1.type().size() > value2.type().size()) {
-            value2 = this.addExtendOperation(value2, value1.type(), insertBlock);
+        if (value1.type().size() < IRType.getInt32Ty().size()) {
+            value1 = this.addExtendOperation(value1, IRType.getInt32Ty(), insertBlock);
+        }
+        if (value2.type().size() < IRType.getInt32Ty().size()) {
+            value2 = this.addExtendOperation(value2, IRType.getInt32Ty(), insertBlock);
         }
         return switch (symbol.type()) {
             case PLUS -> new BinaryOperator(BinaryOperator.BinaryOps.ADD, value1, value2, insertBlock);
