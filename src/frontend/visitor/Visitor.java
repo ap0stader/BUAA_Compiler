@@ -298,13 +298,13 @@ public class Visitor {
                         && !(stmt.extract() instanceof Stmt.Stmt_Return))) {
             if (entryBlock.parent().type().returnType() instanceof VoidType) {
                 // 无返回值的函数，补充一条返回语句
-                this.builder.addReturnInstruction(null, nowBlock);
+                this.builder.addReturnInstruction(null, entryBlock.parent().type().returnType(), nowBlock);
             } else if (entryBlock.parent().type().returnType() instanceof IntegerType returnIntegerType) {
                 // 有返回值的函数缺少return语句（且只判断有没有 return 语句，不需要考虑 return 语句是否有返回值）
                 // 也不需要检查函数体内其他的 return 语句是否有值
                 // 报错，报错行号为函数结尾的’}’所在行号。强制补充一条返回0
                 this.errorTable.addErrorRecord(block.rbraceToken().line(), ErrorType.MISSING_RETURN);
-                this.builder.addReturnInstruction(new ConstantInt(returnIntegerType, 0), nowBlock);
+                this.builder.addReturnInstruction(new ConstantInt(returnIntegerType, 0), returnIntegerType, nowBlock);
             }
         }
     }
@@ -659,15 +659,15 @@ public class Visitor {
                 // MAYBE 由于不存在恶意换行，此处不分析Exp的内容
             }
             // 无返回值函数无论是否给定Exp，都返回void
-            this.builder.addReturnInstruction(null, nowBlock);
+            this.builder.addReturnInstruction(null, nowBlock.parent().type().returnType(), nowBlock);
         } else if (nowBlock.parent().type().returnType() instanceof IntegerType returnIntegerType) {
             if (stmt_return.exp() == null) {
                 // 有返回值函数如果没有给定Exp，强制置为0
-                this.builder.addReturnInstruction(new ConstantInt(returnIntegerType, 0), nowBlock);
+                this.builder.addReturnInstruction(new ConstantInt(returnIntegerType, 0), returnIntegerType, nowBlock);
             } else {
                 // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
                 IRValue<IntegerType> returnValue = IRValue.cast(this.visitExp(stmt_return.exp(), nowBlock));
-                this.builder.addReturnInstruction(returnValue, nowBlock);
+                this.builder.addReturnInstruction(returnValue, returnIntegerType, nowBlock);
             }
         }
     }

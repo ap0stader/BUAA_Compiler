@@ -348,7 +348,16 @@ class Builder {
         }
     }
 
-    void addReturnInstruction(IRValue<IntegerType> returnValue, BasicBlock insertBlock) {
+    void addReturnInstruction(IRValue<IntegerType> returnValue, IRType returnType, BasicBlock insertBlock) {
+        if (returnValue != null && returnType instanceof IntegerType returnIntegerType) {
+            if (returnValue.type().size() < returnIntegerType.size()) {
+                // 短值向长值
+                returnValue = this.addExtendOperation(returnValue, returnIntegerType, insertBlock);
+            } else if (returnValue.type().size() > returnIntegerType.size()) {
+                // 长值向短值
+                returnValue = this.addTruncOperation(returnValue, returnIntegerType, insertBlock);
+            }
+        }
         new ReturnInst(returnValue, insertBlock);
     }
 
