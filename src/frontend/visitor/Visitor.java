@@ -270,13 +270,17 @@ public class Visitor {
 
     // BlockItem → Decl | Stmt
     private void visitFunctionBlock(ArrayList<ArgSymbol> funcFParams, Block block) {
+        // entryBlock用来进行各类的变量定义工作
         BasicBlock entryBlock = this.builder.newBasicBlock();
         this.builder.appendBasicBlock(entryBlock);
         // 给参数符号对应的IRValue
         for (ArgSymbol argSymbol : funcFParams) {
             argSymbol.setIRValue(this.builder.addArgument(argSymbol.argument(), entryBlock));
         }
-        BasicBlock nowBlock = entryBlock;
+        // startBlock为代码正式开始的地方
+        BasicBlock startBlock = this.builder.newBasicBlock();
+        BasicBlock nowBlock = startBlock;
+        this.builder.appendBasicBlock(nowBlock);
         for (BlockItem blockItem : block.blockItems()) {
             if (blockItem instanceof Decl decl) {
                 this.visitLocalDecl(decl, entryBlock);
@@ -286,6 +290,8 @@ public class Visitor {
                 throw new RuntimeException("When visitFunctionBlock(), got unknown type of BlockItem (" + blockItem.getClass().getSimpleName() + ")");
             }
         }
+        // 添加从定义块到代码开始块的跳转指令
+        this.builder.addBranchInstruction(null, startBlock, null, entryBlock);
         if (block.blockItems().isEmpty() || // 没有语句
                 !(block.blockItems().get(block.blockItems().size() - 1) instanceof Stmt) || // 最后一条语句不是Stmt
                 (block.blockItems().get(block.blockItems().size() - 1) instanceof Stmt stmt // 最后一条语句是Stmt但是不是返回语句
@@ -588,7 +594,7 @@ public class Visitor {
             return nowBlock;
         } else if (stmtOption instanceof Stmt.Stmt_Exp stmt_exp) {
             // Stmt → Exp ';'
-            this.visitExp(stmt_exp.exp(), entryBlock);
+            this.visitExp(stmt_exp.exp(), nowBlock);
         } else if (stmtOption instanceof Stmt.Stmt_Return stmt_return) {
             this.visitStmtReturn(stmt_return, nowBlock);
         } else if (stmtOption instanceof Stmt.Stmt_LValAssign stmt_lValAssign) {
@@ -908,7 +914,8 @@ public class Visitor {
             // 无结尾ForStmt，直接回到头
             this.forTailBlocks.push(forHeadBlock);
             this.forEndBlocks.push(forEndBlock);
-            this.visitStmt(stmt_for.stmt(), entryBlock, forBodyBlock);
+            BasicBlock forBodyLastBlock = this.visitStmt(stmt_for.stmt(), entryBlock, forBodyBlock);
+            this.builder.addBranchInstruction(null, forHeadBlock, null, forBodyLastBlock);
         } else {
             // 有结尾ForStmt，进入结尾ForStmt
             BasicBlock forTailBlock = this.builder.newBasicBlock();
@@ -916,7 +923,8 @@ public class Visitor {
             this.builder.addBranchInstruction(null, forHeadBlock, null, forTailBlock);
             this.forTailBlocks.push(forTailBlock);
             this.forEndBlocks.push(forEndBlock);
-            this.visitStmt(stmt_for.stmt(), entryBlock, forBodyBlock);
+            BasicBlock forBodyLastBlock = this.visitStmt(stmt_for.stmt(), entryBlock, forBodyBlock);
+            this.builder.addBranchInstruction(null, forTailBlock, null, forBodyLastBlock);
             this.builder.appendBasicBlock(forTailBlock);
         }
         // for语句后
