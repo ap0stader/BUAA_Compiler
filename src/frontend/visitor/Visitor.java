@@ -603,7 +603,7 @@ public class Visitor {
         } else if (stmtOption instanceof Stmt.Stmt_If stmt_if) {
             return this.visitStmtIf(stmt_if, entryBlock, nowBlock);
         } else if (stmtOption instanceof Stmt.Stmt_For stmt_for) {
-            return this.visitStmtFor(stmt_for, nowBlock);
+            return this.visitStmtFor(stmt_for, entryBlock, nowBlock);
         } else {
             if (Config.visitorThrowable) {
                 throw new RuntimeException("When visitStmt(), got unknown type of Stmt (" + stmt.getClass().getSimpleName() + ")");
@@ -742,6 +742,9 @@ public class Visitor {
                         printValue = IRValue.cast(this.visitExp(stmt_printf.exps().get(expIndex), nowBlock));
                     }
                     expIndex++;
+                    if (printValue.type().size() < IRType.getInt32Ty().size()) {
+                        printValue = this.builder.addExtendOperation(printValue, IRType.getInt32Ty(), nowBlock);
+                    }
                     if (formatStringChar.get(i) == 'c') {
                         this.builder.addCallLibFunction("putch", new ArrayList<>(Collections.singletonList(printValue)), nowBlock);
                     } else { // formatStringChar.get(i) == 'd'
@@ -868,7 +871,7 @@ public class Visitor {
     }
 
     // Stmt → 'for' '(' [ForStmt] ';' [Cond] ';' [ForStmt] ')' Stmt
-    private BasicBlock visitStmtFor(Stmt.Stmt_For stmt_for, BasicBlock nowBlock) {
+    private BasicBlock visitStmtFor(Stmt.Stmt_For stmt_for, BasicBlock entryBlock, BasicBlock nowBlock) {
         return nowBlock;
     }
 }
