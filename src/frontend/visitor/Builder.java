@@ -200,19 +200,19 @@ class Builder {
     }
 
     AllocaInst addLocalVariable(VarSymbol varSymbol, ArrayList<IRValue<IntegerType>> initVals,
-                                BasicBlock entryBlock, BasicBlock nowBlock) {
+                                BasicBlock entryBlock, BasicBlock insertBlock) {
         AllocaInst allocaInst = new AllocaInst(varSymbol.type(), entryBlock);
         if (initVals != null) {
             if (varSymbol.type() instanceof IntegerType) {
                 IRValue<IntegerType> initVal = initVals.get(0);
-                this.storeLVal(initVal, allocaInst, nowBlock);
+                this.storeLVal(initVal, allocaInst, insertBlock);
             } else if (varSymbol.type() instanceof ArrayType) {
                 // TODO 对于长数组进行优化
                 for (int i = 0; i < initVals.size(); i++) {
                     GetElementPtrInst arrayElementPointer =
-                            this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), nowBlock);
+                            this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), insertBlock);
                     // CAST 由于BType只有int和char，此处强制转换不会出错
-                    this.storeLVal(initVals.get(i), arrayElementPointer, nowBlock);
+                    this.storeLVal(initVals.get(i), arrayElementPointer, insertBlock);
                 }
             } else {
                 throw new RuntimeException("When addLocalVariable(), illegal type. Got " + varSymbol.type() +
@@ -224,9 +224,14 @@ class Builder {
 
     GetElementPtrInst addGetArrayElementPointer(IRValue<PointerType> pointer, IRValue<IntegerType> index, BasicBlock insertBlock) {
         // 在SysY中，只有一维数组，访问时就分为两种情况
-        if (pointer.type().referenceType() instanceof ArrayType || pointer.type().referenceType() instanceof PointerType) {
-            // ArrayType是常量和变量的，PointerType是参数的
+        if (pointer.type().referenceType() instanceof ArrayType) {
+            // ArrayType是常量和变量的
             return new GetElementPtrInst(pointer, new ArrayList<>(Arrays.asList(ConstantInt.ZERO_I32(), index)), insertBlock);
+        } else if (pointer.type().referenceType() instanceof PointerType) {
+            // PointerType是参数的
+            // CAST 上方的instanceof确保转换正确
+            IRValue<PointerType> referencedPointer = IRValue.cast(new LoadInst(pointer, insertBlock));
+            return new GetElementPtrInst(referencedPointer, new ArrayList<>(Collections.singletonList(index)), insertBlock);
         } else {
             throw new RuntimeException("When addGetArrayElementPointer(), illegal type. Got " + pointer.type() +
                     ", expected ArrayType or PointerType");
