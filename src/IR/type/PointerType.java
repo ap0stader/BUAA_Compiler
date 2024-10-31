@@ -31,7 +31,6 @@ public record PointerType(
     }
 
     // DEBUG 重写toString方法以供调试
-    // TODO 为避免在调用类型文本时遗漏了.llvmStr()，可以将此处的(array)输出去除
     @Override
     public String toString() {
         return this.llvmStr() + (this.arrayDecay ? "(array)" : "");

@@ -52,10 +52,10 @@ public class Function extends IRValue<FunctionType> {
         LLVMStrRegCounter counter = new LLVMStrRegCounter();
         if (this.isLib) {
             // 函数的声明
-            sb.append("declare dso_local ");
+            sb.append("declare ");
         } else {
             // 函数的定义
-            sb.append("define dso_local ");
+            sb.append("define ");
         }
         sb.append(this.type.returnType().llvmStr());
         sb.append(" @");

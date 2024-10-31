@@ -26,6 +26,7 @@ public class Compiler {
             if (Config.dumpLLVMBeforeOptimized) {
                 DumpLLVM.dump(irModule);
             }
+            tryContinue(4);
         } catch (IOException e) {
             e.printStackTrace();
         }

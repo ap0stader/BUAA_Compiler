@@ -27,7 +27,7 @@ public class Config {
        3. 语义分析，生成IRModule
      */
     public final static int maxStages = 4;
-    public static int stages = 3;
+    public static int stages = 4;
 
     // 词法分析后，是否输出TokenStream、输出的文件名、是否输出行号等信息
     public static boolean dumpTokenStream = false;
@@ -39,13 +39,12 @@ public class Config {
     public static String dumpASTFileName = "parser.txt";
 
     // 语义分析后，是否输出SymbolTable、输出的文件名，是否输出详情信息
-    // TODO 下一行为参与语义分析评测时的特地设置
-    public static boolean dumpSymbolTable = true;
+    public static boolean dumpSymbolTable = false;
     public static String dumpSymbolTableFileName = "symbol.txt";
     public static boolean dumpSymbolTableDetail = false;
 
     // 中端优化前，是否输出优化前的LLVM
-    public static boolean dumpLLVMBeforeOptimized = false;
+    public static boolean dumpLLVMBeforeOptimized = true;
     public static String dumpLLVMBeforeOptimizedFileName = "llvm_ir.txt";
 
     // 通过传递的参数设置全局配置
@@ -90,6 +89,11 @@ public class Config {
                 case "-E" -> {
                     stages = 3;
                     dumpSymbolTable = true;
+                }
+                // Code Generation(LLVM IR): -L
+                case "-I" -> {
+                    stages = 4;
+                    dumpLLVMBeforeOptimized = true;
                 }
             }
         }

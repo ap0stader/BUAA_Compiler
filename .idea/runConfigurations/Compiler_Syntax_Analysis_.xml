@@ -3,7 +3,7 @@
     <option name="MAIN_CLASS_NAME" value="Compiler" />
     <module name="Compiler" />
     <option name="PROGRAM_PARAMETERS" value="-S" />
-    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/testdir" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/workdir" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

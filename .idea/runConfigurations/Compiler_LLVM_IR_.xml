@@ -1,8 +1,9 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Compiler(LLVM)" type="Application" factoryName="Application">
+  <configuration default="false" name="Compiler(LLVM IR)" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="Compiler" />
     <module name="Compiler" />
-    <option name="PROGRAM_PARAMETERS" value="-L" />
+    <option name="PROGRAM_PARAMETERS" value="-I" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/workdir" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

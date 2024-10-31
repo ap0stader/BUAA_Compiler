@@ -24,7 +24,7 @@ public record FunctionType(
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("define dso_local ");
+        sb.append("define ");
         sb.append(returnType.llvmStr());
         sb.append(" @(");
         for (int i = 0; i < parametersType.size(); i++) {
