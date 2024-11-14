@@ -2,7 +2,6 @@ package frontend.visitor;
 
 import IR.type.ArrayType;
 import IR.type.IntegerType;
-import frontend.lexer.Token;
 import frontend.parser.expression.*;
 import frontend.type.TokenType;
 import frontend.visitor.symbol.ConstSymbol;
@@ -15,26 +14,12 @@ class Calculator {
         this.symbolTable = symbolTable;
     }
 
-    private static class UseVariableContent extends RuntimeException {
-        private UseVariableContent(String place, Token ident) {
-            super("When " + place + ", used variable content, which identifier token is " + ident);
-        }
-    }
-
     Integer calculateConstExp(ConstExp constExp) {
         return this.calculateAddExp(constExp.addExp());
     }
 
     Integer calculateExp(Exp exp) {
         return this.calculateAddExp(exp.addExp());
-    }
-
-    Integer calculateExpOrNull(Exp exp) {
-        try {
-            return this.calculateAddExp(exp.addExp());
-        } catch (UseVariableContent e) {
-            return null;
-        }
     }
 
     private Integer calculateAddExp(AddExp addExp) {
@@ -89,7 +74,8 @@ class Calculator {
         } else if (unaryExpExtract instanceof UnaryExp.UnaryExp_PrimaryExp unaryExp_primaryExp) {
             return this.calculatePrimaryExp(unaryExp_primaryExp.primaryExp());
         } else if (unaryExpExtract instanceof UnaryExp.UnaryExp_IdentFuncCall unaryExp_identFuncCall) {
-            throw new UseVariableContent("calculateUnaryExp()", unaryExp_identFuncCall.ident());
+            throw new RuntimeException("When calculateUnaryExp(), used variable content, which identifier token is "
+                    + unaryExp_identFuncCall.ident());
         } else {
             throw new RuntimeException("When calculateUnaryExp(), got unknown type of UnaryExp ("
                     + unaryExpExtract.getClass().getSimpleName() + ")");
@@ -126,7 +112,7 @@ class Calculator {
                             ") and lVal (" + lVal.getType() + ")");
                 }
             } else {
-                throw new UseVariableContent("calculateLVal()", lVal.ident());
+                throw new RuntimeException("When calculateLVal(), used variable content, which identifier token is " + lVal.ident());
             }
         } else {
             return 0;

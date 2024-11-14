@@ -15,6 +15,10 @@ public abstract class Instruction<IT extends IRType> extends IRUser<IT> {
         parent.appendInstruction(this);
     }
 
+    public BasicBlock parent() {
+        return parent;
+    }
+
     public abstract String llvmStr(LLVMStrRegCounter counter);
 
     @Override

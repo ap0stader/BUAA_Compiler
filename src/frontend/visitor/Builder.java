@@ -52,10 +52,6 @@ class Builder {
         // declare void @putstr(i8*)  输出字符串
         parameters = new ArrayList<>(Collections.singletonList(new PointerType(IRType.getInt8Ty(), false)));
         libFunctions.put("putstr", new Function("putstr", new FunctionType(IRType.getVoidTy(), parameters)));
-        // TODO 对于长数组进行优化
-        // declare void @llvm.memset.p0i8.i64(i8*, i8, i64, i1)
-        // parameters = new ArrayList<>(Arrays.asList(new PointerType(IRType.getInt8Ty(), false), IRType.getInt8Ty(), IRType.getInt64Ty(), IRType.getInt1Ty()));
-        // libFunctions.put("memset", new Function("llvm.memset.p0i8.i64", new FunctionType(IRType.getVoidTy(), parameters)));
         return libFunctions;
     }
 
@@ -184,7 +180,6 @@ class Builder {
         if (constSymbol.type() instanceof IntegerType constSymbolType) {
             new StoreInst(new ConstantInt(constSymbolType, constSymbol.initVals().get(0)), allocaInst, entryBlock);
         } else if (constSymbol.type() instanceof ArrayType constSymbolType) {
-            // TODO 对于长数组进行优化
             for (int i = 0; i < constSymbol.initVals().size(); i++) {
                 GetElementPtrInst arrayElementPointer =
                         this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), entryBlock);
@@ -207,7 +202,6 @@ class Builder {
                 IRValue<IntegerType> initVal = initVals.get(0);
                 this.storeLVal(initVal, allocaInst, insertBlock);
             } else if (varSymbol.type() instanceof ArrayType) {
-                // TODO 对于长数组进行优化
                 for (int i = 0; i < initVals.size(); i++) {
                     GetElementPtrInst arrayElementPointer =
                             this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), insertBlock);

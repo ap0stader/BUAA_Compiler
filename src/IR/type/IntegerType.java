@@ -11,7 +11,6 @@ public class IntegerType
     private final int size;
 
     static final IntegerType I1_INSTANCE = new IntegerType(1);
-    static final IntegerType I64_INSTANCE = new IntegerType(64);
 
     private IntegerType(int size) {
         if (size < 0) {

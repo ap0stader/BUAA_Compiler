@@ -30,10 +30,6 @@ public interface IRType {
         return IntegerType.Int.INSTANCE;
     }
 
-    static IntegerType getInt64Ty() {
-        return IntegerType.I64_INSTANCE;
-    }
-
     // 两种类型是否相等
     static boolean isEqual(IRType type1, IRType type2) {
         return Objects.equals(type1, type2);
