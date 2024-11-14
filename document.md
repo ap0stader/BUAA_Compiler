@@ -309,6 +309,114 @@ private static void dump(ArrayList<Object> nodes) throws IOException {
 }
 ```
 
+## 四、语义分析
+
+### 1. 设计
+
+考虑到我的路径是经过语义分析之后生成LLVM IR，随后再转换为MIPS汇编码。语义分析过程势必与LLVM IR的生成过程强相关，将两个过程联合进行完成显然比先完成了语义分析得到了符号表，而不考虑其他应该产生的信息，再在后续的工作中加入要好。在语义分析的文档当中将主要讲述与语义分析作业相关的内容。
+
+语义分析主要由四部分组成。第一部分是符号表系统(SymbolTable)，由于符号表的首要目的是为后续生成LLVM IR提供参考，符号表中填写的元素要考虑到LLVM IR生成的需求。第二部分是Visitor，用于深度优先访问语法分析过程当中得到的语法树，并且完成对符号表的操作、对LLVM IR的生成的操作和对异常情况的处理。第三部分是Character，用于编译器静态分析ConstExp，而不是像在Visitor当中那样动态地生成LLVM IR的代码。第四部分是Translator，用于将词法分析器得到的单词转换为分析过程中所期望的数据格式，尤其是解析CharConst和StringConst。
+
+### 2. 实现
+
+#### 2.1 符号表
+
+Symbol是符号表的元素的公用抽象类，具体分为ConstSymbol、VarSymbol、ArgSymbol和FuncSymbol。这四种符号在语义分析中要进行不同的操作。Symbol Table中使用栈式符号表实现符号的查询和插入，并且使用链表持久化存储用于符号表的输出。符号的未定义和重定义都只会发生在查询符号表的时候，统一在SymbolTable报出相关错误。
+
+```java
+public abstract class Symbol<T extends IRType, VT extends IRValue<?>> {
+    private final T type;
+    private final String name;
+    private final int line;
+    private VT irValue = null;	
+    ......
+}
+```
+
+```java
+public class SymbolTable {
+    private final ErrorTable errorTable;
+
+    private final LinkedList<HashMap<String, Symbol<?, ?>>> subTableStack;
+    private final ArrayList<ArrayList<Symbol<?, ?>>> symbolList;
+    private final LinkedList<Integer> subSymbolListIndexStack;
+
+    ......
+
+    boolean insert(Symbol<?, ?> newSymbol) {
+        ......
+            if (currentSubTable.containsKey(newSymbol.name())) {
+                errorTable.addErrorRecord(newSymbol.line(), ErrorType.DUPLICATED_IDENT,
+                        "Duplicated symbol '" + newSymbol.name() + "' at line " + newSymbol.line() + ", " +
+                                "last defined at line " + currentSubTable.get(newSymbol.name()).line());
+        ......
+    }
+
+    Symbol<?, ?> searchOrError(Token ident) {
+        Symbol<?, ?> ret = this.searchOrNull(ident);
+        if (ret == null) {
+            errorTable.addErrorRecord(ident.line(), ErrorType.UNDEFINED_IDENT,
+                    "Undefined symbol '" + ident.strVal() + "', referenced at line " + ident.line());
+
+        }
+        return ret;
+    }
+}
+```
+
+#### 2.2 Visitor
+
+Visitor当中的模式与递归下降类似，由和某个非终结符对应的子程序调用子程序解析子节点，逐层递归。对于各类错误的检查在相关的子程序当中完成。Visitor不生成LLVM IR，只做基本块的传递，主要是用于定义变量的入口基本块的传递和当前要将新的LLVM Instruction插入到的基本块当中。同时针对for循环，通过构建基本块栈的形式实现break和continue的判断和定位。
+
+```java
+public class Visitor {
+  private final CompUnit compUnit;
+  private boolean finish = false;
+
+  private final SymbolTable symbolTable;
+  private final Calculator calculator;
+  private final Builder builder;
+  private final LinkedList<BasicBlock> forEndBlocks;
+  private final LinkedList<BasicBlock> forTailBlocks;
+
+  private final ErrorTable errorTable;
+
+  private final IRModule irModule;
+  ......
+
+  private IRValue<?> visitLValEvaluation(LVal lVal, BasicBlock insertBlock) {
+    // LVal做evaluation，可能的返回的类型有int, char, int*, char*
+    Symbol<?, ?> searchedSymbol = this.symbolTable.searchOrError(lVal.ident());
+    if (searchedSymbol instanceof FuncSymbol) {
+      throw new RuntimeException("When visitLValEvaluation(), the search result of " + lVal.ident() + " is a function");
+    } else if (searchedSymbol instanceof ConstSymbol || searchedSymbol instanceof VarSymbol || searchedSymbol instanceof ArgSymbol) {
+      // CAST 上方的instanceof确保转换正确
+      IRValue<PointerType> lValAddress = IRValue.cast(searchedSymbol.irValue());
+      }
+      if (lVal.getType() == LVal.Type.BASIC && lValAddress.type().referenceType() instanceof IntegerType) {
+        // 变量、常量
+        return this.builder.loadLVal(lValAddress, insertBlock);
+      }
+      ......
+    } ......
+  }
+
+  private BasicBlock visitStmtIf(Stmt.Stmt_If stmt_if, BasicBlock entryBlock, BasicBlock nowBlock) {
+    BasicBlock ifBodyBlock = this.builder.newBasicBlock();
+    BasicBlock ifEndBlock = this.builder.newBasicBlock();
+    if (stmt_if.elseStmt() == null) {
+      // 无else语句
+      this.visitCond(stmt_if.cond(), ifBodyBlock, ifEndBlock, nowBlock);
+      // if语句体
+      this.builder.appendBasicBlock(ifBodyBlock);
+      BasicBlock ifBodyLastBlock = this.visitStmt(stmt_if.ifStmt(), entryBlock, ifBodyBlock);
+      this.builder.addBranchInstruction(null, ifEndBlock, null, ifBodyLastBlock);
+    } ......
+    ......
+  }
+}
+```
+
 ## 附录 参考编译器介绍
 
 选择的参考编译器是PL/0编译器。PL/0编译器是一个经典的编译教学用编译器，采用Pascal语言编写，其可编译的高级语言PL/0是一种类似于Pascal的简单语言。以下是PL/0的文法定义：
