@@ -9,6 +9,7 @@ import frontend.parser.CompUnit;
 import frontend.error.ErrorTable;
 import input.SourceCode;
 import output.*;
+import pass.Optimizer;
 
 import java.io.IOException;
 
@@ -73,15 +74,15 @@ public class Compiler {
 
     // ==== 中端 ====
     private static void middle(IRModule irModule) throws IOException {
-        // 优化前的LLVM
+        // [输出优化前的LLVM]
         if (Config.dumpLLVMBeforeOptimized) {
             DumpLLVM.dump(irModule, Config.dumpLLVMBeforeOptimizedFileName);
         }
-        // 中端优化
+        // Stage4 中端优化
         if (Config.enableMiddleOptimization) {
-
+            Optimizer.run(irModule);
         }
-        // 优化后的LLVM
+        // [输出优化后的LLVM]
         if (Config.dumpLLVMAfterOptimized) {
             DumpLLVM.dump(irModule, Config.dumpLLVMAfterOptimizedFileName);
         }
@@ -90,6 +91,8 @@ public class Compiler {
 
     // ==== 后端 ====
     private static void backend(IRModule irModule) throws IOException {
+        // Stage5 目标代码生成
+        // 创建Generator -> 得到TargetModule -> [输出TargetModule]
         Generator generator = new Generator(irModule);
         TargetModule targetModule = generator.generateTargetModule();
         if (Config.dumpMIPSAssembly) {

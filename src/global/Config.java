@@ -55,7 +55,7 @@ public class Config {
     public static String dumpLLVMBeforeOptimizedFileName = "llvm_ir_before.txt";
 
     // 中端优化后，是否输出优化后的LLVM
-    public static boolean dumpLLVMAfterOptimized = false;
+    public static boolean dumpLLVMAfterOptimized = true;
     public static String dumpLLVMAfterOptimizedFileName = "llvm_ir.txt";
 
     // 生成目标代码后，是否输出目标代码
