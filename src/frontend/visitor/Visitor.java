@@ -4,6 +4,7 @@ import IR.IRModule;
 import IR.IRValue;
 import IR.type.*;
 import IR.value.IRBasicBlock;
+import IR.value.IRGlobalVariable;
 import IR.value.constant.ConstantInt;
 import frontend.error.ErrorTable;
 import frontend.type.ErrorType;
@@ -19,6 +20,7 @@ import frontend.type.Symbol;
 import frontend.type.TokenType;
 import frontend.visitor.symbol.*;
 import global.Config;
+import util.Pair;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -59,7 +61,7 @@ public class Visitor {
             return this.irModule;
         }
         // 全局符号表进入
-        symbolTable.push();
+        this.symbolTable.push();
         // 全局变量
         this.compUnit.decls().forEach(this::visitGlobalDecl);
         // 各函数
@@ -67,7 +69,7 @@ public class Visitor {
         // 主函数
         this.visitMainFuncDef(this.compUnit.mainFuncDef());
         // 全局符号表弹出
-        symbolTable.pop();
+        this.symbolTable.pop();
         this.finish = true;
         return this.irModule;
     }
@@ -739,6 +741,7 @@ public class Visitor {
         ArrayList<Integer> formatStringChar = Translator.translateStringConst(stmt_printf.stringConst());
         ArrayList<Integer> bufferStringChar = new ArrayList<>();
         int expIndex = 0;
+        ArrayList<Pair<IRValue<?>, String>> putCallList = new ArrayList<>();
         for (int i = 0; i < formatStringChar.size(); i++) {
             if (formatStringChar.get(i) != '%') {
                 bufferStringChar.add(formatStringChar.get(i));
@@ -748,9 +751,7 @@ public class Visitor {
                     i++;
                     if (!bufferStringChar.isEmpty()) {
                         bufferStringChar.add(0);
-                        this.builder.addCallLibFunction("putstr",
-                                new ArrayList<>(Collections.singletonList(this.builder.loadConstStringPointer(bufferStringChar, nowBlock))),
-                                nowBlock);
+                        putCallList.add(new Pair<>(this.builder.getConstStringPointer(bufferStringChar), "putstr"));
                         bufferStringChar.clear();
                     }
                     IRValue<IntegerType> printValue;
@@ -767,9 +768,9 @@ public class Visitor {
                         printValue = this.builder.addExtendOperation(printValue, IRType.getInt32Ty(), nowBlock);
                     }
                     if (formatStringChar.get(i) == 'c') {
-                        this.builder.addCallLibFunction("putch", new ArrayList<>(Collections.singletonList(printValue)), nowBlock);
+                        putCallList.add(new Pair<>(printValue, "putch"));
                     } else { // formatStringChar.get(i) == 'd'
-                        this.builder.addCallLibFunction("putint", new ArrayList<>(Collections.singletonList(printValue)), nowBlock);
+                        putCallList.add(new Pair<>(printValue, "putint"));
                     }
                 } else {
                     bufferStringChar.add(formatStringChar.get(i));
@@ -778,15 +779,21 @@ public class Visitor {
         }
         if (bufferStringChar.size() > 1) {
             // Translator会自动补充一个0在结尾
-            this.builder.addCallLibFunction("putstr",
-                    new ArrayList<>(Collections.singletonList(this.builder.loadConstStringPointer(bufferStringChar, nowBlock))),
-                    nowBlock);
+            putCallList.add(new Pair<>(this.builder.getConstStringPointer(bufferStringChar), "putstr"));
         }
         // 每行只报一个错误由errorTable保证
         if (expIndex < stmt_printf.exps().size()) {
             this.errorTable.addErrorRecord(stmt_printf.printfToken().line(), ErrorType.PRINTF_RPARAMS_NUM_MISMATCH);
         }
         // MAYBE 由于不存在恶意换行，此处不分析剩余Exp的内容
+        for (Pair<IRValue<?>, String> putCall : putCallList) {
+            if (putCall.key() instanceof IRGlobalVariable constString) {
+                IRValue<?> constStringPointer = this.builder.addGetArrayElementPointer(constString, ConstantInt.ZERO_I32(), nowBlock);
+                this.builder.addCallLibFunction(putCall.value(), new ArrayList<>(Collections.singletonList(constStringPointer)), nowBlock);
+            } else {
+                this.builder.addCallLibFunction(putCall.value(), new ArrayList<>(Collections.singletonList(putCall.key())), nowBlock);
+            }
+        }
     }
 
     // Stmt → 'if' '(' Cond ')' Stmt [ 'else' Stmt ]

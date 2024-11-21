@@ -216,6 +216,24 @@ class Builder {
         return allocaInst;
     }
 
+    IRGlobalVariable getConstStringPointer(ArrayList<Integer> strChar) {
+        StringBuilder sb = new StringBuilder();
+        strChar.forEach(c -> sb.append((char) c.byteValue()));
+        String str = sb.toString();
+        if (!this.constStr.containsKey(str)) {
+            ArrayType constStrArrayType = new ArrayType(IRType.getInt8Ty(), strChar.size());
+            ConstantArray constStrArray = new ConstantArray(constStrArrayType,
+                    new ArrayList<>(strChar.stream().map(c -> new ConstantInt(IRType.getInt8Ty(), c)).toList()));
+            IRGlobalVariable constStrGlobalVariable =
+                    new IRGlobalVariable(".str." + this.constStr.size(), constStrArrayType,
+                            true, true,
+                            constStrArray);
+            irModule.appendGlobalVariables(constStrGlobalVariable);
+            this.constStr.put(str, constStrGlobalVariable);
+        }
+        return this.constStr.get(str);
+    }
+
     GetElementPtrInst addGetArrayElementPointer(IRValue<PointerType> pointer, IRValue<IntegerType> index, IRBasicBlock insertBlock) {
         // 在SysY中，只有一维数组，访问时就分为两种情况
         if (pointer.type().referenceType() instanceof ArrayType) {
@@ -253,24 +271,6 @@ class Builder {
 
     LoadInst loadLVal(IRValue<PointerType> lValAddress, IRBasicBlock insertBlock) {
         return new LoadInst(lValAddress, insertBlock);
-    }
-
-    GetElementPtrInst loadConstStringPointer(ArrayList<Integer> strChar, IRBasicBlock insertBlock) {
-        StringBuilder sb = new StringBuilder();
-        strChar.forEach(c -> sb.append((char) c.byteValue()));
-        String str = sb.toString();
-        if (!this.constStr.containsKey(str)) {
-            ArrayType constStrArrayType = new ArrayType(IRType.getInt8Ty(), strChar.size());
-            ConstantArray constStrArray = new ConstantArray(constStrArrayType,
-                    new ArrayList<>(strChar.stream().map(c -> new ConstantInt(IRType.getInt8Ty(), c)).toList()));
-            IRGlobalVariable constStrGlobalVariable =
-                    new IRGlobalVariable(".str." + this.constStr.size(), constStrArrayType,
-                            true, true,
-                            constStrArray);
-            irModule.appendGlobalVariables(constStrGlobalVariable);
-            this.constStr.put(str, constStrGlobalVariable);
-        }
-        return this.addGetArrayElementPointer(this.constStr.get(str), ConstantInt.ZERO_I32(), insertBlock);
     }
 
     BinaryOperator addBinaryOperation(Token symbol, IRValue<IntegerType> value1, IRValue<IntegerType> value2, IRBasicBlock insertBlock) {
