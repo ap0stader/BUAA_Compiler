@@ -1,9 +1,9 @@
 package util;
 
 import IR.IRValue;
-import IR.value.Function;
+import IR.value.IRFunction;
 import IR.value.GlobalVariable;
-import IR.value.constant.Constant;
+import IR.value.constant.IRConstant;
 
 import java.util.HashMap;
 
@@ -17,9 +17,9 @@ public class LLVMStrRegCounter {
     }
 
     public String get(IRValue<?> value) {
-        if (value instanceof GlobalVariable || value instanceof Function) {
+        if (value instanceof GlobalVariable || value instanceof IRFunction) {
             return "@" + value.name();
-        } else if (value instanceof Constant<?> constant) {
+        } else if (value instanceof IRConstant<?> constant) {
             return constant.llvmStr();
         } else {
             // 由于实际上在后续才输出的内容先申请到了寄存器，故临时加入T跳过LLVM的检测

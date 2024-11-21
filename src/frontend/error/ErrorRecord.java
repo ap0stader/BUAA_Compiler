@@ -1,5 +1,7 @@
 package frontend.error;
 
+import frontend.type.ErrorType;
+
 public record ErrorRecord(int line, ErrorType type, String info) implements Comparable<ErrorRecord> {
     @Override
     public boolean equals(Object obj) {

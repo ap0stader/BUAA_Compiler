@@ -3,33 +3,33 @@ package IR.value;
 import IR.IRValue;
 import IR.type.IRType;
 import IR.type.LabelType;
-import IR.value.instruction.Instruction;
+import IR.value.instruction.IRInstruction;
 import util.LLVMStrRegCounter;
 
 import java.util.LinkedList;
 
-public class BasicBlock extends IRValue<LabelType> {
+public class IRBasicBlock extends IRValue<LabelType> {
     // TODO 根据实际需要修改使用的类，必要时自己构建
-    private final LinkedList<Instruction<?>> instructions;
-    private final Function parent;
+    private final LinkedList<IRInstruction<?>> instructions;
+    private final IRFunction parent;
 
-    public BasicBlock(Function parent) {
+    public IRBasicBlock(IRFunction parent) {
         super(IRType.getLabelTy());
         this.instructions = new LinkedList<>();
         this.parent = parent;
     }
 
-    public void appendInstruction(Instruction<?> instruction) {
+    public void appendInstruction(IRInstruction<?> instruction) {
         this.instructions.add(instruction);
     }
 
-    public Function parent() {
+    public IRFunction parent() {
         return parent;
     }
 
     public String llvmStr(LLVMStrRegCounter counter) {
         StringBuilder sb = new StringBuilder();
-        for (Instruction<?> instruction : instructions) {
+        for (IRInstruction<?> instruction : instructions) {
             sb.append("    ");
             sb.append(instruction.llvmStr(counter));
             sb.append("\n");

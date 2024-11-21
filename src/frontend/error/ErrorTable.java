@@ -1,5 +1,7 @@
 package frontend.error;
 
+import frontend.type.ErrorType;
+
 import java.util.TreeSet;
 
 public class ErrorTable {

@@ -2,18 +2,18 @@ package IR.value.instruction;
 
 import IR.IRValue;
 import IR.type.*;
-import IR.value.BasicBlock;
+import IR.value.IRBasicBlock;
 import util.LLVMStrRegCounter;
 
 import java.util.ArrayList;
 
-public class GetElementPtrInst extends Instruction<PointerType> {
+public class GetElementPtrInst extends IRInstruction<PointerType> {
     // 在SysY中，该指令仅在访问数组（包括参数中退化为指针的数组）发挥作用，同时偏移值仅支持i32类型
     // 需要注意的是，该指令仅用于获取地址，不获取具体的值。
 
     private final IRType basisType;
 
-    public GetElementPtrInst(IRValue<PointerType> pointerOperand, ArrayList<IRValue<IntegerType>> indexList, BasicBlock parent) {
+    public GetElementPtrInst(IRValue<PointerType> pointerOperand, ArrayList<IRValue<IntegerType>> indexList, IRBasicBlock parent) {
         super(calcResultElementType(pointerOperand, indexList), parent);
         this.addOperand(pointerOperand);
         this.basisType = pointerOperand.type().referenceType();

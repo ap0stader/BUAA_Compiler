@@ -3,7 +3,7 @@ package IR.value.constant;
 import IR.type.IRType;
 import IR.type.IntegerType;
 
-public class ConstantInt extends Constant<IntegerType> {
+public class ConstantInt extends IRConstant<IntegerType> {
     private final Integer constantValue;
 
     // 在多处需要使用到i32类型的0

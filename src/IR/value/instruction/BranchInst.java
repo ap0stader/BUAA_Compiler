@@ -4,16 +4,16 @@ import IR.IRValue;
 import IR.type.IRType;
 import IR.type.IntegerType;
 import IR.type.VoidType;
-import IR.value.BasicBlock;
+import IR.value.IRBasicBlock;
 import util.LLVMStrRegCounter;
 
 import java.util.Objects;
 
 // br i1 <cond>, label <iftrue>, label <iffalse>
 // br label <dest>
-public class BranchInst extends Instruction<VoidType> {
+public class BranchInst extends IRInstruction<VoidType> {
     // 有条件跳转
-    public BranchInst(IRValue<IntegerType> cond, BasicBlock ifTrue, BasicBlock ifFalse, BasicBlock parent) {
+    public BranchInst(IRValue<IntegerType> cond, IRBasicBlock ifTrue, IRBasicBlock ifFalse, IRBasicBlock parent) {
         super(IRType.getVoidTy(), parent);
         if (!IRType.isEqual(cond.type(), IRType.getInt1Ty())) {
             throw new RuntimeException("When BranchInst(), the type of cond is not i1. Got " + cond.type() + " value " + cond);
@@ -32,7 +32,7 @@ public class BranchInst extends Instruction<VoidType> {
     }
 
     // 无条件跳转
-    public BranchInst(BasicBlock dest, BasicBlock parent) {
+    public BranchInst(IRBasicBlock dest, IRBasicBlock parent) {
         super(IRType.getVoidTy(), parent);
         if (!Objects.equals(dest.parent(), parent.parent())) {
             throw new RuntimeException("When BranchInst(), the parent of dest is not the function where the instruction in. " +

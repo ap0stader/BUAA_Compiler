@@ -20,14 +20,21 @@ public class Config {
     // 生成LLVM IR时，是否禁止对长数组进行优化
     public static final boolean disableLongArrayOptimization = false;
 
+    // 是否开启中端优化
+    public static boolean enableMiddleOptimization = false;
+
     /* 总共进行阶段数
        ==== 前端 ====
        1. 词法分析，生成TokenStream
        2. 语法分析，生成CompUnit(AST)
        3. 语义分析，生成IRModule
+       ==== 中端 ====
+       4. 中端优化
+       ==== 后端 ====
+       5. 生成目标代码
      */
-    public final static int maxStages = 4;
-    public static int stages = 4;
+    public final static int maxStages = 5;
+    public static int stages = 5;
 
     // 词法分析后，是否输出TokenStream、输出的文件名、是否输出行号等信息
     public static boolean dumpTokenStream = false;
@@ -44,8 +51,16 @@ public class Config {
     public static boolean dumpSymbolTableDetail = false;
 
     // 中端优化前，是否输出优化前的LLVM
-    public static boolean dumpLLVMBeforeOptimized = true;
-    public static String dumpLLVMBeforeOptimizedFileName = "llvm_ir.txt";
+    public static boolean dumpLLVMBeforeOptimized = false;
+    public static String dumpLLVMBeforeOptimizedFileName = "llvm_ir_before.txt";
+
+    // 中端优化后，是否输出优化后的LLVM
+    public static boolean dumpLLVMAfterOptimized = false;
+    public static String dumpLLVMAfterOptimizedFileName = "llvm_ir.txt";
+
+    // 生成目标代码后，是否输出目标代码
+    public static boolean dumpMIPSAssembly = true;
+    public static String dumpMIPSAssemblyFileName = "mips.txt";
 
     // 通过传递的参数设置全局配置
     public static void setConfigByArgs(String[] args) {
@@ -74,6 +89,10 @@ public class Config {
                     dumpSymbolTableDetail = true;
                     dumpLLVMBeforeOptimized = true;
                     dumpLLVMBeforeOptimizedFileName = "dump_LLVMBeforeOptimized.txt";
+                    dumpLLVMAfterOptimized = true;
+                    dumpLLVMAfterOptimizedFileName = "dump_LLVMAfterOptimized.txt";
+                    dumpMIPSAssembly = true;
+                    dumpMIPSAssemblyFileName = "dump_MIPSAssembly.txt";
                 }
                 // Lexical Analysis: -L
                 case "-L" -> {
@@ -93,7 +112,25 @@ public class Config {
                 // Code Generation(LLVM IR): -L
                 case "-I" -> {
                     stages = 4;
+                    dumpLLVMBeforeOptimized = false;
+                    enableMiddleOptimization = false;
+                    dumpLLVMAfterOptimized = true;
+                }
+                // Code Generation(MIPS): -M
+                case "-M" -> {
+                    stages = 5;
+                    dumpLLVMBeforeOptimized = false;
+                    enableMiddleOptimization = false;
+                    dumpLLVMAfterOptimized = true;
+                    dumpMIPSAssembly = true;
+                }
+                // Code Generation(MIPS, optimized): -O
+                case "-O" -> {
+                    stages = 5;
                     dumpLLVMBeforeOptimized = true;
+                    enableMiddleOptimization = true;
+                    dumpLLVMAfterOptimized = true;
+                    dumpMIPSAssembly = true;
                 }
             }
         }

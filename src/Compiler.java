@@ -1,4 +1,6 @@
 import IR.IRModule;
+import backend.Generator;
+import backend.target.TargetModule;
 import frontend.visitor.Visitor;
 import global.Config;
 import frontend.lexer.TokenStream;
@@ -22,11 +24,10 @@ public class Compiler {
             IRModule irModule = frontend(sourceCode);
             // 关闭打开的源代码文件
             sourceCode.close();
-            // 优化前的LLVM
-            if (Config.dumpLLVMBeforeOptimized) {
-                DumpLLVM.dump(irModule);
-            }
-            tryContinue(4);
+            // 中端：优化IRModule
+            middle(irModule);
+            // 后端：生成目标代码
+            backend(irModule);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -68,6 +69,33 @@ public class Compiler {
             exit(1);
         }
         return irModule;
+    }
+
+    // ==== 中端 ====
+    private static void middle(IRModule irModule) throws IOException {
+        // 优化前的LLVM
+        if (Config.dumpLLVMBeforeOptimized) {
+            DumpLLVM.dump(irModule, Config.dumpLLVMBeforeOptimizedFileName);
+        }
+        // 中端优化
+        if (Config.enableMiddleOptimization) {
+
+        }
+        // 优化后的LLVM
+        if (Config.dumpLLVMAfterOptimized) {
+            DumpLLVM.dump(irModule, Config.dumpLLVMAfterOptimizedFileName);
+        }
+        tryContinue(4);
+    }
+
+    // ==== 后端 ====
+    private static void backend(IRModule irModule) throws IOException {
+        Generator generator = new Generator(irModule);
+        TargetModule targetModule = generator.generateTargetModule();
+        if (Config.dumpMIPSAssembly) {
+            DumpMIPSAssembly.dump(targetModule);
+        }
+        tryContinue(5);
     }
 
     private static void errorHandle(int nowStage, ErrorTable errorTable) throws IOException {

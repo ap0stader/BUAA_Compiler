@@ -21,11 +21,11 @@ class Builder {
     private final IRModule irModule;
 
     // 库函数
-    private final HashMap<String, Function> libFunctions;
+    private final HashMap<String, IRFunction> libFunctions;
     // 静态字符串
     private final HashMap<String, GlobalVariable> constStr;
     // 当前访问的函数
-    private Function nowFunction = null;
+    private IRFunction nowFunction = null;
 
     Builder(IRModule irModule) {
         this.irModule = irModule;
@@ -35,23 +35,23 @@ class Builder {
         getLibFunctions().forEach((name, function) -> irModule.appendFunctions(function));
     }
 
-    private static HashMap<String, Function> getLibFunctions() {
-        HashMap<String, Function> libFunctions = new HashMap<>();
+    private static HashMap<String, IRFunction> getLibFunctions() {
+        HashMap<String, IRFunction> libFunctions = new HashMap<>();
         // 库函数均为声明，无需给出Argument
         ArrayList<IRType> parameters;
         // declare i32 @getint()      读取一个整数
-        libFunctions.put("getint", new Function("getint", new FunctionType(IRType.getInt32Ty(), new ArrayList<>())));
+        libFunctions.put("getint", new IRFunction("getint", new FunctionType(IRType.getInt32Ty(), new ArrayList<>())));
         // declare i32 @getchar()     读取一个字符
-        libFunctions.put("getchar", new Function("getchar", new FunctionType(IRType.getInt32Ty(), new ArrayList<>())));
+        libFunctions.put("getchar", new IRFunction("getchar", new FunctionType(IRType.getInt32Ty(), new ArrayList<>())));
         // declare void @putint(i32)  输出一个整数
         parameters = new ArrayList<>(Collections.singletonList(IRType.getInt32Ty()));
-        libFunctions.put("putint", new Function("putint", new FunctionType(IRType.getVoidTy(), parameters)));
+        libFunctions.put("putint", new IRFunction("putint", new FunctionType(IRType.getVoidTy(), parameters)));
         // declare void @putch(i32)   输出一个字符
         parameters = new ArrayList<>(Collections.singletonList(IRType.getInt32Ty()));
-        libFunctions.put("putch", new Function("putch", new FunctionType(IRType.getVoidTy(), parameters)));
+        libFunctions.put("putch", new IRFunction("putch", new FunctionType(IRType.getVoidTy(), parameters)));
         // declare void @putstr(i8*)  输出字符串
         parameters = new ArrayList<>(Collections.singletonList(new PointerType(IRType.getInt8Ty(), false)));
-        libFunctions.put("putstr", new Function("putstr", new FunctionType(IRType.getVoidTy(), parameters)));
+        libFunctions.put("putstr", new IRFunction("putstr", new FunctionType(IRType.getVoidTy(), parameters)));
         return libFunctions;
     }
 
@@ -62,7 +62,7 @@ class Builder {
                     true, false,
                     new ConstantInt(constSymbolType, constSymbol.initVals().get(0)));
         } else if (constSymbol.type() instanceof ArrayType constSymbolType) {
-            Pair<IRType, Constant<?>> optimizedArray = optimizeGlobalArray(constSymbolType, constSymbol.initVals());
+            Pair<IRType, IRConstant<?>> optimizedArray = optimizeGlobalArray(constSymbolType, constSymbol.initVals());
             globalConstant = new GlobalVariable(constSymbol.name(), optimizedArray.key(),
                     true, false,
                     optimizedArray.value());
@@ -81,7 +81,7 @@ class Builder {
                     false, false,
                     new ConstantInt(varSymbolType, initVals.get(0)));
         } else if (varSymbol.type() instanceof ArrayType varSymbolType) {
-            Pair<IRType, Constant<?>> optimizedArray = optimizeGlobalArray(varSymbolType, initVals);
+            Pair<IRType, IRConstant<?>> optimizedArray = optimizeGlobalArray(varSymbolType, initVals);
             globalConstant = new GlobalVariable(varSymbol.name(), optimizedArray.key(),
                     false, false,
                     optimizedArray.value());
@@ -93,7 +93,7 @@ class Builder {
         return globalConstant;
     }
 
-    private static Pair<IRType, Constant<?>> optimizeGlobalArray(ArrayType originType, ArrayList<Integer> originInitVals) {
+    private static Pair<IRType, IRConstant<?>> optimizeGlobalArray(ArrayType originType, ArrayList<Integer> originInitVals) {
         // 寻找最后一个不是0的数字
         int lastNotZero = originInitVals.size() - 1;
         while (lastNotZero >= 0 && originInitVals.get(lastNotZero) == 0) {
@@ -104,7 +104,7 @@ class Builder {
             return new Pair<>(originType, new ConstantAggregateZero(originType));
         } else if (Config.disableLongArrayOptimization || originInitVals.size() - 1 - lastNotZero < 10) {
             // 如果不对长数组做优化或者结尾非0的数据不足10个，那么保留原样
-            ArrayList<Constant<?>> constantValues = new ArrayList<>(convertInitValIntegerArray(originType, originInitVals, -1));
+            ArrayList<IRConstant<?>> constantValues = new ArrayList<>(convertInitValIntegerArray(originType, originInitVals, -1));
             return new Pair<>(originType, new ConstantArray(originType, constantValues));
         } else {
             // 如果结尾有较多的0，转换为结构体使用
@@ -119,7 +119,7 @@ class Builder {
             // 结构体类型
             StructType structType = new StructType(structMemberTypes);
             // 有数据的部分的数据
-            ArrayList<Constant<?>> constantValues = new ArrayList<>(convertInitValIntegerArray(originType, originInitVals, lastNotZero));
+            ArrayList<IRConstant<?>> constantValues = new ArrayList<>(convertInitValIntegerArray(originType, originInitVals, lastNotZero));
             // 均为0的部分使用zeroinitializer
             constantValues.add(new ConstantAggregateZero(zeroPartType));
             return new Pair<>(structType, new ConstantStruct(structType, constantValues));
@@ -141,8 +141,8 @@ class Builder {
         return constantValues;
     }
 
-    Function addFunction(FuncSymbol funcSymbol, ArrayList<Argument> arguments) {
-        Function function = new Function(funcSymbol.name(), funcSymbol.type(), arguments);
+    IRFunction addFunction(FuncSymbol funcSymbol, ArrayList<Argument> arguments) {
+        IRFunction function = new IRFunction(funcSymbol.name(), funcSymbol.type(), arguments);
         irModule.appendFunctions(function);
         this.nowFunction = function;
         return function;
@@ -150,17 +150,17 @@ class Builder {
 
     void addMainFunction() {
         // 主函数返回值为0，没有参数
-        Function mainFunction = new Function("main", new FunctionType(IRType.getInt32Ty(), new ArrayList<>()),
+        IRFunction mainFunction = new IRFunction("main", new FunctionType(IRType.getInt32Ty(), new ArrayList<>()),
                 new ArrayList<>());
         irModule.appendFunctions(mainFunction);
         this.nowFunction = mainFunction;
     }
 
-    BasicBlock newBasicBlock() {
-        return new BasicBlock(this.nowFunction);
+    IRBasicBlock newBasicBlock() {
+        return new IRBasicBlock(this.nowFunction);
     }
 
-    void appendBasicBlock(BasicBlock basicBlock) {
+    void appendBasicBlock(IRBasicBlock basicBlock) {
         if (Objects.equals(this.nowFunction, basicBlock.parent())) {
             this.nowFunction.appendBasicBlock(basicBlock);
         } else {
@@ -169,13 +169,13 @@ class Builder {
         }
     }
 
-    AllocaInst addArgument(Argument argument, BasicBlock entryBlock) {
+    AllocaInst addArgument(Argument argument, IRBasicBlock entryBlock) {
         AllocaInst allocaInst = new AllocaInst(argument.type(), entryBlock);
         new StoreInst(argument, allocaInst, entryBlock);
         return allocaInst;
     }
 
-    AllocaInst addLocalConstant(ConstSymbol constSymbol, BasicBlock entryBlock) {
+    AllocaInst addLocalConstant(ConstSymbol constSymbol, IRBasicBlock entryBlock) {
         AllocaInst allocaInst = new AllocaInst(constSymbol.type(), entryBlock);
         if (constSymbol.type() instanceof IntegerType constSymbolType) {
             new StoreInst(new ConstantInt(constSymbolType, constSymbol.initVals().get(0)), allocaInst, entryBlock);
@@ -195,7 +195,7 @@ class Builder {
     }
 
     AllocaInst addLocalVariable(VarSymbol varSymbol, ArrayList<IRValue<IntegerType>> initVals,
-                                BasicBlock entryBlock, BasicBlock insertBlock) {
+                                IRBasicBlock entryBlock, IRBasicBlock insertBlock) {
         AllocaInst allocaInst = new AllocaInst(varSymbol.type(), entryBlock);
         if (initVals != null) {
             if (varSymbol.type() instanceof IntegerType) {
@@ -216,7 +216,7 @@ class Builder {
         return allocaInst;
     }
 
-    GetElementPtrInst addGetArrayElementPointer(IRValue<PointerType> pointer, IRValue<IntegerType> index, BasicBlock insertBlock) {
+    GetElementPtrInst addGetArrayElementPointer(IRValue<PointerType> pointer, IRValue<IntegerType> index, IRBasicBlock insertBlock) {
         // 在SysY中，只有一维数组，访问时就分为两种情况
         if (pointer.type().referenceType() instanceof ArrayType) {
             // ArrayType是常量和变量的
@@ -232,7 +232,7 @@ class Builder {
         }
     }
 
-    void storeLVal(IRValue<IntegerType> value, IRValue<PointerType> lValAddress, BasicBlock insertBlock) {
+    void storeLVal(IRValue<IntegerType> value, IRValue<PointerType> lValAddress, IRBasicBlock insertBlock) {
         // 在赋值的地址不为空的时候才创建StoreInst
         if (lValAddress != null) {
             if (lValAddress.type().referenceType() instanceof IntegerType lValType) {
@@ -251,11 +251,11 @@ class Builder {
         }
     }
 
-    LoadInst loadLVal(IRValue<PointerType> lValAddress, BasicBlock insertBlock) {
+    LoadInst loadLVal(IRValue<PointerType> lValAddress, IRBasicBlock insertBlock) {
         return new LoadInst(lValAddress, insertBlock);
     }
 
-    GetElementPtrInst loadConstStringPointer(ArrayList<Integer> strChar, BasicBlock insertBlock) {
+    GetElementPtrInst loadConstStringPointer(ArrayList<Integer> strChar, IRBasicBlock insertBlock) {
         StringBuilder sb = new StringBuilder();
         strChar.forEach(c -> sb.append((char) c.byteValue()));
         String str = sb.toString();
@@ -273,7 +273,7 @@ class Builder {
         return this.addGetArrayElementPointer(this.constStr.get(str), ConstantInt.ZERO_I32(), insertBlock);
     }
 
-    BinaryOperator addBinaryOperation(Token symbol, IRValue<IntegerType> value1, IRValue<IntegerType> value2, BasicBlock insertBlock) {
+    BinaryOperator addBinaryOperation(Token symbol, IRValue<IntegerType> value1, IRValue<IntegerType> value2, IRBasicBlock insertBlock) {
         // 自动处理类型转换
         if (value1.type().size() < IRType.getInt32Ty().size()) {
             value1 = this.addExtendOperation(value1, IRType.getInt32Ty(), insertBlock);
@@ -292,12 +292,12 @@ class Builder {
         };
     }
 
-    CallInst addCallFunction(Function function, ArrayList<IRValue<?>> arguments, BasicBlock insertBlock) {
+    CallInst addCallFunction(IRFunction function, ArrayList<IRValue<?>> arguments, IRBasicBlock insertBlock) {
         // addCallFunction不处理对于函数不合法的调用，由Visitor予以检查
         return new CallInst(function, arguments, insertBlock);
     }
 
-    CallInst addCallLibFunction(String functionName, ArrayList<IRValue<?>> arguments, BasicBlock insertBlock) {
+    CallInst addCallLibFunction(String functionName, ArrayList<IRValue<?>> arguments, IRBasicBlock insertBlock) {
         // addCallLibFunction不处理对于函数不合法的调用，由Visitor予以检查
         if (this.libFunctions.containsKey(functionName)) {
             return new CallInst(this.libFunctions.get(functionName), arguments, insertBlock);
@@ -306,19 +306,19 @@ class Builder {
         }
     }
 
-    CastInst.TruncInst addTruncOperation(IRValue<IntegerType> src, IntegerType destType, BasicBlock insertBlock) {
+    CastInst.TruncInst addTruncOperation(IRValue<IntegerType> src, IntegerType destType, IRBasicBlock insertBlock) {
         return new CastInst.TruncInst(src, destType, insertBlock);
     }
 
-    CastInst.ZExtInst addExtendOperation(IRValue<IntegerType> src, IntegerType destType, BasicBlock insertBlock) {
+    CastInst.ZExtInst addExtendOperation(IRValue<IntegerType> src, IntegerType destType, IRBasicBlock insertBlock) {
         return new CastInst.ZExtInst(src, destType, insertBlock);
     }
 
-    <D extends IRType> CastInst.BitCastInst<D> addBitCastOperation(IRValue<?> src, D destType, BasicBlock insertBlock) {
+    <D extends IRType> CastInst.BitCastInst<D> addBitCastOperation(IRValue<?> src, D destType, IRBasicBlock insertBlock) {
         return new CastInst.BitCastInst<>(src, destType, insertBlock);
     }
 
-    IcmpInst addIcmpOperation(Token symbol, IRValue<IntegerType> value1, IRValue<IntegerType> value2, BasicBlock insertBlock) {
+    IcmpInst addIcmpOperation(Token symbol, IRValue<IntegerType> value1, IRValue<IntegerType> value2, IRBasicBlock insertBlock) {
         if (value2 != null) {
             // 自动处理类型转换
             if (value1.type().size() < value2.type().size()) {
@@ -349,7 +349,7 @@ class Builder {
         }
     }
 
-    void addReturnInstruction(IRValue<IntegerType> returnValue, IRType returnType, BasicBlock insertBlock) {
+    void addReturnInstruction(IRValue<IntegerType> returnValue, IRType returnType, IRBasicBlock insertBlock) {
         if (returnValue != null && returnType instanceof IntegerType returnIntegerType) {
             if (returnValue.type().size() < returnIntegerType.size()) {
                 // 短值向长值
@@ -362,7 +362,7 @@ class Builder {
         new ReturnInst(returnValue, insertBlock);
     }
 
-    void addBranchInstruction(IRValue<IntegerType> cond, BasicBlock trueBlock, BasicBlock falseBlock, BasicBlock insertBlock) {
+    void addBranchInstruction(IRValue<IntegerType> cond, IRBasicBlock trueBlock, IRBasicBlock falseBlock, IRBasicBlock insertBlock) {
         if (cond == null && falseBlock == null) {
             new BranchInst(trueBlock, insertBlock);
         } else if (cond == null || falseBlock == null) {

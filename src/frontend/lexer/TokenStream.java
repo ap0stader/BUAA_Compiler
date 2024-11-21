@@ -3,7 +3,7 @@ package frontend.lexer;
 import global.Config;
 import frontend.type.TokenType;
 import frontend.error.ErrorTable;
-import frontend.error.ErrorType;
+import frontend.type.ErrorType;
 
 import java.util.ArrayList;
 import java.util.Arrays;

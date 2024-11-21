@@ -3,10 +3,10 @@ package frontend.visitor;
 import IR.IRModule;
 import IR.IRValue;
 import IR.type.*;
-import IR.value.BasicBlock;
+import IR.value.IRBasicBlock;
 import IR.value.constant.ConstantInt;
 import frontend.error.ErrorTable;
-import frontend.error.ErrorType;
+import frontend.type.ErrorType;
 import frontend.lexer.Token;
 import frontend.parser.CompUnit;
 import frontend.parser.declaration.*;
@@ -31,8 +31,8 @@ public class Visitor {
     private final SymbolTable symbolTable;
     private final Calculator calculator;
     private final Builder builder;
-    private final LinkedList<BasicBlock> forEndBlocks;
-    private final LinkedList<BasicBlock> forTailBlocks;
+    private final LinkedList<IRBasicBlock> forEndBlocks;
+    private final LinkedList<IRBasicBlock> forTailBlocks;
 
     private final ErrorTable errorTable;
 
@@ -271,15 +271,15 @@ public class Visitor {
     // BlockItem → Decl | Stmt
     private void visitFunctionBlock(ArrayList<ArgSymbol> funcFParams, Block block) {
         // entryBlock用来进行各类的变量定义工作
-        BasicBlock entryBlock = this.builder.newBasicBlock();
+        IRBasicBlock entryBlock = this.builder.newBasicBlock();
         this.builder.appendBasicBlock(entryBlock);
         // 给参数符号对应的IRValue
         for (ArgSymbol argSymbol : funcFParams) {
             argSymbol.setIRValue(this.builder.addArgument(argSymbol.argument(), entryBlock));
         }
         // startBlock为代码正式开始的地方
-        BasicBlock startBlock = this.builder.newBasicBlock();
-        BasicBlock nowBlock = startBlock;
+        IRBasicBlock startBlock = this.builder.newBasicBlock();
+        IRBasicBlock nowBlock = startBlock;
         this.builder.appendBasicBlock(nowBlock);
         for (BlockItem blockItem : block.blockItems()) {
             if (blockItem instanceof Decl decl) {
@@ -310,7 +310,7 @@ public class Visitor {
     }
 
     // Decl → ConstDecl | VarDecl
-    private void visitLocalDecl(Decl decl, BasicBlock entryBlock, BasicBlock nowBlock) {
+    private void visitLocalDecl(Decl decl, IRBasicBlock entryBlock, IRBasicBlock nowBlock) {
         if (decl instanceof ConstDecl constDecl) {
             ArrayList<ConstSymbol> constSymbols = this.visitConstDecl(constDecl);
             for (ConstSymbol constSymbol : constSymbols) {
@@ -326,7 +326,7 @@ public class Visitor {
     // VarDecl → BType VarDef { ',' VarDef } ';'
     // BType → 'int' | 'char'
     // VarDef → Ident [ '[' ConstExp ']' ] [ '=' InitVal ]
-    private void visitLocalVarDecl(VarDecl varDecl, BasicBlock entryBlock, BasicBlock nowBlock) {
+    private void visitLocalVarDecl(VarDecl varDecl, IRBasicBlock entryBlock, IRBasicBlock nowBlock) {
         Token bType = varDecl.typeToken();
         // visitVarDef()
         for (VarDef varDef : varDecl.varDefs()) {
@@ -389,12 +389,12 @@ public class Visitor {
     }
 
     // Exp → AddExp
-    private IRValue<?> visitExp(Exp exp, BasicBlock insertBlock) {
+    private IRValue<?> visitExp(Exp exp, IRBasicBlock insertBlock) {
         return this.visitAddExp(exp.addExp(), insertBlock);
     }
 
     // AddExp → MulExp | AddExp ('+' | '−') MulExp
-    private IRValue<?> visitAddExp(AddExp addExp, BasicBlock insertBlock) {
+    private IRValue<?> visitAddExp(AddExp addExp, IRBasicBlock insertBlock) {
         IRValue<?> resultValue = this.visitMulExp(addExp.mulExps().get(0), insertBlock);
         if (addExp.symbols().isEmpty()) {
             return resultValue;
@@ -411,7 +411,7 @@ public class Visitor {
     }
 
     // MulExp → UnaryExp | MulExp ('*' | '/' | '%') UnaryExp
-    private IRValue<?> visitMulExp(MulExp mulExp, BasicBlock insertBlock) {
+    private IRValue<?> visitMulExp(MulExp mulExp, IRBasicBlock insertBlock) {
         IRValue<?> resultValue = this.visitUnaryExp(mulExp.unaryExps().get(0), insertBlock);
         if (mulExp.symbols().isEmpty()) {
             return resultValue;
@@ -429,7 +429,7 @@ public class Visitor {
 
     // UnaryExp → PrimaryExp | Ident '(' [FuncRParams] ')' | UnaryOp UnaryExp
     // UnaryOp → '+' | '−' | '!'
-    private IRValue<?> visitUnaryExp(UnaryExp unaryExp, BasicBlock insertBlock) {
+    private IRValue<?> visitUnaryExp(UnaryExp unaryExp, IRBasicBlock insertBlock) {
         UnaryExp.UnaryExpOption unaryExpExtract = unaryExp.extract();
         if (unaryExpExtract instanceof UnaryExp.UnaryExp_UnaryOp unaryExp_unaryOp) {
             if (unaryExp_unaryOp.unaryOp().symbol().type() == TokenType.PLUS) {
@@ -470,7 +470,7 @@ public class Visitor {
 
     // FuncRParams → Exp { ',' Exp }
     private ArrayList<IRValue<?>> visitFuncRParams(FuncRParams funcRParams,
-                                                   Token indentFuncCall, FuncSymbol funcSymbol, BasicBlock insertBlock) {
+                                                   Token indentFuncCall, FuncSymbol funcSymbol, IRBasicBlock insertBlock) {
         // 将函数的参数解析为对应IRValue，同时检查函数的参数类型是否合法
         ArrayList<IRType> parametersType = funcSymbol.type().parametersType();
         // 需要判断是否有funcRParams
@@ -528,7 +528,7 @@ public class Visitor {
     // PrimaryExp → '(' Exp ')' | LVal | Number | Character
     // Number → IntConst
     // Character → CharConst
-    private IRValue<?> visitPrimaryExp(PrimaryExp primaryExp, BasicBlock insertBlock) {
+    private IRValue<?> visitPrimaryExp(PrimaryExp primaryExp, IRBasicBlock insertBlock) {
         PrimaryExp.PrimaryExpOption primaryExpExtract = primaryExp.extract();
         if (primaryExpExtract instanceof PrimaryExp.PrimaryExp_Exp primaryExp_exp) {
             return this.visitExp(primaryExp_exp.exp(), insertBlock);
@@ -546,7 +546,7 @@ public class Visitor {
     }
 
     // LVal → Ident ['[' Exp ']']
-    private IRValue<?> visitLValEvaluation(LVal lVal, BasicBlock insertBlock) {
+    private IRValue<?> visitLValEvaluation(LVal lVal, IRBasicBlock insertBlock) {
         // LVal做evaluation，可能的返回的类型有int, char, int*, char*
         Symbol<?, ?> searchedSymbol = this.symbolTable.searchOrError(lVal.ident());
         if (searchedSymbol instanceof FuncSymbol) {
@@ -587,7 +587,7 @@ public class Visitor {
     }
 
     // Stmt
-    private BasicBlock visitStmt(Stmt stmt, BasicBlock entryBlock, BasicBlock nowBlock) {
+    private IRBasicBlock visitStmt(Stmt stmt, IRBasicBlock entryBlock, IRBasicBlock nowBlock) {
         Stmt.StmtOption stmtOption = stmt.extract();
         if (stmtOption instanceof Stmt.Stmt_Semicn) {
             // Stmt → ';'
@@ -636,7 +636,7 @@ public class Visitor {
     }
 
     // Stmt → Block
-    private BasicBlock visitStmtBlock(Block block, BasicBlock entryBlock, BasicBlock nowBlock) {
+    private IRBasicBlock visitStmtBlock(Block block, IRBasicBlock entryBlock, IRBasicBlock nowBlock) {
         this.symbolTable.push();
         for (BlockItem blockItem : block.blockItems()) {
             if (blockItem instanceof Decl decl) {
@@ -652,7 +652,7 @@ public class Visitor {
     }
 
     // Stmt → 'return' [Exp] ';'
-    private void visitStmtReturn(Stmt.Stmt_Return stmt_return, BasicBlock nowBlock) {
+    private void visitStmtReturn(Stmt.Stmt_Return stmt_return, IRBasicBlock nowBlock) {
         if (nowBlock.parent().type().returnType() instanceof VoidType) {
             if (stmt_return.exp() != null) {
                 this.errorTable.addErrorRecord(stmt_return.returnToken().line(), ErrorType.RETURN_TYPE_MISMATCH);
@@ -673,28 +673,28 @@ public class Visitor {
     }
 
     // Stmt → LVal '=' Exp ';'
-    private void visitStmtLValAssign(Stmt.Stmt_LValAssign stmt_lValAssign, BasicBlock nowBlock) {
+    private void visitStmtLValAssign(Stmt.Stmt_LValAssign stmt_lValAssign, IRBasicBlock nowBlock) {
         // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
         IRValue<IntegerType> expValue = IRValue.cast(this.visitExp(stmt_lValAssign.exp(), nowBlock));
         this.builder.storeLVal(expValue, this.visitLValAddress(stmt_lValAssign.lVal(), nowBlock), nowBlock);
     }
 
     // Stmt → LVal '=' 'getint' '(' ')' ';'
-    private void visitStmtLValGetInt(Stmt.Stmt_LValGetint stmt_lValGetint, BasicBlock nowBlock) {
+    private void visitStmtLValGetInt(Stmt.Stmt_LValGetint stmt_lValGetint, IRBasicBlock nowBlock) {
         // CAST 库函数定义保证了正确性
         IRValue<IntegerType> getintValue = IRValue.cast(this.builder.addCallLibFunction("getint", new ArrayList<>(), nowBlock));
         this.builder.storeLVal(getintValue, this.visitLValAddress(stmt_lValGetint.lVal(), nowBlock), nowBlock);
     }
 
     // Stmt → LVal '=' 'getchar' '(' ')' ';'
-    private void visitStmtLValGetChar(Stmt.Stmt_LValGetchar stmt_lValGetchar, BasicBlock nowBlock) {
+    private void visitStmtLValGetChar(Stmt.Stmt_LValGetchar stmt_lValGetchar, IRBasicBlock nowBlock) {
         // CAST 库函数定义保证了正确性
         IRValue<IntegerType> getcharValue = IRValue.cast(this.builder.addCallLibFunction("getchar", new ArrayList<>(), nowBlock));
         this.builder.storeLVal(getcharValue, this.visitLValAddress(stmt_lValGetchar.lVal(), nowBlock), nowBlock);
     }
 
     // LVal → Ident ['[' Exp ']']
-    private IRValue<PointerType> visitLValAddress(LVal lVal, BasicBlock insertBlock) {
+    private IRValue<PointerType> visitLValAddress(LVal lVal, IRBasicBlock insertBlock) {
         // LVal做evaluation，可能的返回的类型有int, char, int*, char*
         Symbol<?, ?> searchedSymbol = this.symbolTable.searchOrError(lVal.ident());
         if (searchedSymbol instanceof FuncSymbol) {
@@ -735,7 +735,7 @@ public class Visitor {
     }
 
     // Stmt → 'printf' '(' StringConst { ',' Exp} ')' ';'
-    private void visitStmtPrintf(Stmt.Stmt_Printf stmt_printf, BasicBlock nowBlock) {
+    private void visitStmtPrintf(Stmt.Stmt_Printf stmt_printf, IRBasicBlock nowBlock) {
         ArrayList<Integer> formatStringChar = Translator.translateStringConst(stmt_printf.stringConst());
         ArrayList<Integer> bufferStringChar = new ArrayList<>();
         int expIndex = 0;
@@ -790,27 +790,27 @@ public class Visitor {
     }
 
     // Stmt → 'if' '(' Cond ')' Stmt [ 'else' Stmt ]
-    private BasicBlock visitStmtIf(Stmt.Stmt_If stmt_if, BasicBlock entryBlock, BasicBlock nowBlock) {
-        BasicBlock ifBodyBlock = this.builder.newBasicBlock();
-        BasicBlock ifEndBlock = this.builder.newBasicBlock();
+    private IRBasicBlock visitStmtIf(Stmt.Stmt_If stmt_if, IRBasicBlock entryBlock, IRBasicBlock nowBlock) {
+        IRBasicBlock ifBodyBlock = this.builder.newBasicBlock();
+        IRBasicBlock ifEndBlock = this.builder.newBasicBlock();
         if (stmt_if.elseStmt() == null) {
             // 无else语句
             this.visitCond(stmt_if.cond(), ifBodyBlock, ifEndBlock, nowBlock);
             // if语句体
             this.builder.appendBasicBlock(ifBodyBlock);
-            BasicBlock ifBodyLastBlock = this.visitStmt(stmt_if.ifStmt(), entryBlock, ifBodyBlock);
+            IRBasicBlock ifBodyLastBlock = this.visitStmt(stmt_if.ifStmt(), entryBlock, ifBodyBlock);
             this.builder.addBranchInstruction(null, ifEndBlock, null, ifBodyLastBlock);
         } else {
             // 有else语句
-            BasicBlock ifElseBlock = this.builder.newBasicBlock();
+            IRBasicBlock ifElseBlock = this.builder.newBasicBlock();
             this.visitCond(stmt_if.cond(), ifBodyBlock, ifElseBlock, nowBlock);
             // if语句体
             this.builder.appendBasicBlock(ifBodyBlock);
-            BasicBlock ifBodyLastBlock = this.visitStmt(stmt_if.ifStmt(), entryBlock, ifBodyBlock);
+            IRBasicBlock ifBodyLastBlock = this.visitStmt(stmt_if.ifStmt(), entryBlock, ifBodyBlock);
             this.builder.addBranchInstruction(null, ifEndBlock, null, ifBodyLastBlock);
             // else语句体
             this.builder.appendBasicBlock(ifElseBlock);
-            BasicBlock ifElseLastBlock = this.visitStmt(stmt_if.elseStmt(), entryBlock, ifElseBlock);
+            IRBasicBlock ifElseLastBlock = this.visitStmt(stmt_if.elseStmt(), entryBlock, ifElseBlock);
             this.builder.addBranchInstruction(null, ifEndBlock, null, ifElseLastBlock);
         }
         // if语句后
@@ -819,12 +819,12 @@ public class Visitor {
     }
 
     // Cond → LOrExp
-    private void visitCond(Cond cond, BasicBlock trueBlock, BasicBlock falseBlock, BasicBlock insertBlock) {
+    private void visitCond(Cond cond, IRBasicBlock trueBlock, IRBasicBlock falseBlock, IRBasicBlock insertBlock) {
         this.visitLOrExp(cond.lOrExp(), trueBlock, falseBlock, insertBlock);
     }
 
     // LOrExp → LAndExp | LOrExp '||' LAndExp
-    private void visitLOrExp(LOrExp lOrExp, BasicBlock trueBlock, BasicBlock falseBlock, BasicBlock insertBlock) {
+    private void visitLOrExp(LOrExp lOrExp, IRBasicBlock trueBlock, IRBasicBlock falseBlock, IRBasicBlock insertBlock) {
         for (int i = 0; i < lOrExp.lAndExps().size(); i++) {
             if (i == lOrExp.lAndExps().size() - 1) {
                 // 最后一个LAndExp，为假时要跳转到falseBlock
@@ -832,7 +832,7 @@ public class Visitor {
             } else {
                 // 不是最后一个LAndExp，为假时跳转到下一个判断条件所在的block
                 // 真则直接进入trueBlock，实现短路求值
-                BasicBlock nextBlock = this.builder.newBasicBlock();
+                IRBasicBlock nextBlock = this.builder.newBasicBlock();
                 this.visitLAndExp(lOrExp.lAndExps().get(i), trueBlock, nextBlock, insertBlock);
                 // 进入新的BasicBlock，判断下一个LAndExp
                 this.builder.appendBasicBlock(nextBlock);
@@ -842,7 +842,7 @@ public class Visitor {
     }
 
     // LAndExp → EqExp | LAndExp '&&' EqExp
-    private void visitLAndExp(LAndExp lAndExp, BasicBlock trueBlock, BasicBlock falseBlock, BasicBlock insertBlock) {
+    private void visitLAndExp(LAndExp lAndExp, IRBasicBlock trueBlock, IRBasicBlock falseBlock, IRBasicBlock insertBlock) {
         for (int i = 0; i < lAndExp.eqExps().size(); i++) {
             IRValue<IntegerType> icmpResult = this.visitEqExp(lAndExp.eqExps().get(i), insertBlock);
             if (i == lAndExp.eqExps().size() - 1) {
@@ -851,7 +851,7 @@ public class Visitor {
             } else {
                 // 不是最后一个EqExp，为真时跳转到下一个判断条件所在的block
                 // 假则直接进入falseBlock，实现短路求值
-                BasicBlock nextBlock = this.builder.newBasicBlock();
+                IRBasicBlock nextBlock = this.builder.newBasicBlock();
                 this.builder.addBranchInstruction(icmpResult, nextBlock, falseBlock, insertBlock);
                 // 进入新的BasicBlock，判断下一个EqExp
                 this.builder.appendBasicBlock(nextBlock);
@@ -861,7 +861,7 @@ public class Visitor {
     }
 
     // EqExp → RelExp | EqExp ('==' | '!=') RelExp
-    private IRValue<IntegerType> visitEqExp(EqExp eqExp, BasicBlock insertBlock) {
+    private IRValue<IntegerType> visitEqExp(EqExp eqExp, IRBasicBlock insertBlock) {
         IRValue<IntegerType> resultValue = this.visitRelExp(eqExp.relExps().get(0), insertBlock);
         // 有多个RelExp
         for (int i = 0; i < eqExp.symbols().size(); i++) {
@@ -877,7 +877,7 @@ public class Visitor {
     }
 
     // RelExp → AddExp | RelExp ('<' | '>' | '<=' | '>=') AddExp
-    private IRValue<IntegerType> visitRelExp(RelExp relExp, BasicBlock insertBlock) {
+    private IRValue<IntegerType> visitRelExp(RelExp relExp, IRBasicBlock insertBlock) {
         // CAST 并非函数调用处，SysY保证AddExp经过evaluation的类型为IntegerType
         IRValue<IntegerType> resultValue = IRValue.cast(this.visitAddExp(relExp.addExps().get(0), insertBlock));
         // 可能有多个AddExp
@@ -890,20 +890,20 @@ public class Visitor {
     }
 
     // Stmt → 'for' '(' [ForStmt] ';' [Cond] ';' [ForStmt] ')' Stmt
-    private BasicBlock visitStmtFor(Stmt.Stmt_For stmt_for, BasicBlock entryBlock, BasicBlock nowBlock) {
+    private IRBasicBlock visitStmtFor(Stmt.Stmt_For stmt_for, IRBasicBlock entryBlock, IRBasicBlock nowBlock) {
         if (stmt_for.initForStmt() != null) {
             this.visitForStmt(stmt_for.initForStmt(), nowBlock);
         }
-        BasicBlock forBodyBlock = this.builder.newBasicBlock();
-        BasicBlock forEndBlock = this.builder.newBasicBlock();
-        BasicBlock forHeadBlock;
+        IRBasicBlock forBodyBlock = this.builder.newBasicBlock();
+        IRBasicBlock forEndBlock = this.builder.newBasicBlock();
+        IRBasicBlock forHeadBlock;
         if (stmt_for.cond() == null) {
             // 无判断条件，直接进入循环体
             this.builder.addBranchInstruction(null, forBodyBlock, null, nowBlock);
             forHeadBlock = forBodyBlock;
         } else {
             // 有判断条件，进入判断条件体
-            BasicBlock forCondBlock = this.builder.newBasicBlock();
+            IRBasicBlock forCondBlock = this.builder.newBasicBlock();
             this.builder.addBranchInstruction(null, forCondBlock, null, nowBlock);
             this.visitCond(stmt_for.cond(), forBodyBlock, forEndBlock, forCondBlock);
             this.builder.appendBasicBlock(forCondBlock);
@@ -914,16 +914,16 @@ public class Visitor {
             // 无结尾ForStmt，直接回到头
             this.forTailBlocks.push(forHeadBlock);
             this.forEndBlocks.push(forEndBlock);
-            BasicBlock forBodyLastBlock = this.visitStmt(stmt_for.stmt(), entryBlock, forBodyBlock);
+            IRBasicBlock forBodyLastBlock = this.visitStmt(stmt_for.stmt(), entryBlock, forBodyBlock);
             this.builder.addBranchInstruction(null, forHeadBlock, null, forBodyLastBlock);
         } else {
             // 有结尾ForStmt，进入结尾ForStmt
-            BasicBlock forTailBlock = this.builder.newBasicBlock();
+            IRBasicBlock forTailBlock = this.builder.newBasicBlock();
             this.visitForStmt(stmt_for.tailForStmt(), forTailBlock);
             this.builder.addBranchInstruction(null, forHeadBlock, null, forTailBlock);
             this.forTailBlocks.push(forTailBlock);
             this.forEndBlocks.push(forEndBlock);
-            BasicBlock forBodyLastBlock = this.visitStmt(stmt_for.stmt(), entryBlock, forBodyBlock);
+            IRBasicBlock forBodyLastBlock = this.visitStmt(stmt_for.stmt(), entryBlock, forBodyBlock);
             this.builder.addBranchInstruction(null, forTailBlock, null, forBodyLastBlock);
             this.builder.appendBasicBlock(forTailBlock);
         }
@@ -935,7 +935,7 @@ public class Visitor {
     }
 
     // ForStmt → LVal '=' Exp
-    private void visitForStmt(ForStmt forStmt, BasicBlock nowBlock) {
+    private void visitForStmt(ForStmt forStmt, IRBasicBlock nowBlock) {
         // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
         IRValue<IntegerType> expValue = IRValue.cast(this.visitExp(forStmt.exp(), nowBlock));
         this.builder.storeLVal(expValue, this.visitLValAddress(forStmt.lVal(), nowBlock), nowBlock);

@@ -8,23 +8,23 @@ import util.LLVMStrRegCounter;
 import java.util.ArrayList;
 import java.util.LinkedList;
 
-public class Function extends IRValue<FunctionType> {
+public class IRFunction extends IRValue<FunctionType> {
     // Function是User的子类，因为Function一旦定义后其地址是一定的
     // 但是在Sysy中，Function不会与任何其他的Value构成足够称为User的关系（Argument和BasicBlock类似属于关系），故直接提升为Value的子类
 
     private final ArrayList<Argument> arguments;
     // TODO 根据实际需要修改使用的类，必要时自己构建
-    private final LinkedList<BasicBlock> basicBlocks;
+    private final LinkedList<IRBasicBlock> basicBlocks;
     private final boolean isLib;
 
-    public Function(String name, FunctionType functionType) {
+    public IRFunction(String name, FunctionType functionType) {
         super(name, functionType);
         this.arguments = null;
         this.basicBlocks = null;
         this.isLib = true;
     }
 
-    public Function(String name, FunctionType functionType, ArrayList<Argument> arguments) {
+    public IRFunction(String name, FunctionType functionType, ArrayList<Argument> arguments) {
         super(name, functionType);
         if (type.parametersType().size() != arguments.size()) {
             throw new RuntimeException("When Function(), number of arguments mismatch. Got " + arguments.size() +
@@ -43,7 +43,7 @@ public class Function extends IRValue<FunctionType> {
         this.isLib = false;
     }
 
-    public void appendBasicBlock(BasicBlock basicBlock) {
+    public void appendBasicBlock(IRBasicBlock basicBlock) {
         this.basicBlocks.add(basicBlock);
     }
 

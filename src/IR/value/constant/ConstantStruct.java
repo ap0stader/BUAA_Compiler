@@ -5,10 +5,10 @@ import IR.type.StructType;
 import java.util.ArrayList;
 import java.util.Objects;
 
-public class ConstantStruct extends Constant<StructType> {
-    private final ArrayList<Constant<?>> constantValues;
+public class ConstantStruct extends IRConstant<StructType> {
+    private final ArrayList<IRConstant<?>> constantValues;
 
-    public ConstantStruct(StructType structType, ArrayList<Constant<?>> constantValues) {
+    public ConstantStruct(StructType structType, ArrayList<IRConstant<?>> constantValues) {
         super(structType);
         // 检查类型是否匹配
         if (structType.memberTypes().size() != constantValues.size()) {

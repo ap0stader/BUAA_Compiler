@@ -8,7 +8,7 @@ import frontend.parser.expression.LVal;
 import frontend.type.ASTNodeOption;
 import frontend.type.ASTNodeWithOption;
 import frontend.type.TokenType;
-import frontend.error.ErrorType;
+import frontend.type.ErrorType;
 
 import java.util.ArrayList;
 

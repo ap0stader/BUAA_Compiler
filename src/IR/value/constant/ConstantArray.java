@@ -5,13 +5,13 @@ import IR.type.ArrayType;
 import java.util.ArrayList;
 import java.util.Objects;
 
-public class ConstantArray extends Constant<ArrayType> {
-    private final ArrayList<Constant<?>> constantValues;
+public class ConstantArray extends IRConstant<ArrayType> {
+    private final ArrayList<IRConstant<?>> constantValues;
 
-    public ConstantArray(ArrayType arrayType, ArrayList<Constant<?>> constantValues) {
+    public ConstantArray(ArrayType arrayType, ArrayList<IRConstant<?>> constantValues) {
         super(arrayType);
         // 检查类型是否匹配
-        for (Constant<?> value : constantValues) {
+        for (IRConstant<?> value : constantValues) {
             if (!Objects.equals(arrayType.elementType(), value.type())) {
                 throw new RuntimeException("When ConstantArray(), type mismatch. Got " + value.type() + " value " + value +
                         ", expected " + arrayType.elementType());

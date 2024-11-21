@@ -4,14 +4,14 @@ import IR.IRValue;
 import IR.type.IRType;
 import IR.type.PointerType;
 import IR.type.VoidType;
-import IR.value.BasicBlock;
+import IR.value.IRBasicBlock;
 import util.LLVMStrRegCounter;
 
 // store <ty> <value>, <ty>* <pointer>
-public class StoreInst extends Instruction<VoidType> {
+public class StoreInst extends IRInstruction<VoidType> {
     // 在SysY中，store的数值一定是IntegerType
 
-    public StoreInst(IRValue<?> valueOperand, IRValue<PointerType> pointerOperand, BasicBlock parent) {
+    public StoreInst(IRValue<?> valueOperand, IRValue<PointerType> pointerOperand, IRBasicBlock parent) {
         super(IRType.getVoidTy(), parent);
         if (!IRType.isEqual(valueOperand.type(), pointerOperand.type().referenceType())) {
             throw new RuntimeException("When StoreInst(), the pointerOperand is not a pointer to valueOperand. " +

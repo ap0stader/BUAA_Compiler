@@ -3,10 +3,10 @@ package IR.value.instruction;
 import IR.IRValue;
 import IR.type.IRType;
 import IR.type.IntegerType;
-import IR.value.BasicBlock;
+import IR.value.IRBasicBlock;
 import util.LLVMStrRegCounter;
 
-public abstract class CastInst<D extends IRType> extends Instruction<D> {
+public abstract class CastInst<D extends IRType> extends IRInstruction<D> {
     protected enum CastOps {
         TRUNC("trunc"),
         ZEXT("zext"),
@@ -27,7 +27,7 @@ public abstract class CastInst<D extends IRType> extends Instruction<D> {
     // CastInst是UnaryInstruction的子类
     private final CastOps castOp;
 
-    private CastInst(CastOps castOp, IRValue<?> src, D destType, BasicBlock parent) {
+    private CastInst(CastOps castOp, IRValue<?> src, D destType, IRBasicBlock parent) {
         super(destType, parent);
         this.castOp = castOp;
         this.addOperand(src);
@@ -42,7 +42,7 @@ public abstract class CastInst<D extends IRType> extends Instruction<D> {
 
     // <result> = trunc <ty> <value> to <ty2>
     public static class TruncInst extends CastInst<IntegerType> {
-        public TruncInst(IRValue<IntegerType> src, IntegerType destType, BasicBlock parent) {
+        public TruncInst(IRValue<IntegerType> src, IntegerType destType, IRBasicBlock parent) {
             super(CastOps.TRUNC, src, destType, parent);
             if (src.type().size() <= destType.size()) {
                 throw new RuntimeException("When TruncInst(), src size are less than or equal to destType size. " +
@@ -54,7 +54,7 @@ public abstract class CastInst<D extends IRType> extends Instruction<D> {
 
     // <result> = zext <ty> <value> to <ty2>
     public static class ZExtInst extends CastInst<IntegerType> {
-        public ZExtInst(IRValue<IntegerType> src, IntegerType destType, BasicBlock parent) {
+        public ZExtInst(IRValue<IntegerType> src, IntegerType destType, IRBasicBlock parent) {
             super(CastOps.ZEXT, src, destType, parent);
             if (src.type().size() >= destType.size()) {
                 throw new RuntimeException("When ZExtInst(), src size are bigger than or equal to destType size. " +
@@ -66,7 +66,7 @@ public abstract class CastInst<D extends IRType> extends Instruction<D> {
 
     // <result> = bitcast <ty> <value> to <ty2>
     public static class BitCastInst<D extends IRType> extends CastInst<D> {
-        public BitCastInst(IRValue<?> src, D destType, BasicBlock parent) {
+        public BitCastInst(IRValue<?> src, D destType, IRBasicBlock parent) {
             super(CastOps.BITCAST, src, destType, parent);
         }
     }

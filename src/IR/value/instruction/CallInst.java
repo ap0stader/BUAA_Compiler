@@ -3,17 +3,17 @@ package IR.value.instruction;
 import IR.IRValue;
 import IR.type.IRType;
 import IR.type.VoidType;
-import IR.value.BasicBlock;
-import IR.value.Function;
+import IR.value.IRBasicBlock;
+import IR.value.IRFunction;
 import util.LLVMStrRegCounter;
 
 import java.util.ArrayList;
 
 // <result> = call <ty> <fnptrval>(<function args>)
-public class CallInst extends Instruction<IRType> {
+public class CallInst extends IRInstruction<IRType> {
     // CallInst不处理对于函数不合法的调用，由语义分析部分予以检查
 
-    public CallInst(Function function, ArrayList<IRValue<?>> argsOperands, BasicBlock parent) {
+    public CallInst(IRFunction function, ArrayList<IRValue<?>> argsOperands, IRBasicBlock parent) {
         super(function.type().returnType(), parent);
         this.addOperand(function);
         for (IRValue<?> argument : argsOperands) {
