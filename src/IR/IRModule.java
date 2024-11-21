@@ -1,12 +1,12 @@
 package IR;
 
 import IR.value.IRFunction;
-import IR.value.GlobalVariable;
+import IR.value.IRGlobalVariable;
 
 import java.util.ArrayList;
 
 public class IRModule {
-    private final ArrayList<GlobalVariable> globalVariables;
+    private final ArrayList<IRGlobalVariable> globalVariables;
     private final ArrayList<IRFunction> functions;
 
     public IRModule() {
@@ -14,7 +14,7 @@ public class IRModule {
         this.functions = new ArrayList<>();
     }
 
-    public ArrayList<GlobalVariable> globalVariables() {
+    public ArrayList<IRGlobalVariable> globalVariables() {
         return globalVariables;
     }
 
@@ -22,7 +22,7 @@ public class IRModule {
         return functions;
     }
 
-    public void appendGlobalVariables(GlobalVariable globalVariable) {
+    public void appendGlobalVariables(IRGlobalVariable globalVariable) {
         this.globalVariables.add(globalVariable);
     }
 

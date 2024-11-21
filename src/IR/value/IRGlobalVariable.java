@@ -5,7 +5,7 @@ import IR.type.IRType;
 import IR.type.PointerType;
 import IR.value.constant.IRConstant;
 
-public class GlobalVariable extends IRValue<PointerType> {
+public class IRGlobalVariable extends IRValue<PointerType> {
     // GlobalVariable是User的子类，因为GlobalVariable一旦定义后其地址是一定的
     // 但是其使用的Constant已不维护Use，故直接提升为Value的子类
 
@@ -13,9 +13,9 @@ public class GlobalVariable extends IRValue<PointerType> {
     private final boolean isPrivate;
     private final IRConstant<?> initVals;
 
-    public GlobalVariable(String name, IRType type,
-                          boolean setConstant, boolean setPrivate,
-                          IRConstant<?> initVals) {
+    public IRGlobalVariable(String name, IRType type,
+                            boolean setConstant, boolean setPrivate,
+                            IRConstant<?> initVals) {
         // 自动转为对应的指针类型，不需要在传入时包装为指针类型
         super(name, new PointerType(type));
         this.isConstant = setConstant;

@@ -2,7 +2,7 @@ package util;
 
 import IR.IRValue;
 import IR.value.IRFunction;
-import IR.value.GlobalVariable;
+import IR.value.IRGlobalVariable;
 import IR.value.constant.IRConstant;
 
 import java.util.HashMap;
@@ -17,7 +17,7 @@ public class LLVMStrRegCounter {
     }
 
     public String get(IRValue<?> value) {
-        if (value instanceof GlobalVariable || value instanceof IRFunction) {
+        if (value instanceof IRGlobalVariable || value instanceof IRFunction) {
             return "@" + value.name();
         } else if (value instanceof IRConstant<?> constant) {
             return constant.llvmStr();

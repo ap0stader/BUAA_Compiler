@@ -23,7 +23,7 @@ class Builder {
     // 库函数
     private final HashMap<String, IRFunction> libFunctions;
     // 静态字符串
-    private final HashMap<String, GlobalVariable> constStr;
+    private final HashMap<String, IRGlobalVariable> constStr;
     // 当前访问的函数
     private IRFunction nowFunction = null;
 
@@ -55,15 +55,15 @@ class Builder {
         return libFunctions;
     }
 
-    GlobalVariable addGlobalConstant(ConstSymbol constSymbol) {
-        GlobalVariable globalConstant;
+    IRGlobalVariable addGlobalConstant(ConstSymbol constSymbol) {
+        IRGlobalVariable globalConstant;
         if (constSymbol.type() instanceof IntegerType constSymbolType) {
-            globalConstant = new GlobalVariable(constSymbol.name(), constSymbol.type(),
+            globalConstant = new IRGlobalVariable(constSymbol.name(), constSymbol.type(),
                     true, false,
                     new ConstantInt(constSymbolType, constSymbol.initVals().get(0)));
         } else if (constSymbol.type() instanceof ArrayType constSymbolType) {
             Pair<IRType, IRConstant<?>> optimizedArray = optimizeGlobalArray(constSymbolType, constSymbol.initVals());
-            globalConstant = new GlobalVariable(constSymbol.name(), optimizedArray.key(),
+            globalConstant = new IRGlobalVariable(constSymbol.name(), optimizedArray.key(),
                     true, false,
                     optimizedArray.value());
         } else {
@@ -74,15 +74,15 @@ class Builder {
         return globalConstant;
     }
 
-    GlobalVariable addGlobalVariable(VarSymbol varSymbol, ArrayList<Integer> initVals) {
-        GlobalVariable globalConstant;
+    IRGlobalVariable addGlobalVariable(VarSymbol varSymbol, ArrayList<Integer> initVals) {
+        IRGlobalVariable globalConstant;
         if (varSymbol.type() instanceof IntegerType varSymbolType) {
-            globalConstant = new GlobalVariable(varSymbol.name(), varSymbol.type(),
+            globalConstant = new IRGlobalVariable(varSymbol.name(), varSymbol.type(),
                     false, false,
                     new ConstantInt(varSymbolType, initVals.get(0)));
         } else if (varSymbol.type() instanceof ArrayType varSymbolType) {
             Pair<IRType, IRConstant<?>> optimizedArray = optimizeGlobalArray(varSymbolType, initVals);
-            globalConstant = new GlobalVariable(varSymbol.name(), optimizedArray.key(),
+            globalConstant = new IRGlobalVariable(varSymbol.name(), optimizedArray.key(),
                     false, false,
                     optimizedArray.value());
         } else {
@@ -263,8 +263,8 @@ class Builder {
             ArrayType constStrArrayType = new ArrayType(IRType.getInt8Ty(), strChar.size());
             ConstantArray constStrArray = new ConstantArray(constStrArrayType,
                     new ArrayList<>(strChar.stream().map(c -> new ConstantInt(IRType.getInt8Ty(), c)).toList()));
-            GlobalVariable constStrGlobalVariable =
-                    new GlobalVariable(".str." + this.constStr.size(), constStrArrayType,
+            IRGlobalVariable constStrGlobalVariable =
+                    new IRGlobalVariable(".str." + this.constStr.size(), constStrArrayType,
                             true, true,
                             constStrArray);
             irModule.appendGlobalVariables(constStrGlobalVariable);

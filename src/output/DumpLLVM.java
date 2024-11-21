@@ -2,7 +2,7 @@ package output;
 
 import IR.IRModule;
 import IR.value.IRFunction;
-import IR.value.GlobalVariable;
+import IR.value.IRGlobalVariable;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -10,7 +10,7 @@ import java.io.IOException;
 public class DumpLLVM {
     public static void dump(IRModule irModule, String filename) throws IOException {
         BufferedWriter out = new BufferedWriter(new FileWriter(filename));
-        for (GlobalVariable globalVariable : irModule.globalVariables()) {
+        for (IRGlobalVariable globalVariable : irModule.globalVariables()) {
             out.write(globalVariable.llvmStr());
         }
         out.write("\n");
