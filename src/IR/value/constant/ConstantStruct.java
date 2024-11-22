@@ -1,9 +1,9 @@
 package IR.value.constant;
 
+import IR.type.IRType;
 import IR.type.StructType;
 
 import java.util.ArrayList;
-import java.util.Objects;
 
 public class ConstantStruct extends IRConstant<StructType> {
     private final ArrayList<IRConstant<?>> constantValues;
@@ -16,7 +16,7 @@ public class ConstantStruct extends IRConstant<StructType> {
                     ", expected " + structType.memberTypes().size());
         } else {
             for (int i = 0; i < structType.memberTypes().size(); i++) {
-                if (!Objects.equals(structType.memberTypes().get(i), constantValues.get(i).type())) {
+                if (!IRType.isEqual(structType.memberTypes().get(i), constantValues.get(i).type())) {
                     throw new RuntimeException("When ConstantStruct(), type mismatch. Got " + constantValues.get(i).type() +
                             " value " + constantValues.get(i) +
                             ", expected " + structType.memberTypes().get(i));
@@ -26,6 +26,9 @@ public class ConstantStruct extends IRConstant<StructType> {
         this.constantValues = constantValues;
     }
 
+    public ArrayList<IRConstant<?>> constantValues() {
+        return constantValues;
+    }
 
     @Override
     public String llvmStr() {

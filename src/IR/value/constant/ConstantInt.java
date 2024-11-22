@@ -16,6 +16,10 @@ public class ConstantInt extends IRConstant<IntegerType> {
         this.constantValue = constantValue;
     }
 
+    public Integer constantValue() {
+        return constantValue;
+    }
+
     @Override
     public String llvmStr() {
         int integerSize = this.type.size();

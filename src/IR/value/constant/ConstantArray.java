@@ -1,9 +1,9 @@
 package IR.value.constant;
 
 import IR.type.ArrayType;
+import IR.type.IRType;
 
 import java.util.ArrayList;
-import java.util.Objects;
 
 public class ConstantArray extends IRConstant<ArrayType> {
     private final ArrayList<IRConstant<?>> constantValues;
@@ -12,12 +12,16 @@ public class ConstantArray extends IRConstant<ArrayType> {
         super(arrayType);
         // 检查类型是否匹配
         for (IRConstant<?> value : constantValues) {
-            if (!Objects.equals(arrayType.elementType(), value.type())) {
+            if (!IRType.isEqual(arrayType.elementType(), value.type())) {
                 throw new RuntimeException("When ConstantArray(), type mismatch. Got " + value.type() + " value " + value +
                         ", expected " + arrayType.elementType());
             }
         }
         this.constantValues = constantValues;
+    }
+
+    public ArrayList<IRConstant<?>> constantValues() {
+        return constantValues;
     }
 
     @Override

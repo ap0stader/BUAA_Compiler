@@ -29,6 +29,10 @@ public class IRGlobalVariable extends IRValue<PointerType> {
 
     }
 
+    public IRConstant<?> initVals() {
+        return initVals;
+    }
+
     public String llvmStr() {
         return "@" + this.name + " = " +
                 (this.isPrivate ? "private unnamed_addr " : "")+

@@ -12,12 +12,12 @@ import java.io.IOException;
 public class DumpMIPSAssembly {
     public static void dump(TargetModule targetModule) throws IOException {
         BufferedWriter out = new BufferedWriter(new FileWriter(Config.dumpMIPSAssemblyFileName));
-        out.write("# ===== Start of DataObject >>>>> #\n");
+        out.write("# ===== Start of DataObjects >>>>> #\n");
         out.write(".data\n");
         for (TargetDataObject dataObject : targetModule.dataObjects()) {
             out.write(dataObject.mipsStr());
         }
-        out.write("# <<<<<   End of DataObject ===== #\n\n\n");
+        out.write("# <<<<<   End of DataObjects ===== #\n\n\n");
         out.write(".text\n");
         out.write("# ===== Start of _start procedure >>>>> #\n");
         out.write("""
