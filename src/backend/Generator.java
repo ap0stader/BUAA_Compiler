@@ -6,6 +6,7 @@ import IR.value.*;
 import IR.value.constant.*;
 import IR.value.instruction.*;
 import backend.target.TargetDataObject;
+import backend.target.TargetFunction;
 import backend.target.TargetModule;
 
 public class Generator {
@@ -65,6 +66,12 @@ public class Generator {
     }
 
     private void transformIRFunction(IRFunction irFunction) {
+        // 库函数为输入输出函数，使用syscall处理，不做解析
+        if (irFunction.isLib()) {
+            return;
+        }
+        TargetFunction targetFunction = new TargetFunction(irFunction.name());
 
+        this.targetModule.appendFunctions(targetFunction);
     }
 }

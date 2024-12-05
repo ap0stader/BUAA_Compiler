@@ -21,17 +21,17 @@ public class DumpMIPSAssembly {
         out.write(".text\n");
         out.write("# ===== Start of _start procedure >>>>> #\n");
         out.write("""
-                la $at, main
-                jr $at       # Jump to main()
+                jal main      # Jump to main()
                 
-                li $v0, 10
-                syscall      # Terminate
+                move $a0, $v0
+                li $v0, 17
+                syscall       # Terminate
                 """);
         out.write("# <<<<<   End of _start procedure ===== #\n\n\n");
         out.write("# ===== Start of Functions >>>>> #\n");
         for (TargetFunction function : targetModule.functions()) {
             out.write(function.mipsStr());
-            out.write("\n");
+            out.write("\n\n");
         }
         out.write("# <<<<<   End of Functions ===== #");
         out.close();

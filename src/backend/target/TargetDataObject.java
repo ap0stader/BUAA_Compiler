@@ -83,6 +83,11 @@ public class TargetDataObject {
         }
 
         abstract String mipsStr();
+
+        @Override
+        public String toString() {
+            return this.mipsStr();
+        }
     }
 
 

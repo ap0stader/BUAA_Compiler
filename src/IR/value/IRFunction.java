@@ -43,6 +43,10 @@ public class IRFunction extends IRValue<FunctionType> {
         this.isLib = false;
     }
 
+    public boolean isLib() {
+        return isLib;
+    }
+
     public void appendBasicBlock(IRBasicBlock basicBlock) {
         this.basicBlocks.add(basicBlock);
     }
