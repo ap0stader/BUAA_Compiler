@@ -19,12 +19,16 @@ public class IRBasicBlock extends IRValue<LabelType> {
         this.parent = parent;
     }
 
-    public void appendInstruction(IRInstruction<?> instruction) {
-        this.instructions.add(instruction);
+    public LinkedList<IRInstruction<?>> instructions() {
+        return instructions;
     }
 
     public IRFunction parent() {
         return parent;
+    }
+
+    public void appendInstruction(IRInstruction<?> instruction) {
+        this.instructions.add(instruction);
     }
 
     public String llvmStr(LLVMStrRegCounter counter) {

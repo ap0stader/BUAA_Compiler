@@ -401,7 +401,7 @@ public class Visitor {
     } ......
   }
 
-  private BasicBlock visitStmtIf(Stmt.Stmt_If stmt_if, BasicBlock entryBlock, BasicBlock nowBlock) {
+  private BasicBlock visitStmtIf(Stmt.Stmt_If stmt_if, BasicBlock defBlock, BasicBlock nowBlock) {
     BasicBlock ifBodyBlock = this.builder.newBasicBlock();
     BasicBlock ifEndBlock = this.builder.newBasicBlock();
     if (stmt_if.elseStmt() == null) {
@@ -409,7 +409,7 @@ public class Visitor {
       this.visitCond(stmt_if.cond(), ifBodyBlock, ifEndBlock, nowBlock);
       // if语句体
       this.builder.appendBasicBlock(ifBodyBlock);
-      BasicBlock ifBodyLastBlock = this.visitStmt(stmt_if.ifStmt(), entryBlock, ifBodyBlock);
+      BasicBlock ifBodyLastBlock = this.visitStmt(stmt_if.ifStmt(), defBlock, ifBodyBlock);
       this.builder.addBranchInstruction(null, ifEndBlock, null, ifBodyLastBlock);
     } ......
     ......

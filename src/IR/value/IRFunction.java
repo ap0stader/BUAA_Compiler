@@ -47,6 +47,10 @@ public class IRFunction extends IRValue<FunctionType> {
         return isLib;
     }
 
+    public LinkedList<IRBasicBlock> basicBlocks() {
+        return basicBlocks;
+    }
+
     public void appendBasicBlock(IRBasicBlock basicBlock) {
         this.basicBlocks.add(basicBlock);
     }

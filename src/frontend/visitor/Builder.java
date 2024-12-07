@@ -169,23 +169,23 @@ class Builder {
         }
     }
 
-    AllocaInst addArgument(Argument argument, IRBasicBlock entryBlock) {
-        AllocaInst allocaInst = new AllocaInst(argument.type(), entryBlock);
-        new StoreInst(argument, allocaInst, entryBlock);
+    AllocaInst addArgument(ArgSymbol argSymbol, IRBasicBlock defBlock) {
+        AllocaInst allocaInst = new AllocaInst(argSymbol.type(), defBlock);
+        new StoreInst(argSymbol.argument(), allocaInst, defBlock);
         return allocaInst;
     }
 
-    AllocaInst addLocalConstant(ConstSymbol constSymbol, IRBasicBlock entryBlock) {
-        AllocaInst allocaInst = new AllocaInst(constSymbol.type(), entryBlock);
+    AllocaInst addLocalConstant(ConstSymbol constSymbol, IRBasicBlock defBlock) {
+        AllocaInst allocaInst = new AllocaInst(constSymbol.type(), defBlock);
         if (constSymbol.type() instanceof IntegerType constSymbolType) {
-            new StoreInst(new ConstantInt(constSymbolType, constSymbol.initVals().get(0)), allocaInst, entryBlock);
+            new StoreInst(new ConstantInt(constSymbolType, constSymbol.initVals().get(0)), allocaInst, defBlock);
         } else if (constSymbol.type() instanceof ArrayType constSymbolType) {
             for (int i = 0; i < constSymbol.initVals().size(); i++) {
                 GetElementPtrInst arrayElementPointer =
-                        this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), entryBlock);
+                        this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), defBlock);
                 // CAST 由于BType只有int和char，此处强制转换不会出错
                 new StoreInst(new ConstantInt((IntegerType) constSymbolType.elementType(), constSymbol.initVals().get(i)),
-                        arrayElementPointer, entryBlock);
+                        arrayElementPointer, defBlock);
             }
         } else {
             throw new RuntimeException("When addLocalConstant(), illegal type. Got " + constSymbol.type() +
@@ -195,8 +195,8 @@ class Builder {
     }
 
     AllocaInst addLocalVariable(VarSymbol varSymbol, ArrayList<IRValue<IntegerType>> initVals,
-                                IRBasicBlock entryBlock, IRBasicBlock insertBlock) {
-        AllocaInst allocaInst = new AllocaInst(varSymbol.type(), entryBlock);
+                                IRBasicBlock defBlock, IRBasicBlock insertBlock) {
+        AllocaInst allocaInst = new AllocaInst(varSymbol.type(), defBlock);
         if (initVals != null) {
             if (varSymbol.type() instanceof IntegerType) {
                 IRValue<IntegerType> initVal = initVals.get(0);

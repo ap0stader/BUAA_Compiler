@@ -271,37 +271,43 @@ public class Visitor {
     }
 
     // BlockItem → Decl | Stmt
-    private void visitFunctionBlock(ArrayList<ArgSymbol> funcFParams, Block block) {
-        // entryBlock用来进行各类的变量定义工作
-        IRBasicBlock entryBlock = this.builder.newBasicBlock();
-        this.builder.appendBasicBlock(entryBlock);
+    private void visitFunctionBlock(ArrayList<ArgSymbol> argSymbols, Block block) {
+        // argBlock用来进行参数的处理工作
+        IRBasicBlock argBlock = this.builder.newBasicBlock();
+        this.builder.appendBasicBlock(argBlock);
         // 给参数符号对应的IRValue
-        for (ArgSymbol argSymbol : funcFParams) {
-            argSymbol.setIRValue(this.builder.addArgument(argSymbol.argument(), entryBlock));
+        for (ArgSymbol argSymbol : argSymbols) {
+            argSymbol.setIRValue(this.builder.addArgument(argSymbol, argBlock));
         }
+        // defBlock用来进行各类的变量定义工作
+        IRBasicBlock defBlock = this.builder.newBasicBlock();
+        this.builder.appendBasicBlock(defBlock);
+        // 添加从argBlock到defBlock的跳转指令
+        this.builder.addBranchInstruction(null, defBlock, null, argBlock);
         // startBlock为代码正式开始的地方
         IRBasicBlock startBlock = this.builder.newBasicBlock();
+        this.builder.appendBasicBlock(startBlock);
+        // 解析BlockItem
         IRBasicBlock nowBlock = startBlock;
-        this.builder.appendBasicBlock(nowBlock);
         for (BlockItem blockItem : block.blockItems()) {
             if (blockItem instanceof Decl decl) {
-                this.visitLocalDecl(decl, entryBlock, nowBlock);
+                this.visitLocalDecl(decl, defBlock, nowBlock);
             } else if (blockItem instanceof Stmt stmt) {
-                nowBlock = this.visitStmt(stmt, entryBlock, nowBlock);
+                nowBlock = this.visitStmt(stmt, defBlock, nowBlock);
             } else {
                 throw new RuntimeException("When visitFunctionBlock(), got unknown type of BlockItem (" + blockItem.getClass().getSimpleName() + ")");
             }
         }
-        // 添加从定义块到代码开始块的跳转指令
-        this.builder.addBranchInstruction(null, startBlock, null, entryBlock);
+        // 添加从defBlock到startBlock的跳转指令
+        this.builder.addBranchInstruction(null, startBlock, null, defBlock);
         if (block.blockItems().isEmpty() || // 没有语句
                 !(block.blockItems().get(block.blockItems().size() - 1) instanceof Stmt) || // 最后一条语句不是Stmt
                 (block.blockItems().get(block.blockItems().size() - 1) instanceof Stmt stmt // 最后一条语句是Stmt但是不是返回语句
                         && !(stmt.extract() instanceof Stmt.Stmt_Return))) {
-            if (entryBlock.parent().type().returnType() instanceof VoidType) {
+            if (defBlock.parent().type().returnType() instanceof VoidType) {
                 // 无返回值的函数，补充一条返回语句
-                this.builder.addReturnInstruction(null, entryBlock.parent().type().returnType(), nowBlock);
-            } else if (entryBlock.parent().type().returnType() instanceof IntegerType returnIntegerType) {
+                this.builder.addReturnInstruction(null, defBlock.parent().type().returnType(), nowBlock);
+            } else if (defBlock.parent().type().returnType() instanceof IntegerType returnIntegerType) {
                 // 有返回值的函数缺少return语句（且只判断有没有 return 语句，不需要考虑 return 语句是否有返回值）
                 // 也不需要检查函数体内其他的 return 语句是否有值
                 // 报错，报错行号为函数结尾的’}’所在行号。强制补充一条返回0
@@ -312,14 +318,14 @@ public class Visitor {
     }
 
     // Decl → ConstDecl | VarDecl
-    private void visitLocalDecl(Decl decl, IRBasicBlock entryBlock, IRBasicBlock nowBlock) {
+    private void visitLocalDecl(Decl decl, IRBasicBlock defBlock, IRBasicBlock nowBlock) {
         if (decl instanceof ConstDecl constDecl) {
             ArrayList<ConstSymbol> constSymbols = this.visitConstDecl(constDecl);
             for (ConstSymbol constSymbol : constSymbols) {
-                constSymbol.setIRValue(this.builder.addLocalConstant(constSymbol, entryBlock));
+                constSymbol.setIRValue(this.builder.addLocalConstant(constSymbol, defBlock));
             }
         } else if (decl instanceof VarDecl varDecl) {
-            this.visitLocalVarDecl(varDecl, entryBlock, nowBlock);
+            this.visitLocalVarDecl(varDecl, defBlock, nowBlock);
         } else {
             throw new RuntimeException("When visitLocalDecl(), got unknown type of Decl (" + decl.getClass().getSimpleName() + ")");
         }
@@ -328,7 +334,7 @@ public class Visitor {
     // VarDecl → BType VarDef { ',' VarDef } ';'
     // BType → 'int' | 'char'
     // VarDef → Ident [ '[' ConstExp ']' ] [ '=' InitVal ]
-    private void visitLocalVarDecl(VarDecl varDecl, IRBasicBlock entryBlock, IRBasicBlock nowBlock) {
+    private void visitLocalVarDecl(VarDecl varDecl, IRBasicBlock defBlock, IRBasicBlock nowBlock) {
         Token bType = varDecl.typeToken();
         // visitVarDef()
         for (VarDef varDef : varDecl.varDefs()) {
@@ -348,9 +354,9 @@ public class Visitor {
                         throw new RuntimeException("When visitLocalVarDecl(), initVals of identifier " + ident + " mismatch its type. " +
                                 "Got " + varDef.initVal().getType() + ", expected " + InitVal.Type.BASIC);
                     }
-                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, initVals, entryBlock, nowBlock));
+                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, initVals, defBlock, nowBlock));
                 } else {
-                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, null, entryBlock, nowBlock));
+                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, null, defBlock, nowBlock));
                 }
             } else {
                 Integer length = this.calculator.calculateConstExp(varDef.constExp());
@@ -380,9 +386,9 @@ public class Visitor {
                             initVals.add(new ConstantInt(initValType, 0));
                         }
                     }
-                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, initVals, entryBlock, nowBlock));
+                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, initVals, defBlock, nowBlock));
                 } else {
-                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, null, entryBlock, nowBlock));
+                    newSymbol.setIRValue(this.builder.addLocalVariable(newSymbol, null, defBlock, nowBlock));
                 }
             }
             // 即便插入不成功，生成了alloca指令也不会导致LLVM IR错误
@@ -589,7 +595,7 @@ public class Visitor {
     }
 
     // Stmt
-    private IRBasicBlock visitStmt(Stmt stmt, IRBasicBlock entryBlock, IRBasicBlock nowBlock) {
+    private IRBasicBlock visitStmt(Stmt stmt, IRBasicBlock defBlock, IRBasicBlock nowBlock) {
         Stmt.StmtOption stmtOption = stmt.extract();
         if (stmtOption instanceof Stmt.Stmt_Semicn) {
             // Stmt → ';'
@@ -622,11 +628,11 @@ public class Visitor {
                 this.builder.addBranchInstruction(null, this.forTailBlocks.peek(), null, nowBlock);
             }
         } else if (stmtOption instanceof Stmt.Stmt_Block stmt_block) {
-            return this.visitStmtBlock(stmt_block.block(), entryBlock, nowBlock);
+            return this.visitStmtBlock(stmt_block.block(), defBlock, nowBlock);
         } else if (stmtOption instanceof Stmt.Stmt_If stmt_if) {
-            return this.visitStmtIf(stmt_if, entryBlock, nowBlock);
+            return this.visitStmtIf(stmt_if, defBlock, nowBlock);
         } else if (stmtOption instanceof Stmt.Stmt_For stmt_for) {
-            return this.visitStmtFor(stmt_for, entryBlock, nowBlock);
+            return this.visitStmtFor(stmt_for, defBlock, nowBlock);
         } else {
             if (Config.visitorThrowable) {
                 throw new RuntimeException("When visitStmt(), got unknown type of Stmt (" + stmt.getClass().getSimpleName() + ")");
@@ -638,13 +644,13 @@ public class Visitor {
     }
 
     // Stmt → Block
-    private IRBasicBlock visitStmtBlock(Block block, IRBasicBlock entryBlock, IRBasicBlock nowBlock) {
+    private IRBasicBlock visitStmtBlock(Block block, IRBasicBlock defBlock, IRBasicBlock nowBlock) {
         this.symbolTable.push();
         for (BlockItem blockItem : block.blockItems()) {
             if (blockItem instanceof Decl decl) {
-                this.visitLocalDecl(decl, entryBlock, nowBlock);
+                this.visitLocalDecl(decl, defBlock, nowBlock);
             } else if (blockItem instanceof Stmt stmt) {
-                nowBlock = this.visitStmt(stmt, entryBlock, nowBlock);
+                nowBlock = this.visitStmt(stmt, defBlock, nowBlock);
             } else {
                 throw new RuntimeException("When visitFunctionBlock(), got unknown type of BlockItem (" + blockItem.getClass().getSimpleName() + ")");
             }
@@ -797,7 +803,7 @@ public class Visitor {
     }
 
     // Stmt → 'if' '(' Cond ')' Stmt [ 'else' Stmt ]
-    private IRBasicBlock visitStmtIf(Stmt.Stmt_If stmt_if, IRBasicBlock entryBlock, IRBasicBlock nowBlock) {
+    private IRBasicBlock visitStmtIf(Stmt.Stmt_If stmt_if, IRBasicBlock defBlock, IRBasicBlock nowBlock) {
         IRBasicBlock ifBodyBlock = this.builder.newBasicBlock();
         IRBasicBlock ifEndBlock = this.builder.newBasicBlock();
         if (stmt_if.elseStmt() == null) {
@@ -805,7 +811,7 @@ public class Visitor {
             this.visitCond(stmt_if.cond(), ifBodyBlock, ifEndBlock, nowBlock);
             // if语句体
             this.builder.appendBasicBlock(ifBodyBlock);
-            IRBasicBlock ifBodyLastBlock = this.visitStmt(stmt_if.ifStmt(), entryBlock, ifBodyBlock);
+            IRBasicBlock ifBodyLastBlock = this.visitStmt(stmt_if.ifStmt(), defBlock, ifBodyBlock);
             this.builder.addBranchInstruction(null, ifEndBlock, null, ifBodyLastBlock);
         } else {
             // 有else语句
@@ -813,11 +819,11 @@ public class Visitor {
             this.visitCond(stmt_if.cond(), ifBodyBlock, ifElseBlock, nowBlock);
             // if语句体
             this.builder.appendBasicBlock(ifBodyBlock);
-            IRBasicBlock ifBodyLastBlock = this.visitStmt(stmt_if.ifStmt(), entryBlock, ifBodyBlock);
+            IRBasicBlock ifBodyLastBlock = this.visitStmt(stmt_if.ifStmt(), defBlock, ifBodyBlock);
             this.builder.addBranchInstruction(null, ifEndBlock, null, ifBodyLastBlock);
             // else语句体
             this.builder.appendBasicBlock(ifElseBlock);
-            IRBasicBlock ifElseLastBlock = this.visitStmt(stmt_if.elseStmt(), entryBlock, ifElseBlock);
+            IRBasicBlock ifElseLastBlock = this.visitStmt(stmt_if.elseStmt(), defBlock, ifElseBlock);
             this.builder.addBranchInstruction(null, ifEndBlock, null, ifElseLastBlock);
         }
         // if语句后
@@ -897,7 +903,7 @@ public class Visitor {
     }
 
     // Stmt → 'for' '(' [ForStmt] ';' [Cond] ';' [ForStmt] ')' Stmt
-    private IRBasicBlock visitStmtFor(Stmt.Stmt_For stmt_for, IRBasicBlock entryBlock, IRBasicBlock nowBlock) {
+    private IRBasicBlock visitStmtFor(Stmt.Stmt_For stmt_for, IRBasicBlock defBlock, IRBasicBlock nowBlock) {
         if (stmt_for.initForStmt() != null) {
             this.visitForStmt(stmt_for.initForStmt(), nowBlock);
         }
@@ -921,7 +927,7 @@ public class Visitor {
             // 无结尾ForStmt，直接回到头
             this.forTailBlocks.push(forHeadBlock);
             this.forEndBlocks.push(forEndBlock);
-            IRBasicBlock forBodyLastBlock = this.visitStmt(stmt_for.stmt(), entryBlock, forBodyBlock);
+            IRBasicBlock forBodyLastBlock = this.visitStmt(stmt_for.stmt(), defBlock, forBodyBlock);
             this.builder.addBranchInstruction(null, forHeadBlock, null, forBodyLastBlock);
         } else {
             // 有结尾ForStmt，进入结尾ForStmt
@@ -930,7 +936,7 @@ public class Visitor {
             this.builder.addBranchInstruction(null, forHeadBlock, null, forTailBlock);
             this.forTailBlocks.push(forTailBlock);
             this.forEndBlocks.push(forEndBlock);
-            IRBasicBlock forBodyLastBlock = this.visitStmt(stmt_for.stmt(), entryBlock, forBodyBlock);
+            IRBasicBlock forBodyLastBlock = this.visitStmt(stmt_for.stmt(), defBlock, forBodyBlock);
             this.builder.addBranchInstruction(null, forTailBlock, null, forBodyLastBlock);
             this.builder.appendBasicBlock(forTailBlock);
         }
