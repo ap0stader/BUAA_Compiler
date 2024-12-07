@@ -46,16 +46,13 @@ public class PhysicalRegister extends TargetRegister {
         S9(27),
         S10(30);
 
-        public final int number;
-        public final String name;
+        private final String name;
 
         Reg(int number) {
-            this.number = number;
             this.name = String.valueOf(number);
         }
 
         Reg(int number, String name) {
-            this.number = number;
             this.name = name;
         }
     }

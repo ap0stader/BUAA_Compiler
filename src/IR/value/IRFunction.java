@@ -47,6 +47,10 @@ public class IRFunction extends IRValue<FunctionType> {
         return isLib;
     }
 
+    public ArrayList<Argument> arguments() {
+        return arguments;
+    }
+
     public LinkedList<IRBasicBlock> basicBlocks() {
         return basicBlocks;
     }

@@ -21,11 +21,12 @@ public class DumpMIPSAssembly {
         out.write(".text\n");
         out.write("# ===== Start of _start procedure >>>>> #\n");
         out.write("""
-                jal main      # Jump to main()
+                li $gp, 0x10010000 # Set $gp
+                jal main           # Jump to main()
                 
                 move $a0, $v0
                 li $v0, 17
-                syscall       # Terminate
+                syscall            # Terminate
                 """);
         out.write("# <<<<<   End of _start procedure ===== #\n\n\n");
         out.write("# ===== Start of Functions >>>>> #\n");
