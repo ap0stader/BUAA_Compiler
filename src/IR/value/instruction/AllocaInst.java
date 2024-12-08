@@ -15,6 +15,10 @@ public class AllocaInst extends IRInstruction<PointerType> {
         this.allocType = type;
     }
 
+    public IRType allocType() {
+        return allocType;
+    }
+
     @Override
     public String llvmStr(LLVMStrRegCounter counter) {
         return counter.get(this) + " = alloca " + this.allocType.llvmStr();

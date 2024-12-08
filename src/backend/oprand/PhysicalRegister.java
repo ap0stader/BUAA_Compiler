@@ -1,6 +1,6 @@
 package backend.oprand;
 
-public enum PhysicalRegister implements TargetRegister, Comparable<PhysicalRegister> {
+public enum PhysicalRegister implements TargetRegister {
     // 固定为0，保留寄存器
     ZERO(0, "zero"),
     // 栈指针，用于操作栈，保留寄存器
@@ -48,6 +48,7 @@ public enum PhysicalRegister implements TargetRegister, Comparable<PhysicalRegis
         this.name = String.valueOf(number);
     }
 
+    @SuppressWarnings("unused")
     PhysicalRegister(int number, String name) {
         this.name = name;
     }
@@ -55,5 +56,31 @@ public enum PhysicalRegister implements TargetRegister, Comparable<PhysicalRegis
     @Override
     public String mipsStr() {
         return "$" + this.name;
+    }
+
+    // 参数寄存器
+    public static boolean isArgumentRegister(PhysicalRegister register) {
+        return register == A0 || register == A1 || register == A2 || register == A3;
+    }
+
+    public static int argumentNumberOfArgumentRegister(PhysicalRegister register) {
+        return switch (register) {
+            case A0 -> 0;
+            case A1 -> 1;
+            case A2 -> 2;
+            case A3 -> 3;
+            default ->
+                    throw new IllegalArgumentException("When argumentNumberOfArgumentRegister(), the register is not argument register");
+        };
+    }
+
+    public static PhysicalRegister argumentRegisterOfArgumentNumber(int number) {
+        return switch (number) {
+            case 0 -> A0;
+            case 1 -> A1;
+            case 2 -> A2;
+            case 3 -> A3;
+            default -> null;
+        };
     }
 }

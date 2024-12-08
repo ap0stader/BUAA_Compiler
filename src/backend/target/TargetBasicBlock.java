@@ -8,10 +8,10 @@ public class TargetBasicBlock {
 
     public TargetBasicBlock(TargetFunction parent, int order) {
         this.parent = parent;
-        this.label = new Label(parent.name() + "." + order);
+        this.label = new Label(parent.label().name() + "." + order);
     }
 
-    public String mipsStr(int order) {
-        return this.label + ":\n";
+    public String mipsStr() {
+        return this.label.mipsStr() + ":\n";
     }
 }

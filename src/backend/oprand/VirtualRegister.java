@@ -1,10 +1,15 @@
 package backend.oprand;
 
-public final class VirtualRegister implements TargetRegister {
+public final class VirtualRegister implements TargetRegister, Comparable<VirtualRegister> {
     private final int number;
 
     private VirtualRegister(int number) {
         this.number = number;
+    }
+
+    @Override
+    public int compareTo(VirtualRegister o) {
+        return Integer.compare(this.number, o.number);
     }
 
     @Override
@@ -19,7 +24,7 @@ public final class VirtualRegister implements TargetRegister {
 
     private static int counter = 0;
 
-    public static VirtualRegister getVirtualRegister() {
+    public static VirtualRegister create() {
         return new VirtualRegister(counter++);
     }
 }

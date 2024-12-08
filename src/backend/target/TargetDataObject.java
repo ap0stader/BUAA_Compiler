@@ -2,17 +2,25 @@ package backend.target;
 
 import IR.type.IntegerType;
 import IR.value.constant.ConstantInt;
+import backend.oprand.Label;
+import backend.oprand.LabelBaseAddress;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 
 public class TargetDataObject {
-    private final String name;
+    private final Label label;
+    private final LabelBaseAddress address;
     private final LinkedList<Directive> directives;
 
     public TargetDataObject(String name) {
-        this.name = name;
+        this.label = new Label(name);
+        this.address = new LabelBaseAddress(label);
         this.directives = new LinkedList<>();
+    }
+
+    public LabelBaseAddress address() {
+        return address;
     }
 
     public void appendData(ConstantInt initInt) {
@@ -50,10 +58,10 @@ public class TargetDataObject {
 
     public String mipsStr() {
         StringBuilder sb = new StringBuilder();
-        sb.append(name).append(": ");
+        sb.append(label.mipsStr()).append(": ");
         for (int i = 0; i < this.directives.size(); i++) {
             // 加入空格对齐伪指令
-            sb.append(i > 0 ? "\n" + " ".repeat(this.name.length() + 2) : "");
+            sb.append(i > 0 ? "\n" + " ".repeat(this.label.name().length() + 2) : "");
             sb.append(this.directives.get(i).mipsStr());
         }
         sb.append("\n");
