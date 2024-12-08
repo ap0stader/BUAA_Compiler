@@ -1,89 +1,59 @@
 package backend.oprand;
 
-import java.util.HashMap;
+public enum PhysicalRegister implements TargetRegister, Comparable<PhysicalRegister> {
+    // 固定为0，保留寄存器
+    ZERO(0, "zero"),
+    // 栈指针，用于操作栈，保留寄存器
+    SP(29, "sp"),
+    // 汇编器保留，不可被使用
+    // AT(1, "at"),
+    // 返回值，可以被分配
+    V0(2, "v0"),
+    // 参数，在保存之后可以被分配
+    A0(4, "a0"),
+    A1(5, "a1"),
+    A2(6, "a2"),
+    A3(7, "a3"),
+    // 临时变量寄存器（11个）
+    T0(3), // $v1
+    T1(8), // $t0
+    T2(9), // $t1
+    T3(10), // $t2
+    T4(11), // $t3
+    T5(12), // $t4
+    T6(13), // $t5
+    T7(14), // $t6
+    T8(15), // $t7
+    T9(24), // $t8
+    T10(25), // $t9
+    // 保存变量寄存器（12个）
+    S0(16), // $s0
+    S1(17), // $s1
+    S2(18), // $s2
+    S3(19), // $s3
+    S4(20), // $s4
+    S5(21), // $s5
+    S6(22), // $s6
+    S7(23), // $s7
+    S8(26), // $k0
+    S9(27), // $k1
+    S10(28), // $gp，初始值虽然不是0，但是并不会假设寄存器的初始值为0
+    S11(30), // $fp
+    // 返回地址，在保存之后可以被分配
+    RA(31, "ra");
 
-public class PhysicalRegister extends TargetRegister {
-    public enum Reg {
-        // 固定为0，保留寄存器
-        ZERO(0, "zero"),
-        // 汇编器保留，不可被使用
-        AT(1, "at"),
-        // 返回值
-        V0(2, "v0"),
-        // 参数
-        A0(4, "a0"),
-        A1(5, "a1"),
-        A2(6, "a2"),
-        A3(7, "a3"),
-        // 全局指针，用于访问全局变量，保留寄存器
-        GP(28, "gp"),
-        // 栈指针，用于操作栈，保留寄存器
-        SP(29, "sp"),
-        // 返回地址
-        RA(31, "ra"),
-        // 临时变量寄存器（11个）
-        T0(3),
-        T1(8),
-        T2(9),
-        T3(10),
-        T4(11),
-        T5(12),
-        T6(13),
-        T7(14),
-        T8(15),
-        T9(24),
-        T10(25),
-        // 保存变量寄存器（11个）
-        S0(16),
-        S1(17),
-        S2(18),
-        S3(19),
-        S4(20),
-        S5(21),
-        S6(22),
-        S7(23),
-        S8(26),
-        S9(27),
-        S10(30);
+    private final String name;
 
-        private final String name;
-
-        Reg(int number) {
-            this.name = String.valueOf(number);
-        }
-
-        Reg(int number, String name) {
-            this.name = name;
-        }
+    PhysicalRegister(int number) {
+        this.name = String.valueOf(number);
     }
 
-    private final Reg reg;
-
-    private PhysicalRegister(Reg reg) {
-        this.reg = reg;
+    PhysicalRegister(int number, String name) {
+        this.name = name;
     }
 
     @Override
     public String mipsStr() {
-        return "$" + this.reg.name;
-    }
-
-    private static final HashMap<Reg, PhysicalRegister> physicalRegisters = new HashMap<>();
-
-    static {
-        for (Reg reg : Reg.values()) {
-            physicalRegisters.put(reg, new PhysicalRegister(reg));
-        }
-    }
-
-    public static PhysicalRegister getPhysicalRegister(Reg reg) {
-        if (reg == Reg.AT) {
-            throw new RuntimeException("When getPhysicalRegister(), try to get $at, which is illegal");
-        }
-        if (physicalRegisters.containsKey(reg)) {
-            return physicalRegisters.get(reg);
-        } else {
-            throw new RuntimeException("When getPhysicalRegister(), try to get register which is undefined");
-        }
+        return "$" + this.name;
     }
 }

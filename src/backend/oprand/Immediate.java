@@ -1,10 +1,15 @@
 package backend.oprand;
 
-public class Immediate extends TargetOperand {
-    private final Integer value;
+public record Immediate(Integer value) implements TargetOperand, TargetAddress.ImmediateOffset {
+    public static final Immediate ZERO = new Immediate(0);
 
-    public Immediate(Integer value) {
-        this.value = value;
+    public Immediate add(Immediate other) {
+        return new Immediate(value + other.value);
+    }
+
+    @Override
+    public Immediate calc() {
+        return this;
     }
 
     @Override

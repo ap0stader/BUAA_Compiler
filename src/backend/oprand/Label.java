@@ -1,12 +1,7 @@
 package backend.oprand;
 
-public class Label extends TargetOperand {
-    private final String name;
-
-    public Label(String name) {
-        this.name = name;
-    }
-
+public record Label(String name) implements TargetOperand {
+    @Override
     public String mipsStr() {
         return this.name;
     }

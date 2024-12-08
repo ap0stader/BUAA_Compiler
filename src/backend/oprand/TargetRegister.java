@@ -1,4 +1,4 @@
 package backend.oprand;
 
-public abstract class TargetRegister extends TargetOperand{
+public interface TargetRegister extends TargetOperand {
 }

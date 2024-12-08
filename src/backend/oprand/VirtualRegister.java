@@ -1,6 +1,6 @@
 package backend.oprand;
 
-public class VirtualRegister extends TargetRegister {
+public final class VirtualRegister implements TargetRegister {
     private final int number;
 
     private VirtualRegister(int number) {
@@ -10,6 +10,11 @@ public class VirtualRegister extends TargetRegister {
     @Override
     public String mipsStr() {
         return "&vr" + this.number;
+    }
+
+    @Override
+    public String toString() {
+        return this.mipsStr();
     }
 
     private static int counter = 0;
