@@ -16,7 +16,6 @@ public class Branch extends TargetInstruction {
             this.cond = null;
             this.destination = destinationLabel;
             this.link = link;
-            addUse(destinationLabel);
         } else {
             throw new RuntimeException("When Branch, the type of destination operand is not Label. Got" + destination);
         }
@@ -28,8 +27,7 @@ public class Branch extends TargetInstruction {
             this.cond = condRegister;
             this.destination = destinationLabel;
             this.link = false;
-            addUse(condRegister);
-            addUse(destinationLabel);
+            addUse(this.cond);
         } else {
             throw new RuntimeException("When Branch(), the type of cond or destination is invalid. " +
                     "Got cond: " + cond + ", destination: " + destination);
