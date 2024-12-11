@@ -46,8 +46,8 @@ public class Move extends TargetInstruction {
             return "move " + destination.mipsStr() + ", " + targetRegister.mipsStr();
         } else if (origin instanceof Immediate immediate) {
             return "li " + destination.mipsStr() + ", " + immediate.mipsStr();
-        } else if (origin instanceof Label label) {
-            return "la " + destination.mipsStr() + ", " + label.mipsStr();
+        } else if (origin instanceof Label || origin instanceof TargetAddress<?, ?>) {
+            return "la " + destination.mipsStr() + ", " + origin.mipsStr();
         } else {
             throw new RuntimeException("When Move.destination(), the type of origin operand is invalid. Got " + origin);
         }

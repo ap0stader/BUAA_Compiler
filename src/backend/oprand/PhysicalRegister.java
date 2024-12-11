@@ -7,7 +7,7 @@ public enum PhysicalRegister implements TargetRegister {
     SP(29, "sp"),
     // 汇编器保留，不可被使用
     // AT(1, "at"),
-    // 返回值，可以被分配
+    // 返回值和系统调用号，保留寄存器
     V0(2, "v0"),
     // 参数，在保存之后可以被分配
     A0(4, "a0"),

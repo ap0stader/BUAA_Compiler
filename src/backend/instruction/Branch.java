@@ -8,12 +8,14 @@ import java.util.Objects;
 public class Branch extends TargetInstruction {
     private TargetRegister cond;
     private final Label destination;
+    private final boolean link;
 
-    public Branch(TargetBasicBlock targetBasicBlock, TargetOperand destination) {
+    public Branch(TargetBasicBlock targetBasicBlock, TargetOperand destination, boolean link) {
         super(targetBasicBlock);
         if (destination instanceof Label destinationLabel) {
             this.cond = null;
             this.destination = destinationLabel;
+            this.link = link;
             addUse(destinationLabel);
         } else {
             throw new RuntimeException("When Branch, the type of destination operand is not Label. Got" + destination);
@@ -25,6 +27,7 @@ public class Branch extends TargetInstruction {
         if (cond instanceof TargetRegister condRegister && destination instanceof Label destinationLabel) {
             this.cond = condRegister;
             this.destination = destinationLabel;
+            this.link = false;
             addUse(condRegister);
             addUse(destinationLabel);
         } else {
@@ -49,10 +52,14 @@ public class Branch extends TargetInstruction {
 
     @Override
     public String mipsStr() {
-        if (cond != null) {
+        if (this.cond != null) {
             return "bne $zero, " + this.cond.mipsStr() + ", " + this.destination.mipsStr();
         } else {
-            return "j " + this.destination.mipsStr();
+            if (this.link) {
+                return "jal " + this.destination.mipsStr();
+            } else {
+                return "j " + this.destination.mipsStr();
+            }
         }
     }
 }

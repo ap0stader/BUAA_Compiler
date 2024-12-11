@@ -32,7 +32,7 @@ class Builder {
         this.libFunctions = getLibFunctions();
         this.constStr = new HashMap<>();
         // 将库函数的定义添加到IRModule中
-        getLibFunctions().forEach((name, function) -> irModule.appendFunctions(function));
+        this.libFunctions.forEach((name, function) -> irModule.appendFunctions(function));
     }
 
     private static HashMap<String, IRFunction> getLibFunctions() {

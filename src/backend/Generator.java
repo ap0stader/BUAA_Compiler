@@ -23,17 +23,23 @@ public class Generator {
     private final HashMap<IRGlobalVariable, LabelBaseAddress> globalVariableMap;
     // 存储IR的Function与Target的Function之间的对应关系，在函数调用处使用
     private final HashMap<IRFunction, TargetFunction> functionMap;
+    // 存储是库函数的IR的Function与系统调用号之间的对应关系，在函数调用出使用
+    private final HashMap<IRFunction, Integer> syscallMap;
     // 存储一个函数内IR的BasicBlock与Target的BasicBlock之间的对应关系，在跳转指令处使用
     private final HashMap<IRBasicBlock, TargetBasicBlock> basicBlockMap;
     // 存储一个函数内IR的Value与Target的Operand之间的对应关系
     private final HashMap<IRValue<?>, TargetOperand> valueMap;
+
     private final TargetModule targetModule;
+
+    private static final int REGISTER_SIZE = 32;
 
     public Generator(IRModule irModule) {
         this.irModule = irModule;
         this.targetModule = new TargetModule();
         this.globalVariableMap = new HashMap<>();
         this.functionMap = new HashMap<>();
+        this.syscallMap = new HashMap<>();
         this.basicBlockMap = new HashMap<>();
         this.valueMap = new HashMap<>();
     }
@@ -55,6 +61,8 @@ public class Generator {
             return new Immediate(constantInt.constantValue());
         } else if (irValue instanceof IRGlobalVariable) {
             return this.globalVariableMap.get(irValue);
+        } else if (irValue instanceof IRFunction) {
+            return this.functionMap.get(irValue).label();
         } else if (irValue instanceof IRBasicBlock) {
             return this.basicBlockMap.get(irValue).label();
         } else if (irValue instanceof IRInstruction) {
@@ -101,32 +109,42 @@ public class Generator {
     private void transformIRFunction(IRFunction irFunction) {
         // 库函数为输入输出函数，使用syscall模板处理，不做解析
         if (irFunction.isLib()) {
-            return;
+            this.syscallMap.put(irFunction, switch (irFunction.name()) {
+                case "getint" -> 5;
+                case "getchar" -> 12;
+                case "putint" -> 1;
+                case "putch" -> 11;
+                case "putstr" -> 4;
+                default ->
+                        throw new RuntimeException("When transformIRFunction(), the library function is unimplemented. " +
+                                "Got " + irFunction);
+            });
+        } else {
+            TargetFunction targetFunction = new TargetFunction(irFunction.name());
+            this.functionMap.put(irFunction, targetFunction);
+            // BasicBlock的对应关系和Value的对应关系局限于一个函数，新的一个函数需要清空
+            this.basicBlockMap.clear();
+            this.valueMap.clear();
+            if (irFunction.basicBlocks().size() < 3) {
+                throw new RuntimeException("When transformIRFunction(), the basic block of function " + irFunction.name() +
+                        " is less than requirements.");
+            }
+            this.transformFunctionArgBlock(irFunction.basicBlocks().get(0), targetFunction);
+            this.transformFunctionDefBlock(irFunction.basicBlocks().get(1), targetFunction);
+            // 先创建好一个函数的所有的TargetBasicBlock，方便后续跳转时使用Label
+            for (int i = 2; i < irFunction.basicBlocks().size(); i++) {
+                IRBasicBlock irBasicBlock = irFunction.basicBlocks().get(i);
+                TargetBasicBlock targetBasicBlock = new TargetBasicBlock(targetFunction, i - 2);
+                this.basicBlockMap.put(irBasicBlock, targetBasicBlock);
+                targetFunction.appendBasicBlock(targetBasicBlock);
+            }
+            for (int i = 2; i < irFunction.basicBlocks().size(); i++) {
+                IRBasicBlock irBasicBlock = irFunction.basicBlocks().get(i);
+                TargetBasicBlock targetBasicBlock = this.basicBlockMap.get(irBasicBlock);
+                this.transformIRBasicBlock(irBasicBlock, targetBasicBlock);
+            }
+            this.targetModule.appendFunctions(targetFunction);
         }
-        TargetFunction targetFunction = new TargetFunction(irFunction.name());
-        this.functionMap.put(irFunction, targetFunction);
-        // BasicBlock的对应关系和Value的对应关系局限于一个函数，新的一个函数需要清空
-        this.basicBlockMap.clear();
-        this.valueMap.clear();
-        if (irFunction.basicBlocks().size() < 3) {
-            throw new RuntimeException("When transformIRFunction(), the basic block of function " + irFunction.name() +
-                    " is less than requirements.");
-        }
-        this.transformFunctionArgBlock(irFunction.basicBlocks().get(0), targetFunction);
-        this.transformFunctionDefBlock(irFunction.basicBlocks().get(1), targetFunction);
-        // 先创建好一个函数的所有的TargetBasicBlock，方便后续跳转时使用Label
-        for (int i = 2; i < irFunction.basicBlocks().size(); i++) {
-            IRBasicBlock irBasicBlock = irFunction.basicBlocks().get(i);
-            TargetBasicBlock targetBasicBlock = new TargetBasicBlock(targetFunction, i - 2);
-            this.basicBlockMap.put(irBasicBlock, targetBasicBlock);
-            targetFunction.appendBasicBlock(targetBasicBlock);
-        }
-        for (int i = 2; i < irFunction.basicBlocks().size(); i++) {
-            IRBasicBlock irBasicBlock = irFunction.basicBlocks().get(i);
-            TargetBasicBlock targetBasicBlock = this.basicBlockMap.get(irBasicBlock);
-            this.transformIRBasicBlock(irBasicBlock, targetBasicBlock);
-        }
-        this.targetModule.appendFunctions(targetFunction);
     }
 
     private void transformFunctionArgBlock(IRBasicBlock argBlock, TargetFunction targetFunction) {
@@ -212,6 +230,8 @@ public class Generator {
                 this.transformLoadInst(loadInst, targetBasicBlock);
             } else if (irInstruction instanceof StoreInst storeInst) {
                 this.transformStoreInst(storeInst, targetBasicBlock);
+            } else if (irInstruction instanceof CallInst callInst) {
+                this.transformCallInst(callInst, targetBasicBlock);
             } else if (irInstruction instanceof BranchInst branchInst) {
                 this.transformBranchInst(branchInst, targetBasicBlock);
             } else if (irInstruction instanceof ReturnInst returnInst) {
@@ -409,16 +429,62 @@ public class Generator {
         }
     }
 
+    private void transformCallInst(CallInst callInst, TargetBasicBlock targetBasicBlock) {
+        // 有函数调用，要保存$ra
+        targetBasicBlock.parent().stackFrame.ensureSaveRA();
+        // CAST CallInst的构造函数限制
+        IRFunction callIRFunction = (IRFunction) callInst.getOperand(0);
+        // 处理参数
+        for (int i = 1; i < callInst.getNumOperands(); i++) {
+            if (i <= 4) {
+                // 使用寄存器传递
+                new Move(targetBasicBlock,
+                        PhysicalRegister.argumentRegisterOfArgumentNumber(i - 1),
+                        this.valueToOperand(callInst.getOperand(i)));
+            } else {
+                // 使用内存传递
+                RegisterBaseAddress outArgumentAddress = targetBasicBlock.parent().stackFrame.getOutArgumentAddress(i);
+                TargetOperand outArgumentOperand = this.valueToOperand(callInst.getOperand(i));
+                // 如果是立即数要先加载到寄存器中
+                if (outArgumentOperand instanceof Immediate) {
+                    VirtualRegister immediateRegister = targetBasicBlock.parent().addVirtualRegister();
+                    new Move(targetBasicBlock, immediateRegister, outArgumentOperand);
+                    outArgumentOperand = immediateRegister;
+                }
+                if (callIRFunction.arguments().get(i).type() instanceof IntegerType integerType) {
+                    new Store(targetBasicBlock, integerType.size(), outArgumentOperand, outArgumentAddress);
+                } else if (callIRFunction.arguments().get(i).type() instanceof PointerType) {
+                    new Store(targetBasicBlock, REGISTER_SIZE, outArgumentOperand, outArgumentAddress);
+                } else {
+                    throw new RuntimeException("When transformCallInst, the type of argument " + i + "is invalid. " +
+                            "Got " + callIRFunction.arguments().get(i));
+                }
+            }
+        }
+        if (callIRFunction.isLib()) {
+            new Syscall(targetBasicBlock, this.syscallMap.get(callIRFunction));
+        } else {
+            new Branch(targetBasicBlock, this.valueToOperand(callIRFunction), true);
+        }
+        if (callInst.type() instanceof IntegerType integerType) {
+            VirtualRegister resultRegister = targetBasicBlock.parent().addVirtualRegister();
+            new Move(targetBasicBlock, resultRegister, PhysicalRegister.V0);
+        } else if (!(callInst.type() instanceof VoidType)) {
+            throw new RuntimeException("When transformCallInst(), the return type of CallInst is invalid. " +
+                    "Got " + callInst.type());
+        }
+    }
+
     private void transformBranchInst(BranchInst branchInst, TargetBasicBlock targetBasicBlock) {
         // CAST BranchInst的构造函数限制
         if (branchInst.getNumOperands() == 1) {
             // 无条件跳转
-            new Branch(targetBasicBlock, this.valueToOperand(branchInst.getOperand(0)));
+            new Branch(targetBasicBlock, this.valueToOperand(branchInst.getOperand(0)), false);
         } else if (branchInst.getNumOperands() == 3) {
             // 有条件跳转
             if (this.valueToOperand(branchInst.getOperand(0)) instanceof TargetRegister targetRegister) {
                 new Branch(targetBasicBlock, targetRegister, this.valueToOperand(branchInst.getOperand(1)));
-                new Branch(targetBasicBlock, this.valueToOperand(branchInst.getOperand(2)));
+                new Branch(targetBasicBlock, this.valueToOperand(branchInst.getOperand(2)), false);
             } else {
                 throw new RuntimeException("When transformBranchInst(), the operand of cond of branchInst is not a TargetRegister");
             }
@@ -434,6 +500,6 @@ public class Generator {
             // 因为之后将进入函数尾声，$v0的原始值不会再被使用了
             new Move(targetBasicBlock, PhysicalRegister.V0, this.valueToOperand(returnInst.getOperand(0)));
         }
-        new Branch(targetBasicBlock, targetBasicBlock.parent().labelEpilogue());
+        new Branch(targetBasicBlock, targetBasicBlock.parent().labelEpilogue(), false);
     }
 }
