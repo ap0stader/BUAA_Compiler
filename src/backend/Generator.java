@@ -198,11 +198,11 @@ public class Generator {
     private void transformIRBasicBlock(IRBasicBlock irBasicBlock,
                                        TargetBasicBlock targetBasicBlock, TargetFunction targetFunction) {
         LinkedList<IRInstruction<?>> instructions = irBasicBlock.instructions();
-        Iterator<IRInstruction<?>> irBasicBlockIterator = instructions.iterator();
-        while (irBasicBlockIterator.hasNext()) {
-            IRInstruction<?> irInstruction = irBasicBlockIterator.next();
+        for (IRInstruction<?> irInstruction : instructions) {
             if (irInstruction instanceof LoadInst loadInst) {
                 this.transformLoadInst(loadInst, targetBasicBlock);
+            } else if (irInstruction instanceof StoreInst storeInst) {
+                this.transformStoreInst(storeInst, targetBasicBlock);
             } else if (irInstruction instanceof ReturnInst returnInst) {
                 this.transformReturnInst(returnInst, targetBasicBlock);
             } else {
@@ -212,14 +212,14 @@ public class Generator {
     }
 
     private void transformLoadInst(LoadInst loadInst, TargetBasicBlock targetBasicBlock) {
-        // CAST LoadInst的构造函数限制保证合理
+        // CAST LoadInst的构造函数限制
         IRValue<PointerType> loadPointerIRValue = IRValue.cast(loadInst.getOperand(0));
         IntegerType loadIntegerType;
         if ((loadPointerIRValue instanceof IRGlobalVariable irGlobalVariable
                 && irGlobalVariable.variableType() instanceof IntegerType integerType)) {
             loadIntegerType = integerType;
-        } else if (loadPointerIRValue instanceof AllocaInst allocaInst &&
-                allocaInst.allocType() instanceof IntegerType integerType) {
+        } else if (loadPointerIRValue instanceof AllocaInst allocaInst
+                && allocaInst.allocType() instanceof IntegerType integerType) {
             loadIntegerType = integerType;
         } else {
             throw new RuntimeException("When transformLoadInst(), LoadInst try to load a IRValue whose referenceType is other than IntegerType. Got " + loadPointerIRValue);
@@ -227,6 +227,29 @@ public class Generator {
         VirtualRegister destinationRegister = targetBasicBlock.parent().addVirtualRegister();
         new Load(targetBasicBlock, loadIntegerType.size(), destinationRegister, this.valueToOperand(loadPointerIRValue));
         this.valueMap.put(loadInst, destinationRegister);
+    }
+
+    private void transformStoreInst(StoreInst storeInst, TargetBasicBlock targetBasicBlock) {
+        // CAST StoreInst的构造函数限制
+        IRValue<PointerType> storePointerIRValue = IRValue.cast(storeInst.getOperand(1));
+        IntegerType storeIntegerType;
+        if (storePointerIRValue instanceof IRGlobalVariable irGlobalVariable
+                && irGlobalVariable.variableType() instanceof IntegerType integerType) {
+            storeIntegerType = integerType;
+        } else if (storePointerIRValue instanceof AllocaInst allocaInst
+                && allocaInst.allocType() instanceof IntegerType integerType) {
+            storeIntegerType = integerType;
+        } else {
+            throw new RuntimeException("When transformStoreInst(), StoreInst try to store to a IRValue whose referenceType is other than IntegerType. Got " + storePointerIRValue);
+        }
+        TargetOperand storeOrigin = this.valueToOperand(storeInst.getOperand(0));
+        // 如果是立即数要先加载到寄存器中
+        if (storeOrigin instanceof Immediate) {
+            VirtualRegister immediateRegister = targetBasicBlock.parent().addVirtualRegister();
+            new Move(targetBasicBlock, immediateRegister, storeOrigin);
+            storeOrigin = immediateRegister;
+        }
+        new Store(targetBasicBlock, storeIntegerType.size(), storeOrigin, this.valueToOperand(storePointerIRValue));
     }
 
     private void transformReturnInst(ReturnInst returnInst, TargetBasicBlock targetBasicBlock) {

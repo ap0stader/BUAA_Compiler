@@ -31,7 +31,7 @@ public class Store extends TargetInstruction {
             addUse(this.origin);
             addUse(this.address);
         } else {
-            throw new RuntimeException("When Load(), the type of origin or address is invalid. " +
+            throw new RuntimeException("When Store(), the type of origin or address is invalid. " +
                     "Got origin: " + origin + ", address: " + address);
         }
     }
@@ -44,7 +44,7 @@ public class Store extends TargetInstruction {
     @Override
     public void replaceUseVirtualRegister(PhysicalRegister physicalRegister, VirtualRegister virtualRegister) {
         if (Objects.equals(origin, virtualRegister)) {
-            this.origin = virtualRegister;
+            this.origin = physicalRegister;
         } else if (this.address.useRegisterSet().contains(virtualRegister)) {
             this.address = this.address.replaceUseVirtualRegister(physicalRegister, virtualRegister);
         } else {
