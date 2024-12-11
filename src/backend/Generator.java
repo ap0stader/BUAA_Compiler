@@ -403,10 +403,14 @@ public class Generator {
     private void transformLoadInst(LoadInst loadInst, TargetBasicBlock targetBasicBlock) {
         // CAST LoadInst的构造函数限制
         IRValue<PointerType> loadPointerIRValue = IRValue.cast(loadInst.getOperand(0));
+        VirtualRegister destinationRegister = targetBasicBlock.parent().addVirtualRegister();
         if (loadPointerIRValue.type().referenceType() instanceof IntegerType integerType) {
-            VirtualRegister destinationRegister = targetBasicBlock.parent().addVirtualRegister();
             new Load(targetBasicBlock, integerType.size(), destinationRegister, this.valueToOperand(loadPointerIRValue));
             this.valueMap.put(loadInst, destinationRegister);
+        } else if (loadPointerIRValue.type().referenceType() instanceof PointerType pointerType) {
+            new Load(targetBasicBlock, REGISTER_SIZE, destinationRegister, this.valueToOperand(loadPointerIRValue));
+            RegisterBaseAddress registerBaseAddress = new RegisterBaseAddress(destinationRegister, Immediate.ZERO());
+            this.valueMap.put(loadInst, registerBaseAddress);
         } else {
             throw new RuntimeException("When transformLoadInst(), LoadInst try to load a IRValue whose referenceType is other than IntegerType. Got " + loadPointerIRValue);
         }
