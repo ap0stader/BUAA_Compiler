@@ -1,17 +1,18 @@
 package backend.instruction;
 
-import backend.oprand.Label;
-import backend.oprand.PhysicalRegister;
-import backend.oprand.TargetOperand;
-import backend.oprand.VirtualRegister;
+import backend.oprand.*;
 import backend.target.TargetBasicBlock;
 
+import java.util.Objects;
+
 public class Branch extends TargetInstruction {
+    private TargetRegister cond;
     private final Label destination;
 
     public Branch(TargetBasicBlock targetBasicBlock, TargetOperand destination) {
         super(targetBasicBlock);
         if (destination instanceof Label destinationLabel) {
+            this.cond = null;
             this.destination = destinationLabel;
             addUse(destinationLabel);
         } else {
@@ -19,6 +20,18 @@ public class Branch extends TargetInstruction {
         }
     }
 
+    public Branch(TargetBasicBlock targetBasicBlock, TargetOperand cond, TargetOperand destination) {
+        super(targetBasicBlock);
+        if (cond instanceof TargetRegister condRegister && destination instanceof Label destinationLabel) {
+            this.cond = condRegister;
+            this.destination = destinationLabel;
+            addUse(condRegister);
+            addUse(destinationLabel);
+        } else {
+            throw new RuntimeException("When Branch(), the type of cond or destination is invalid. " +
+                    "Got cond: " + cond + ", destination: " + destination);
+        }
+    }
 
     @Override
     public void replaceDefVirtualRegister(PhysicalRegister physicalRegister, VirtualRegister virtualRegister) {
@@ -27,11 +40,19 @@ public class Branch extends TargetInstruction {
 
     @Override
     public void replaceUseVirtualRegister(PhysicalRegister physicalRegister, VirtualRegister virtualRegister) {
-        throw new UnsupportedOperationException("When Branch.replaceUseVirtualRegister(), Branch should not have any useVirtualRegister");
+        if (Objects.equals(cond, virtualRegister)) {
+            this.cond = physicalRegister;
+        } else {
+            throw new RuntimeException("When Branch.replaceUseVirtualRegister(), the virtualRegister is not cond");
+        }
     }
 
     @Override
     public String mipsStr() {
-        return "j " + this.destination.mipsStr();
+        if (cond != null) {
+            return "bne $zero, " + this.cond.mipsStr() + ", " + this.destination.mipsStr();
+        } else {
+            return "j " + this.destination.mipsStr();
+        }
     }
 }

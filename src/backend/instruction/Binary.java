@@ -60,7 +60,7 @@ public class Binary extends TargetInstruction {
         if (Objects.equals(destination, virtualRegister)) {
             this.destination = physicalRegister;
         } else {
-            throw new RuntimeException("When Binary.replaceDefVirtualRegister(), the replaceDefVirtualRegister is not destination");
+            throw new RuntimeException("When Binary.replaceDefVirtualRegister(), the virtualRegister is not destination");
         }
     }
 
@@ -71,7 +71,7 @@ public class Binary extends TargetInstruction {
         } else if (Objects.equals(operandSource, virtualRegister)) {
             this.operandSource = physicalRegister;
         } else {
-            throw new RuntimeException("When Binary.replaceUseVirtualRegister(), the replaceUseVirtualRegister is not source");
+            throw new RuntimeException("When Binary.replaceUseVirtualRegister(), the virtualRegister is not source");
         }
     }
 

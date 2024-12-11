@@ -15,6 +15,10 @@ public class TargetBasicBlock {
         this.parent = parent;
     }
 
+    public Label label() {
+        return label;
+    }
+
     public DoublyLinkedList<TargetInstruction> instructions() {
         return instructions;
     }

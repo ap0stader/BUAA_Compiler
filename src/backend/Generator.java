@@ -55,6 +55,8 @@ public class Generator {
             return new Immediate(constantInt.constantValue());
         } else if (irValue instanceof IRGlobalVariable) {
             return this.globalVariableMap.get(irValue);
+        } else if (irValue instanceof IRBasicBlock) {
+            return this.basicBlockMap.get(irValue).label();
         } else if (irValue instanceof IRInstruction) {
             return this.valueMap.get(irValue);
         } else {
@@ -210,6 +212,8 @@ public class Generator {
                 this.transformLoadInst(loadInst, targetBasicBlock);
             } else if (irInstruction instanceof StoreInst storeInst) {
                 this.transformStoreInst(storeInst, targetBasicBlock);
+            } else if (irInstruction instanceof BranchInst branchInst) {
+                this.transformBranchInst(branchInst, targetBasicBlock);
             } else if (irInstruction instanceof ReturnInst returnInst) {
                 this.transformReturnInst(returnInst, targetBasicBlock);
             } else {
@@ -402,6 +406,25 @@ public class Generator {
             new Store(targetBasicBlock, integerType.size(), storeOrigin, this.valueToOperand(storePointerIRValue));
         } else {
             throw new RuntimeException("When transformStoreInst(), StoreInst try to store to a IRValue whose referenceType is other than IntegerType. Got " + storePointerIRValue);
+        }
+    }
+
+    private void transformBranchInst(BranchInst branchInst, TargetBasicBlock targetBasicBlock) {
+        // CAST BranchInst的构造函数限制
+        if (branchInst.getNumOperands() == 1) {
+            // 无条件跳转
+            new Branch(targetBasicBlock, this.valueToOperand(branchInst.getOperand(0)));
+        } else if (branchInst.getNumOperands() == 3) {
+            // 有条件跳转
+            if (this.valueToOperand(branchInst.getOperand(0)) instanceof TargetRegister targetRegister) {
+                new Branch(targetBasicBlock, targetRegister, this.valueToOperand(branchInst.getOperand(1)));
+                new Branch(targetBasicBlock, this.valueToOperand(branchInst.getOperand(2)));
+            } else {
+                throw new RuntimeException("When transformBranchInst(), the operand of cond of branchInst is not a TargetRegister");
+            }
+        } else {
+            throw new RuntimeException("When transformBranchInst(), the number of operands of BranchInst is invalid. " +
+                    "Got " + branchInst.getNumOperands() + ", expected 1 or 3");
         }
     }
 
