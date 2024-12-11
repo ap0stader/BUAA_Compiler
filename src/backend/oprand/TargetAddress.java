@@ -2,6 +2,7 @@ package backend.oprand;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Set;
 
 public abstract class TargetAddress<B, C extends TargetAddress<B, ?>> implements TargetOperand {
     // 立即数偏移
@@ -21,6 +22,11 @@ public abstract class TargetAddress<B, C extends TargetAddress<B, ?>> implements
     }
 
     // 克隆对象时使用
+    protected TargetAddress(TargetAddress<B, C> oldAddress, B newBase) {
+        this.base = newBase;
+        this.immediateOffsetList = new ArrayList<>(oldAddress.immediateOffsetList);
+    }
+
     protected TargetAddress(TargetAddress<B, C> oldAddress, ImmediateOffset... newImmediateOffsets) {
         this.base = oldAddress.base;
         this.immediateOffsetList = new ArrayList<>(oldAddress.immediateOffsetList);
@@ -33,4 +39,8 @@ public abstract class TargetAddress<B, C extends TargetAddress<B, ?>> implements
     }
 
     public abstract C addImmediateOffset(ImmediateOffset immediateOffset);
+
+    public abstract Set<TargetRegister> useRegisterSet();
+
+    public abstract C replaceUseVirtualRegister(PhysicalRegister physicalRegister, VirtualRegister virtualRegister);
 }

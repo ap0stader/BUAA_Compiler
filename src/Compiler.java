@@ -1,4 +1,5 @@
 import IR.IRModule;
+import backend.Allocator;
 import backend.Generator;
 import backend.target.TargetModule;
 import frontend.visitor.Visitor;
@@ -92,11 +93,16 @@ public class Compiler {
     // ==== 后端 ====
     private static void backend(IRModule irModule) throws IOException {
         // Stage5 目标代码生成
-        // 创建Generator -> 得到TargetModule -> [输出TargetModule]
+        // 创建Generator -> 得到TargetModule(未分配寄存器) -> 创建Allocator -> 得到TargetModule(已分配寄存器) -> [输出TargetModule]
         Generator generator = new Generator(irModule);
         TargetModule targetModule = generator.generateTargetModule();
-        if (Config.dumpMIPSAssembly) {
-            DumpMIPSAssembly.dump(targetModule);
+        if (Config.dumpMIPSAssemblyBeforeAllocation) {
+            DumpMIPSAssembly.dump(targetModule, Config.dumpMIPSAssemblyBeforeAllocationFileName);
+        }
+        Allocator allocator = new Allocator(targetModule);
+        allocator.allocRegister();
+        if (Config.dumpMIPSAssemblyAfterAllocation) {
+            DumpMIPSAssembly.dump(targetModule, Config.dumpMIPSAssemblyAfterAllocationFileName);
         }
         tryContinue(5);
     }

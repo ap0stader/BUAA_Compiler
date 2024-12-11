@@ -34,9 +34,7 @@ public class IRBasicBlock extends IRValue<LabelType> {
     public String llvmStr(LLVMStrRegCounter counter) {
         StringBuilder sb = new StringBuilder();
         for (IRInstruction<?> instruction : instructions) {
-            sb.append("    ");
-            sb.append(instruction.llvmStr(counter));
-            sb.append("\n");
+            sb.append("\t").append(instruction.llvmStr(counter)).append("\n");
         }
         return sb.toString();
     }

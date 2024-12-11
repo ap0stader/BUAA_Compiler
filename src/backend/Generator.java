@@ -6,6 +6,7 @@ import IR.type.*;
 import IR.value.*;
 import IR.value.constant.*;
 import IR.value.instruction.*;
+import backend.instruction.*;
 import backend.oprand.*;
 import backend.target.*;
 
@@ -47,6 +48,18 @@ public class Generator {
         this.irModule.functions().forEach(this::transformIRFunction);
         this.finish = true;
         return this.targetModule;
+    }
+
+    private TargetOperand valueToOperand(IRValue<?> irValue) {
+        if (irValue instanceof ConstantInt constantInt) {
+            return new Immediate(constantInt.constantValue());
+        } else if (irValue instanceof IRGlobalVariable) {
+            return this.globalVariableMap.get(irValue);
+        } else if (irValue instanceof IRInstruction) {
+            return this.valueMap.get(irValue);
+        } else {
+            throw new RuntimeException("When valueToOperand(), the type of irValue is invalid. Got " + irValue);
+        }
     }
 
     private void transformIRGlobalVariable(IRGlobalVariable irGlobalVariable) {
@@ -184,11 +197,44 @@ public class Generator {
 
     private void transformIRBasicBlock(IRBasicBlock irBasicBlock,
                                        TargetBasicBlock targetBasicBlock, TargetFunction targetFunction) {
-
+        LinkedList<IRInstruction<?>> instructions = irBasicBlock.instructions();
+        Iterator<IRInstruction<?>> irBasicBlockIterator = instructions.iterator();
+        while (irBasicBlockIterator.hasNext()) {
+            IRInstruction<?> irInstruction = irBasicBlockIterator.next();
+            if (irInstruction instanceof LoadInst loadInst) {
+                this.transformLoadInst(loadInst, targetBasicBlock);
+            } else if (irInstruction instanceof ReturnInst returnInst) {
+                this.transformReturnInst(returnInst, targetBasicBlock);
+            } else {
+                throw new RuntimeException("When transformIRBasicBlock(), the type of irInstruction is unsupported in a normal basic block");
+            }
+        }
     }
 
-    private void transformIRInstruction(IRInstruction<?> instruction,
-                                        TargetBasicBlock targetBasicBlock, TargetFunction targetFunction) {
+    private void transformLoadInst(LoadInst loadInst, TargetBasicBlock targetBasicBlock) {
+        // CAST LoadInst的构造函数限制保证合理
+        IRValue<PointerType> loadPointerIRValue = IRValue.cast(loadInst.getOperand(0));
+        IntegerType loadIntegerType;
+        if ((loadPointerIRValue instanceof IRGlobalVariable irGlobalVariable
+                && irGlobalVariable.variableType() instanceof IntegerType integerType)) {
+            loadIntegerType = integerType;
+        } else if (loadPointerIRValue instanceof AllocaInst allocaInst &&
+                allocaInst.allocType() instanceof IntegerType integerType) {
+            loadIntegerType = integerType;
+        } else {
+            throw new RuntimeException("When transformLoadInst(), LoadInst try to load a IRValue whose referenceType is other than IntegerType. Got " + loadPointerIRValue);
+        }
+        VirtualRegister destinationRegister = targetBasicBlock.parent().addVirtualRegister();
+        new Load(targetBasicBlock, loadIntegerType.size(), destinationRegister, this.valueToOperand(loadPointerIRValue));
+        this.valueMap.put(loadInst, destinationRegister);
+    }
 
+    private void transformReturnInst(ReturnInst returnInst, TargetBasicBlock targetBasicBlock) {
+        if (returnInst.getNumOperands() == 1) {
+            // 有参数
+            // 因为之后将进入函数尾声，$v0的原始值不会再被使用了
+            new Move(targetBasicBlock, PhysicalRegister.V0, this.valueToOperand(returnInst.getOperand(0)));
+        }
+        new Branch(targetBasicBlock, targetBasicBlock.parent().labelEpilogue());
     }
 }

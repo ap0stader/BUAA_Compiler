@@ -1,5 +1,8 @@
 package backend.oprand;
 
+import java.util.Objects;
+import java.util.Set;
+
 public final class LabelBaseAddress extends TargetAddress<Label, LabelBaseAddress> {
     private final TargetRegister registerOffset;
 
@@ -34,6 +37,24 @@ public final class LabelBaseAddress extends TargetAddress<Label, LabelBaseAddres
             return new LabelBaseAddress(this, immediateOffset);
         } else {
             throw new RuntimeException("When setImmediateOffset(), registerOffset is not null");
+        }
+    }
+
+    @Override
+    public Set<TargetRegister> useRegisterSet() {
+        if (registerOffset != null) {
+            return Set.of(registerOffset);
+        } else {
+            return Set.of();
+        }
+    }
+
+    @Override
+    public LabelBaseAddress replaceUseVirtualRegister(PhysicalRegister physicalRegister, VirtualRegister virtualRegister) {
+        if (Objects.equals(registerOffset, virtualRegister)) {
+            return new LabelBaseAddress(this, physicalRegister);
+        } else {
+            throw new RuntimeException("When LabelBaseAddress.replaceUseVirtualRegister(), virtualRegister is not registerOffset");
         }
     }
 

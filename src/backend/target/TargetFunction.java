@@ -26,6 +26,14 @@ public class TargetFunction {
         return label;
     }
 
+    public Label labelEpilogue() {
+        return labelEpilogue;
+    }
+
+    public LinkedList<TargetBasicBlock> basicBlocks() {
+        return basicBlocks;
+    }
+
     public VirtualRegister addVirtualRegister() {
         VirtualRegister newRegister = VirtualRegister.create();
         this.virtualRegisters.add(newRegister);
@@ -222,16 +230,16 @@ public class TargetFunction {
             StringBuilder sb = new StringBuilder();
             sb.append(labelPrologue.mipsStr()).append(":\n");
             // 调整栈的大小
-            sb.append("    ").append("# stack frame size ").append(this.size()).append(" bytes\n");
-            sb.append("    ").append("addiu $sp, $sp, 0x").append(Integer.toHexString(-this.size()).toUpperCase()).append("\n");
+            sb.append("\t").append("# stack frame size ").append(this.size()).append(" bytes\n");
+            sb.append("\t").append("addiu $sp, $sp, 0x").append(Integer.toHexString(-this.size()).toUpperCase()).append("\n");
             // 保存需要保存的参数寄存器
             for (PhysicalRegister savedArgumentRegister : this.savedArgumentRegisters) {
-                sb.append("    ").append("sw ").append(savedArgumentRegister.mipsStr()).append(", ")
+                sb.append("\t").append("sw ").append(savedArgumentRegister.mipsStr()).append(", ")
                         .append(this.getSavedRegisterAddress(savedArgumentRegister).mipsStr()).append("\n");
             }
             // 保存需要使用的寄存器
             for (PhysicalRegister savedRegister : this.savedRegisters.descendingSet()) {
-                sb.append("    ").append("sw ").append(savedRegister.mipsStr()).append(", ")
+                sb.append("\t").append("sw ").append(savedRegister.mipsStr()).append(", ")
                         .append(this.getSavedRegisterAddress(savedRegister).mipsStr()).append("\n");
             }
             return sb.toString();
@@ -243,14 +251,14 @@ public class TargetFunction {
             sb.append(labelEpilogue.mipsStr()).append(":\n");
             // 恢复被使用的寄存器
             for (PhysicalRegister savedRegister : this.savedRegisters) {
-                sb.append("    ").append("lw ").append(savedRegister.mipsStr()).append(", ")
+                sb.append("\t").append("lw ").append(savedRegister.mipsStr()).append(", ")
                         .append(this.getSavedRegisterAddress(savedRegister).mipsStr()).append("\n");
             }
             // 调整栈的大小
-            sb.append("    ").append("# stack frame size ").append(this.size()).append(" bytes\n");
-            sb.append("    ").append("addiu $sp, $sp, 0x").append(Integer.toHexString(this.size()).toUpperCase()).append("\n");
+            sb.append("\t").append("# stack frame size ").append(this.size()).append(" bytes\n");
+            sb.append("\t").append("addiu $sp, $sp, 0x").append(Integer.toHexString(this.size()).toUpperCase()).append("\n");
             // 返回到之前的函数
-            sb.append("    ").append("jr $ra").append("\n");
+            sb.append("\t").append("jr $ra").append("\n");
             return sb.toString();
         }
     }

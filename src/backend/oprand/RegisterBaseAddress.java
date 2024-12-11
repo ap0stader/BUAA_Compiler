@@ -1,7 +1,10 @@
 package backend.oprand;
 
-public final class RegisterBaseAddress extends TargetAddress<PhysicalRegister, RegisterBaseAddress> {
-    public RegisterBaseAddress(PhysicalRegister base, ImmediateOffset immediateOffset) {
+import java.util.Objects;
+import java.util.Set;
+
+public final class RegisterBaseAddress extends TargetAddress<TargetRegister, RegisterBaseAddress> {
+    public RegisterBaseAddress(TargetRegister base, ImmediateOffset immediateOffset) {
         super(base, immediateOffset);
     }
 
@@ -9,9 +12,27 @@ public final class RegisterBaseAddress extends TargetAddress<PhysicalRegister, R
         super(oldAddress, immediateOffset);
     }
 
+    private RegisterBaseAddress(RegisterBaseAddress oldAddress, TargetRegister base) {
+        super(oldAddress, base);
+    }
+
     @Override
     public RegisterBaseAddress addImmediateOffset(ImmediateOffset immediateOffset) {
         return new RegisterBaseAddress(this, immediateOffset);
+    }
+
+    @Override
+    public Set<TargetRegister> useRegisterSet() {
+        return Set.of(base);
+    }
+
+    @Override
+    public RegisterBaseAddress replaceUseVirtualRegister(PhysicalRegister physicalRegister, VirtualRegister virtualRegister) {
+        if (Objects.equals(base, virtualRegister)) {
+            return new RegisterBaseAddress(this, physicalRegister);
+        } else {
+            throw new RuntimeException("When RegisterBaseAddress.replaceUseVirtualRegister, virtualRegister is not base");
+        }
     }
 
     @Override

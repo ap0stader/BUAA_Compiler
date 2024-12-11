@@ -1,17 +1,38 @@
 package backend.target;
 
+import backend.instruction.TargetInstruction;
 import backend.oprand.Label;
+import util.DoublyLinkedList;
 
 public class TargetBasicBlock {
-    private final TargetFunction parent;
     private final Label label;
+    private final DoublyLinkedList<TargetInstruction> instructions;
+    private final TargetFunction parent;
 
     public TargetBasicBlock(TargetFunction parent, int order) {
-        this.parent = parent;
         this.label = new Label(parent.label().name() + "." + order);
+        this.instructions = new DoublyLinkedList<>();
+        this.parent = parent;
+    }
+
+    public DoublyLinkedList<TargetInstruction> instructions() {
+        return instructions;
+    }
+
+    public TargetFunction parent() {
+        return parent;
+    }
+
+    public void appendInstruction(TargetInstruction instruction) {
+        this.instructions.insertAfterTail(instruction.listNode());
     }
 
     public String mipsStr() {
-        return this.label.mipsStr() + ":\n";
+        StringBuilder sb = new StringBuilder();
+        sb.append(this.label.mipsStr()).append(":\n");
+        for (DoublyLinkedList.Node<TargetInstruction> instructionNode : this.instructions) {
+            sb.append("\t").append(instructionNode.value().mipsStr()).append("\n");
+        }
+        return sb.toString();
     }
 }

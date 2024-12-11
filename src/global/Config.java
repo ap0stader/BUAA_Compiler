@@ -58,9 +58,13 @@ public class Config {
     public static boolean dumpLLVMAfterOptimized = true;
     public static String dumpLLVMAfterOptimizedFileName = "llvm_ir.txt";
 
-    // 生成目标代码后，是否输出目标代码
-    public static boolean dumpMIPSAssembly = true;
-    public static String dumpMIPSAssemblyFileName = "mips.txt";
+    // 生成目标代码后，是否输出未进行寄存器分配的目标代码
+    public static boolean dumpMIPSAssemblyBeforeAllocation = true;
+    public static String dumpMIPSAssemblyBeforeAllocationFileName = "mips_before.txt";
+
+    // 生成目标代码后，是否输出已进行寄存器分配的目标代码
+    public static boolean dumpMIPSAssemblyAfterAllocation = true;
+    public static String dumpMIPSAssemblyAfterAllocationFileName = "mips.txt";
 
     // 通过传递的参数设置全局配置
     public static void setConfigByArgs(String[] args) {
@@ -91,8 +95,10 @@ public class Config {
                     dumpLLVMBeforeOptimizedFileName = "dump_LLVMBeforeOptimized.txt";
                     dumpLLVMAfterOptimized = true;
                     dumpLLVMAfterOptimizedFileName = "dump_LLVMAfterOptimized.txt";
-                    dumpMIPSAssembly = true;
-                    dumpMIPSAssemblyFileName = "dump_MIPSAssembly.txt";
+                    dumpMIPSAssemblyBeforeAllocation = true;
+                    dumpMIPSAssemblyBeforeAllocationFileName = "dump_MIPSAssemblyBeforeAllocation.txt";
+                    dumpMIPSAssemblyAfterAllocation = true;
+                    dumpMIPSAssemblyAfterAllocationFileName = "dump_MIPSAssemblyAfterAllocation.txt";
                 }
                 // Lexical Analysis: -L
                 case "-L" -> {
@@ -122,7 +128,8 @@ public class Config {
                     dumpLLVMBeforeOptimized = false;
                     enableMiddleOptimization = false;
                     dumpLLVMAfterOptimized = true;
-                    dumpMIPSAssembly = true;
+                    dumpMIPSAssemblyBeforeAllocation = true;
+                    dumpMIPSAssemblyAfterAllocation = true;
                 }
                 // Code Generation(MIPS, optimized): -O
                 case "-O" -> {
@@ -130,7 +137,8 @@ public class Config {
                     dumpLLVMBeforeOptimized = true;
                     enableMiddleOptimization = true;
                     dumpLLVMAfterOptimized = true;
-                    dumpMIPSAssembly = true;
+                    dumpMIPSAssemblyBeforeAllocation = true;
+                    dumpMIPSAssemblyAfterAllocation = true;
                 }
             }
         }

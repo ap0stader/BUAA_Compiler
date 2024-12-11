@@ -3,15 +3,14 @@ package output;
 import backend.target.TargetDataObject;
 import backend.target.TargetFunction;
 import backend.target.TargetModule;
-import global.Config;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 
 public class DumpMIPSAssembly {
-    public static void dump(TargetModule targetModule) throws IOException {
-        BufferedWriter out = new BufferedWriter(new FileWriter(Config.dumpMIPSAssemblyFileName));
+    public static void dump(TargetModule targetModule, String filename) throws IOException {
+        BufferedWriter out = new BufferedWriter(new FileWriter(filename));
         out.write("# ===== Start of DataObjects >>>>> #\n");
         out.write(".data\n");
         for (TargetDataObject dataObject : targetModule.dataObjects()) {
