@@ -255,8 +255,8 @@ public class Generator {
             case MOD -> Binary.BinaryOs.MOD;
         };
         TargetOperand registerSource;
-        if (operandLeft instanceof ConstantInt && operandRight instanceof ConstantInt) {
-            // 均为常量，左侧的ConstantInt要先进入寄存器
+        if (this.valueToOperand(operandLeft) instanceof Immediate) {
+            // 左侧的Immediate要先进入寄存器
             registerSource = targetBasicBlock.parent().addVirtualRegister();
             new Move(targetBasicBlock, registerSource, this.valueToOperand(operandLeft));
         } else {
@@ -280,8 +280,8 @@ public class Generator {
             case LE -> Binary.BinaryOs.SLE;
         };
         TargetOperand registerSource;
-        if (operandLeft instanceof ConstantInt && operandRight instanceof ConstantInt) {
-            // 均为常量，左侧的ConstantInt要先进入寄存器
+        if (this.valueToOperand(operandLeft) instanceof Immediate) {
+            // 左侧的Immediate要先进入寄存器
             registerSource = targetBasicBlock.parent().addVirtualRegister();
             new Move(targetBasicBlock, registerSource, this.valueToOperand(operandLeft));
         } else {

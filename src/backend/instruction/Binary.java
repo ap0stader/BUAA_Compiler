@@ -26,32 +26,26 @@ public class Binary extends TargetInstruction {
         SGT,
         SGE,
         SLT,
-        SLE;
+        SLE
     }
 
     public Binary(TargetBasicBlock targetBasicBlock, BinaryOs operation, TargetOperand destination,
-                  TargetOperand operandSourceLeft, TargetOperand operandSourceRight) {
+                  TargetOperand registerSource, TargetOperand operandSource) {
         super(targetBasicBlock);
-        if (destination instanceof TargetRegister
-                && ((operandSourceLeft instanceof TargetRegister && operandSourceRight instanceof TargetRegister) ||
-                (operandSourceLeft instanceof TargetRegister && operandSourceRight instanceof Immediate) ||
-                (operandSourceLeft instanceof Immediate && operandSourceRight instanceof TargetRegister))) {
+        if (destination instanceof TargetRegister destinationRegister
+                && registerSource instanceof TargetRegister registerSourceRegister
+                && (operandSource instanceof TargetRegister || operandSource instanceof Immediate)) {
             // CAST instanceof确保转换正确
             this.operation = operation;
-            this.destination = (TargetRegister) destination;
-            if (operandSourceLeft instanceof TargetRegister) {
-                this.registerSource = (TargetRegister) operandSourceLeft;
-                this.operandSource = operandSourceRight;
-            } else {
-                this.registerSource = (TargetRegister) operandSourceRight;
-                this.operandSource = operandSourceLeft;
-            }
-            addDef(destination);
-            addUse(registerSource);
-            addUse(operandSource);
+            this.destination = destinationRegister;
+            this.registerSource = registerSourceRegister;
+            this.operandSource = operandSource;
+            addDef(this.destination);
+            addUse(this.registerSource);
+            addUse(this.operandSource);
         } else {
             throw new RuntimeException("When Binary(), the type of destination or source is invalid. " +
-                    "Got destination: " + destination + ", source: " + operandSourceLeft + ", " + operandSourceRight);
+                    "Got destination: " + destination + ", source: " + registerSource + ", " + operandSource);
         }
     }
 
