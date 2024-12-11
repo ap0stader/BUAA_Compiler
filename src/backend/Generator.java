@@ -469,6 +469,7 @@ public class Generator {
         if (callInst.type() instanceof IntegerType integerType) {
             VirtualRegister resultRegister = targetBasicBlock.parent().addVirtualRegister();
             new Move(targetBasicBlock, resultRegister, PhysicalRegister.V0);
+            this.valueMap.put(callInst, resultRegister);
         } else if (!(callInst.type() instanceof VoidType)) {
             throw new RuntimeException("When transformCallInst(), the return type of CallInst is invalid. " +
                     "Got " + callInst.type());
