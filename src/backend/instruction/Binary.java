@@ -18,10 +18,15 @@ public class Binary extends TargetInstruction {
         MUL,
         DIV,
         MOD,
-        // 逻辑运算
-        AND,
         // 移位运算
         SLL,
+        // 比较运算
+        SEQ,
+        SNE,
+        SGT,
+        SGE,
+        SLT,
+        SLE;
     }
 
     public Binary(TargetBasicBlock targetBasicBlock, BinaryOs operation, TargetOperand destination,
@@ -87,11 +92,20 @@ public class Binary extends TargetInstruction {
                         "div " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
                 case MOD ->
                         "rem " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
-                case AND ->
-                        "andi " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
                 case SLL ->
                         "sll " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
-
+                case SEQ ->
+                        "seq " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case SNE ->
+                        "sne " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case SGT ->
+                        "sgt " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case SGE ->
+                        "sge " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case SLT ->
+                        "slti " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case SLE ->
+                        "sle " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
             };
         } else { // operandSource instanceof TargetRegister
             return switch (this.operation) {
@@ -106,10 +120,20 @@ public class Binary extends TargetInstruction {
                         "mflo " + destination.mipsStr();
                 case MOD -> "div " + registerSource.mipsStr() + ", " + operandSource.mipsStr() + "\n\t" +
                         "mfhi " + destination.mipsStr();
-                case AND ->
-                        "and " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
                 case SLL ->
                         "sllv " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case SEQ ->
+                        "seq " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case SNE ->
+                        "sne " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case SGT ->
+                        "sgt " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case SGE ->
+                        "sge " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case SLT ->
+                        "slt " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case SLE ->
+                        "sle " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
             };
         }
     }

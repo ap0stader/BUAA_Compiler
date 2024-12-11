@@ -42,6 +42,10 @@ public class IcmpInst extends IRInstruction<IntegerType> {
         this.addOperand(operand2);
     }
 
+    public Predicate predicate() {
+        return predicate;
+    }
+
     @Override
     public String llvmStr(LLVMStrRegCounter counter) {
         return counter.get(this) + " = icmp " + this.predicate + " " +

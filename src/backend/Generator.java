@@ -200,6 +200,10 @@ public class Generator {
         for (IRInstruction<?> irInstruction : instructions) {
             if (irInstruction instanceof BinaryOperator binaryOperator) {
                 this.transformBinaryOperator(binaryOperator, targetBasicBlock);
+            } else if (irInstruction instanceof IcmpInst icmpInst) {
+                this.transformIcmpInst(icmpInst, targetBasicBlock);
+            } else if (irInstruction instanceof CastInst<?> castInst) {
+                this.transformCastInst(castInst, targetBasicBlock);
             } else if (irInstruction instanceof LoadInst loadInst) {
                 this.transformLoadInst(loadInst, targetBasicBlock);
             } else if (irInstruction instanceof StoreInst storeInst) {
@@ -234,6 +238,45 @@ public class Generator {
         }
         new Binary(targetBasicBlock, targetBinaryOps, destinationRegister, registerSource, this.valueToOperand(operandRight));
         this.valueMap.put(binaryOperator, destinationRegister);
+    }
+
+    private void transformIcmpInst(IcmpInst icmpInst, TargetBasicBlock targetBasicBlock) {
+        // CAST IcmpInst的构造函数限制
+        IRValue<IntegerType> operandLeft = IRValue.cast(icmpInst.getOperand(0));
+        IRValue<IntegerType> operandRight = IRValue.cast(icmpInst.getOperand(1));
+        VirtualRegister destinationRegister = targetBasicBlock.parent().addVirtualRegister();
+        Binary.BinaryOs targetBinaryOps = switch (icmpInst.predicate()) {
+            case EQ -> Binary.BinaryOs.SEQ;
+            case NE -> Binary.BinaryOs.SNE;
+            case GT -> Binary.BinaryOs.SGT;
+            case GE -> Binary.BinaryOs.SGE;
+            case LT -> Binary.BinaryOs.SLT;
+            case LE -> Binary.BinaryOs.SLE;
+        };
+        TargetOperand registerSource;
+        if (operandLeft instanceof ConstantInt && operandRight instanceof ConstantInt) {
+            // 均为常量，左侧的ConstantInt要先进入寄存器
+            registerSource = targetBasicBlock.parent().addVirtualRegister();
+            new Move(targetBasicBlock, registerSource, this.valueToOperand(operandLeft));
+        } else {
+            registerSource = this.valueToOperand(operandLeft);
+        }
+        new Binary(targetBasicBlock, targetBinaryOps, destinationRegister, registerSource, this.valueToOperand(operandRight));
+        this.valueMap.put(icmpInst, destinationRegister);
+    }
+
+    private void transformCastInst(CastInst<?> castInst, TargetBasicBlock targetBasicBlock) {
+        // MAYBE
+        // 对于char类型
+        // - 存储 采用lbu和sb，只取最低的byte
+        // - 计算 整型提升至32位
+        // - 输出 syscall 11，只取最低的byte
+        // 对于bool类型
+        // - 来源 均为IcmpInst产生，对应s__
+        // - 计算 整型提升至32位
+        // 故对于Zext和Trunc不需要特别处理
+        IRValue<?> sourceIRValue = castInst.getOperand(0);
+        this.valueMap.put(castInst, this.valueToOperand(sourceIRValue));
     }
 
     private void transformLoadInst(LoadInst loadInst, TargetBasicBlock targetBasicBlock) {
