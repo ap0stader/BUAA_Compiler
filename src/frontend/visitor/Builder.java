@@ -169,23 +169,23 @@ class Builder {
         }
     }
 
-    AllocaInst addArgument(ArgSymbol argSymbol, IRBasicBlock defBlock) {
-        AllocaInst allocaInst = new AllocaInst(argSymbol.type(), defBlock);
-        new StoreInst(argSymbol.argument(), allocaInst, defBlock);
+    AllocaInst addArgument(ArgSymbol argSymbol, IRBasicBlock argBlock) {
+        AllocaInst allocaInst = new AllocaInst(argSymbol.type(), argBlock);
+        new StoreInst(argSymbol.argument(), allocaInst, argBlock);
         return allocaInst;
     }
 
-    AllocaInst addLocalConstant(ConstSymbol constSymbol, IRBasicBlock defBlock) {
+    AllocaInst addLocalConstant(ConstSymbol constSymbol, IRBasicBlock defBlock, IRBasicBlock insertBlock) {
         AllocaInst allocaInst = new AllocaInst(constSymbol.type(), defBlock);
         if (constSymbol.type() instanceof IntegerType constSymbolType) {
-            new StoreInst(new ConstantInt(constSymbolType, constSymbol.initVals().get(0)), allocaInst, defBlock);
+            new StoreInst(new ConstantInt(constSymbolType, constSymbol.initVals().get(0)), allocaInst, insertBlock);
         } else if (constSymbol.type() instanceof ArrayType constSymbolType) {
             for (int i = 0; i < constSymbol.initVals().size(); i++) {
                 GetElementPtrInst arrayElementPointer =
-                        this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), defBlock);
+                        this.addGetArrayElementPointer(allocaInst, new ConstantInt(IRType.getInt32Ty(), i), insertBlock);
                 // CAST 由于BType只有int和char，此处强制转换不会出错
                 new StoreInst(new ConstantInt((IntegerType) constSymbolType.elementType(), constSymbol.initVals().get(i)),
-                        arrayElementPointer, defBlock);
+                        arrayElementPointer, insertBlock);
             }
         } else {
             throw new RuntimeException("When addLocalConstant(), illegal type. Got " + constSymbol.type() +

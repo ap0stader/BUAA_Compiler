@@ -322,7 +322,7 @@ public class Visitor {
         if (decl instanceof ConstDecl constDecl) {
             ArrayList<ConstSymbol> constSymbols = this.visitConstDecl(constDecl);
             for (ConstSymbol constSymbol : constSymbols) {
-                constSymbol.setIRValue(this.builder.addLocalConstant(constSymbol, defBlock));
+                constSymbol.setIRValue(this.builder.addLocalConstant(constSymbol, defBlock, nowBlock));
             }
         } else if (decl instanceof VarDecl varDecl) {
             this.visitLocalVarDecl(varDecl, defBlock, nowBlock);
