@@ -35,7 +35,7 @@ public abstract class TargetAddress<B, C extends TargetAddress<B, ?>> implements
 
     // 计算立即数偏移
     protected Immediate immediateOffset() {
-        return this.immediateOffsetList.stream().map(ImmediateOffset::calc).reduce(Immediate.ZERO, Immediate::add);
+        return this.immediateOffsetList.stream().map(ImmediateOffset::calc).reduce(Immediate.ZERO(), Immediate::add);
     }
 
     public abstract C addImmediateOffset(ImmediateOffset immediateOffset);

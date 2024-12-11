@@ -61,7 +61,7 @@ public final class LabelBaseAddress extends TargetAddress<Label, LabelBaseAddres
     @Override
     public String mipsStr() {
         if (registerOffset != null) {
-            return this.base.mipsStr() + "+" + registerOffset.mipsStr();
+            return this.base.mipsStr() + "(" + registerOffset.mipsStr() + ")";
         } else if (!immediateOffsetList.isEmpty()) {
             return this.base.mipsStr() + "+" + this.immediateOffset().mipsStr();
         } else {

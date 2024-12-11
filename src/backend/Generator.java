@@ -142,10 +142,10 @@ public class Generator {
             IRInstruction<?> irInstructionFirst = argBlockIterator.next();
             if (irInstructionFirst instanceof AllocaInst allocaInst && argBlockIterator.hasNext()) {
                 IRInstruction<?> irInstructionSecond = argBlockIterator.next();
-                if (irInstructionSecond instanceof StoreInst storeInst &&
+                if (irInstructionSecond instanceof StoreInst storeInst
                         // storeInst与allocaInst是搭配的
-                        storeInst.getOperand(0) instanceof Argument argument &&
-                        storeInst.getOperand(1) == allocaInst) {
+                        && storeInst.getOperand(0) instanceof Argument argument
+                        && storeInst.getOperand(1) == allocaInst) {
                     int argumentNumber = arguments.indexOf(argument);
                     // 如果是通过寄存器传递的参数仍然在argBlock中保存了，那么要将寄存器保存到栈上合理的位置
                     if (PhysicalRegister.argumentRegisterOfArgumentNumber(argumentNumber) != null) {
@@ -171,14 +171,14 @@ public class Generator {
         while (defBlockIterator.hasNext()) {
             IRInstruction<?> irInstruction = defBlockIterator.next();
             if (irInstruction instanceof AllocaInst allocaInst) {
-                if (allocaInst.allocType() instanceof IntegerType allocIntegerType &&
-                        (allocIntegerType.size() == 8 || allocIntegerType.size() == 32)) {
+                if (allocaInst.allocType() instanceof IntegerType allocIntegerType
+                        && (allocIntegerType.size() == 8 || allocIntegerType.size() == 32)) {
                     this.valueMap.put(allocaInst, targetFunction.stackFrame.alloc(
                             allocIntegerType.size() / 8));
                     continue;
-                } else if (allocaInst.allocType() instanceof ArrayType allocArrayType &&
-                        allocArrayType.elementType() instanceof IntegerType allocArrayElementType &&
-                        (allocArrayElementType.size() == 8 || allocArrayElementType.size() == 32)) {
+                } else if (allocaInst.allocType() instanceof ArrayType allocArrayType
+                        && allocArrayType.elementType() instanceof IntegerType allocArrayElementType
+                        && (allocArrayElementType.size() == 8 || allocArrayElementType.size() == 32)) {
                     this.valueMap.put(allocaInst, targetFunction.stackFrame.alloc(
                             allocArrayType.length() * (allocArrayElementType.size() / 8)));
                     continue;
@@ -204,6 +204,8 @@ public class Generator {
                 this.transformIcmpInst(icmpInst, targetBasicBlock);
             } else if (irInstruction instanceof CastInst<?> castInst) {
                 this.transformCastInst(castInst, targetBasicBlock);
+            } else if (irInstruction instanceof GetElementPtrInst getElementPtrInst) {
+                this.transformGetElementPtrInst(getElementPtrInst, targetBasicBlock);
             } else if (irInstruction instanceof LoadInst loadInst) {
                 this.transformLoadInst(loadInst, targetBasicBlock);
             } else if (irInstruction instanceof StoreInst storeInst) {
@@ -265,6 +267,7 @@ public class Generator {
         this.valueMap.put(icmpInst, destinationRegister);
     }
 
+    @SuppressWarnings("unused")
     private void transformCastInst(CastInst<?> castInst, TargetBasicBlock targetBasicBlock) {
         // MAYBE
         // 对于char类型
@@ -277,6 +280,100 @@ public class Generator {
         // 故对于Zext和Trunc不需要特别处理
         IRValue<?> sourceIRValue = castInst.getOperand(0);
         this.valueMap.put(castInst, this.valueToOperand(sourceIRValue));
+    }
+
+    private void transformGetElementPtrInst(GetElementPtrInst getElementPtrInst, TargetBasicBlock targetBasicBlock) {
+        IRValue<PointerType> pointerIRValue = IRValue.cast(getElementPtrInst.getOperand(0));
+        IntegerType elementIntegerType;
+        IRValue<IntegerType> indexIRValue;
+        // CAST GetElementPtrInst的构造函数限制
+        if (getElementPtrInst.getNumOperands() == 2
+                && pointerIRValue.type().referenceType() instanceof IntegerType integerType) {
+            // 访问指针
+            indexIRValue = IRValue.cast(getElementPtrInst.getOperand(1));
+            elementIntegerType = integerType;
+        } else if (getElementPtrInst.getNumOperands() == 3
+                && pointerIRValue.type().referenceType() instanceof ArrayType arrayType
+                && arrayType.elementType() instanceof IntegerType arrayElementIntegerType) {
+            // 访问数组
+            indexIRValue = IRValue.cast(getElementPtrInst.getOperand(2));
+            elementIntegerType = arrayElementIntegerType;
+        } else {
+            throw new RuntimeException("When transformGetElementPtrInst(), the GetElementPtrInst is invalid. " +
+                    "Got " + getElementPtrInst);
+        }
+        if (this.valueToOperand(pointerIRValue) instanceof LabelBaseAddress labelBaseAddress) {
+            // Label作为基地址 全局变量
+            LabelBaseAddress designatedLabelBaseAddress;
+            if (this.valueToOperand(indexIRValue) instanceof Immediate immediate) {
+                if (elementIntegerType.size() == 8) {
+                    // 全局变量 char 立即数偏移
+                    designatedLabelBaseAddress = labelBaseAddress.addImmediateOffset(immediate);
+                } else if (elementIntegerType.size() == 32) {
+                    // 全局变量 int  立即数偏移
+                    designatedLabelBaseAddress = labelBaseAddress.addImmediateOffset(immediate.multiplyFour());
+                } else {
+                    throw new RuntimeException("When transformGetElementPtrInst(), the size of elementIntegerType is invalid. " +
+                            "Got " + elementIntegerType.size() + ", expected 8 or 32");
+                }
+            } else if (this.valueToOperand(indexIRValue) instanceof TargetRegister targetRegister) {
+                TargetRegister offsetRegister;
+                if (elementIntegerType.size() == 8) {
+                    // 全局变量 char 寄存器偏移
+                    offsetRegister = targetRegister;
+                } else if (elementIntegerType.size() == 32) {
+                    // 全局变量 int  寄存器偏移
+                    offsetRegister = targetBasicBlock.parent().addVirtualRegister();
+                    new Binary(targetBasicBlock, Binary.BinaryOs.SLL, offsetRegister, targetRegister, Immediate.TWO());
+                } else {
+                    throw new RuntimeException("When transformGetElementPtrInst(), the size of elementIntegerType is invalid. " +
+                            "Got " + elementIntegerType.size() + ", expected 8 or 32");
+                }
+                designatedLabelBaseAddress = labelBaseAddress.addRegisterOffset(offsetRegister);
+            } else {
+                throw new RuntimeException("When transformGetElementPtrInst(), te operand of index of GetElementPtrInst is not an Immediate or a TargetRegister");
+            }
+            // 登记定位的地址
+            this.valueMap.put(getElementPtrInst, designatedLabelBaseAddress);
+        } else if (this.valueToOperand(pointerIRValue) instanceof RegisterBaseAddress registerBaseAddress) {
+            // Register作为基地址 局部变量
+            RegisterBaseAddress designatedRegisterBaseAddress;
+            if (this.valueToOperand(indexIRValue) instanceof Immediate immediate) {
+                if (elementIntegerType.size() == 8) {
+                    // 局部变量 char 立即数偏移
+                    designatedRegisterBaseAddress = registerBaseAddress.addImmediateOffset(immediate);
+                } else if (elementIntegerType.size() == 32) {
+                    // 局部变量 char 立即数偏移
+                    designatedRegisterBaseAddress = registerBaseAddress.addImmediateOffset(immediate.multiplyFour());
+                } else {
+                    throw new RuntimeException("When transformGetElementPtrInst(), the size of elementIntegerType is invalid. " +
+                            "Got " + elementIntegerType.size() + ", expected 8 or 32");
+                }
+            } else if (this.valueToOperand(indexIRValue) instanceof TargetRegister targetRegister) {
+                TargetRegister offsetRegister;
+                if (elementIntegerType.size() == 8) {
+                    // 局部变量 char 寄存器偏移
+                    offsetRegister = targetRegister;
+                } else if (elementIntegerType.size() == 32) {
+                    // 局部变量 int  寄存器偏移
+                    offsetRegister = targetBasicBlock.parent().addVirtualRegister();
+                    new Binary(targetBasicBlock, Binary.BinaryOs.SLL, offsetRegister, targetRegister, Immediate.TWO());
+                } else {
+                    throw new RuntimeException("When transformGetElementPtrInst(), the size of elementIntegerType is invalid. " +
+                            "Got " + elementIntegerType.size() + ", expected 8 or 32");
+                }
+                // 得到新的基地址寄存器
+                VirtualRegister newBaseRegister = targetBasicBlock.parent().addVirtualRegister();
+                new Binary(targetBasicBlock, Binary.BinaryOs.ADD, newBaseRegister, registerBaseAddress.base(), offsetRegister);
+                designatedRegisterBaseAddress = registerBaseAddress.replaceBaseRegister(newBaseRegister);
+            } else {
+                throw new RuntimeException("When transformGetElementPtrInst(), te operand of index of GetElementPtrInst is not an Immediate or a TargetRegister");
+            }
+            // 登记定位的地址
+            this.valueMap.put(getElementPtrInst, designatedRegisterBaseAddress);
+        } else {
+            throw new RuntimeException("When transformGetElementPtrInst(), the operand of pointer of GetElementPtrInst is not a TargetAddress");
+        }
     }
 
     private void transformLoadInst(LoadInst loadInst, TargetBasicBlock targetBasicBlock) {

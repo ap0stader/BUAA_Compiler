@@ -32,10 +32,11 @@ public class Binary extends TargetInstruction {
     public Binary(TargetBasicBlock targetBasicBlock, BinaryOs operation, TargetOperand destination,
                   TargetOperand operandSourceLeft, TargetOperand operandSourceRight) {
         super(targetBasicBlock);
-        if (destination instanceof TargetRegister &&
-                ((operandSourceLeft instanceof TargetRegister && operandSourceRight instanceof TargetRegister) ||
-                        (operandSourceLeft instanceof TargetRegister && operandSourceRight instanceof Immediate) ||
-                        (operandSourceLeft instanceof Immediate && operandSourceRight instanceof TargetRegister))) {
+        if (destination instanceof TargetRegister
+                && ((operandSourceLeft instanceof TargetRegister && operandSourceRight instanceof TargetRegister) ||
+                (operandSourceLeft instanceof TargetRegister && operandSourceRight instanceof Immediate) ||
+                (operandSourceLeft instanceof Immediate && operandSourceRight instanceof TargetRegister))) {
+            // CAST instanceof确保转换正确
             this.operation = operation;
             this.destination = (TargetRegister) destination;
             if (operandSourceLeft instanceof TargetRegister) {

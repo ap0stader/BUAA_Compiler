@@ -14,7 +14,8 @@ public class TargetDataObject {
     private final LinkedList<Directive> directives;
 
     public TargetDataObject(String name) {
-        this.label = new Label(name);
+        // 之所以要加.label，是因为如果name以e结尾，在有立即数偏移的访存指令中，MARS会首先识别e+0x..，然后报告错误
+        this.label = new Label(name + ".label");
         this.address = new LabelBaseAddress(label);
         this.directives = new LinkedList<>();
     }

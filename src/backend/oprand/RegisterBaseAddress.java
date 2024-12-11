@@ -16,6 +16,10 @@ public final class RegisterBaseAddress extends TargetAddress<TargetRegister, Reg
         super(oldAddress, base);
     }
 
+    public TargetOperand base() {
+        return base;
+    }
+
     public RegisterBaseAddress replaceBaseRegister(TargetRegister newBase) {
         return new RegisterBaseAddress(this, newBase);
     }
