@@ -28,6 +28,10 @@ public class BinaryOperator extends IRInstruction<IntegerType> {
 
     private final BinaryOps binaryOp;
 
+    public BinaryOps binaryOp() {
+        return binaryOp;
+    }
+
     // BinaryOperator要求两个operand的类型相等并且是可运算类型（在Sysy中为IntegerType），返回的类型也为operand的类型
     public BinaryOperator(BinaryOps binaryOp, IRValue<IntegerType> operand1, IRValue<IntegerType> operand2, IRBasicBlock parent) {
         super(operand1.type(), parent);

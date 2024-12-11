@@ -4,8 +4,8 @@ import backend.oprand.*;
 import backend.target.TargetBasicBlock;
 import util.DoublyLinkedList;
 
-import java.util.HashSet;
 import java.util.Set;
+import java.util.TreeSet;
 
 public abstract class TargetInstruction {
     private final DoublyLinkedList.Node<TargetInstruction> listNode;
@@ -17,8 +17,8 @@ public abstract class TargetInstruction {
         if (targetBasicBlock != null) {
             targetBasicBlock.appendInstruction(this);
         }
-        this.defVirtualRegisterSet = new HashSet<>();
-        this.useVirtualRegisterSet = new HashSet<>();
+        this.defVirtualRegisterSet = new TreeSet<>();
+        this.useVirtualRegisterSet = new TreeSet<>();
     }
 
     public DoublyLinkedList.Node<TargetInstruction> listNode() {
@@ -52,4 +52,9 @@ public abstract class TargetInstruction {
     public abstract void replaceUseVirtualRegister(PhysicalRegister physicalRegister, VirtualRegister virtualRegister);
 
     public abstract String mipsStr();
+
+    @Override
+    public String toString() {
+        return this.mipsStr();
+    }
 }

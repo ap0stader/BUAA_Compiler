@@ -10,10 +10,7 @@ import backend.target.TargetFunction;
 import backend.target.TargetModule;
 import util.DoublyLinkedList;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.Set;
+import java.util.*;
 
 public class Allocator {
     private final TargetModule targetModule;
@@ -74,7 +71,7 @@ public class Allocator {
         while (instructionIterator.hasNext()) {
             DoublyLinkedList.Node<TargetInstruction> instructionNode = instructionIterator.next();
             TargetInstruction instruction = instructionNode.value();
-            Set<PhysicalRegister> acquiredPhysicalRegisters = new HashSet<>();
+            TreeSet<PhysicalRegister> acquiredPhysicalRegisters = new TreeSet<>();
             for (VirtualRegister useVirtualRegister : instruction.useVirtualRegisterSet()) {
                 PhysicalRegister physicalRegister = acquireTempPhysicalRegister(targetFunction);
                 acquiredPhysicalRegisters.add(physicalRegister);
@@ -83,7 +80,8 @@ public class Allocator {
                 loadVirtualRegister.listNode().insertBefore(instructionNode);
                 instruction.replaceUseVirtualRegister(physicalRegister, useVirtualRegister);
             }
-            acquiredPhysicalRegisters.forEach(this::releaseTempPhysicalRegister);
+            // 顺序申请，逆序释放
+            acquiredPhysicalRegisters.descendingSet().forEach(this::releaseTempPhysicalRegister);
             acquiredPhysicalRegisters.clear();
             for (VirtualRegister defVirtualRegister : instruction.defVirtualRegisterSet()) {
                 PhysicalRegister physicalRegister = acquireTempPhysicalRegister(targetFunction);
@@ -93,7 +91,8 @@ public class Allocator {
                         physicalRegister, targetFunction.stackFrame.getVirtualRegisterAddress(defVirtualRegister));
                 storeVirtualRegister.listNode().insertAfter(instructionNode);
             }
-            acquiredPhysicalRegisters.forEach(this::releaseTempPhysicalRegister);
+            // 顺序申请，逆序释放
+            acquiredPhysicalRegisters.descendingSet().forEach(this::releaseTempPhysicalRegister);
         }
     }
 }

@@ -108,6 +108,13 @@ public class TargetFunction {
             public Immediate calc() {
                 return new Immediate(size() + this.number * 4);
             }
+
+            @Override
+            public String toString() {
+                return "InArgumentOffset{" +
+                        "number=" + number +
+                        '}';
+            }
         }
 
         // 临时变量（虚拟寄存器）的偏移值
@@ -130,6 +137,13 @@ public class TargetFunction {
                             "does not use virtual register " + this.register);
                 }
             }
+
+            @Override
+            public String toString() {
+                return "VirtualRegisterOffset{" +
+                        "register=" + register +
+                        '}';
+            }
         }
 
         // 局部变量的偏移值
@@ -145,6 +159,13 @@ public class TargetFunction {
                 return new Immediate(this.accumulateSizeBefore +
                         savedRegisters.size() * 4 +
                         argumentsNumbers * 4);
+            }
+
+            @Override
+            public String toString() {
+                return "allocaOffset{" +
+                        "accumulateSizeBefore=" + accumulateSizeBefore +
+                        '}';
             }
         }
 
@@ -165,6 +186,13 @@ public class TargetFunction {
                     throw new RuntimeException("When SavedRegisterOffset.calc(), function " + label.name() +
                             "dose not save register " + this.register);
                 }
+            }
+
+            @Override
+            public String toString() {
+                return "SavedRegisterOffset{" +
+                        "register=" + register +
+                        '}';
             }
         }
 

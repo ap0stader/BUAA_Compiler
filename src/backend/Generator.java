@@ -122,7 +122,7 @@ public class Generator {
         for (int i = 2; i < irFunction.basicBlocks().size(); i++) {
             IRBasicBlock irBasicBlock = irFunction.basicBlocks().get(i);
             TargetBasicBlock targetBasicBlock = this.basicBlockMap.get(irBasicBlock);
-            this.transformIRBasicBlock(irBasicBlock, targetBasicBlock, targetFunction);
+            this.transformIRBasicBlock(irBasicBlock, targetBasicBlock);
         }
         this.targetModule.appendFunctions(targetFunction);
     }
@@ -195,11 +195,12 @@ public class Generator {
         }
     }
 
-    private void transformIRBasicBlock(IRBasicBlock irBasicBlock,
-                                       TargetBasicBlock targetBasicBlock, TargetFunction targetFunction) {
+    private void transformIRBasicBlock(IRBasicBlock irBasicBlock, TargetBasicBlock targetBasicBlock) {
         LinkedList<IRInstruction<?>> instructions = irBasicBlock.instructions();
         for (IRInstruction<?> irInstruction : instructions) {
-            if (irInstruction instanceof LoadInst loadInst) {
+            if (irInstruction instanceof BinaryOperator binaryOperator) {
+                this.transformBinaryOperator(binaryOperator, targetBasicBlock);
+            } else if (irInstruction instanceof LoadInst loadInst) {
                 this.transformLoadInst(loadInst, targetBasicBlock);
             } else if (irInstruction instanceof StoreInst storeInst) {
                 this.transformStoreInst(storeInst, targetBasicBlock);
@@ -211,45 +212,57 @@ public class Generator {
         }
     }
 
+    private void transformBinaryOperator(BinaryOperator binaryOperator, TargetBasicBlock targetBasicBlock) {
+        // CAST BinaryOperator的构造函数限制
+        IRValue<IntegerType> operandLeft = IRValue.cast(binaryOperator.getOperand(0));
+        IRValue<IntegerType> operandRight = IRValue.cast(binaryOperator.getOperand(1));
+        VirtualRegister destinationRegister = targetBasicBlock.parent().addVirtualRegister();
+        Binary.BinaryOs targetBinaryOps = switch (binaryOperator.binaryOp()) {
+            case ADD -> Binary.BinaryOs.ADD;
+            case SUB -> Binary.BinaryOs.SUB;
+            case MUL -> Binary.BinaryOs.MUL;
+            case DIV -> Binary.BinaryOs.DIV;
+            case MOD -> Binary.BinaryOs.MOD;
+        };
+        TargetOperand registerSource;
+        if (operandLeft instanceof ConstantInt && operandRight instanceof ConstantInt) {
+            // 均为常量，左侧的ConstantInt要先进入寄存器
+            registerSource = targetBasicBlock.parent().addVirtualRegister();
+            new Move(targetBasicBlock, registerSource, this.valueToOperand(operandLeft));
+        } else {
+            registerSource = this.valueToOperand(operandLeft);
+        }
+        new Binary(targetBasicBlock, targetBinaryOps, destinationRegister, registerSource, this.valueToOperand(operandRight));
+        this.valueMap.put(binaryOperator, destinationRegister);
+    }
+
     private void transformLoadInst(LoadInst loadInst, TargetBasicBlock targetBasicBlock) {
         // CAST LoadInst的构造函数限制
         IRValue<PointerType> loadPointerIRValue = IRValue.cast(loadInst.getOperand(0));
-        IntegerType loadIntegerType;
-        if ((loadPointerIRValue instanceof IRGlobalVariable irGlobalVariable
-                && irGlobalVariable.variableType() instanceof IntegerType integerType)) {
-            loadIntegerType = integerType;
-        } else if (loadPointerIRValue instanceof AllocaInst allocaInst
-                && allocaInst.allocType() instanceof IntegerType integerType) {
-            loadIntegerType = integerType;
+        if (loadPointerIRValue.type().referenceType() instanceof IntegerType integerType) {
+            VirtualRegister destinationRegister = targetBasicBlock.parent().addVirtualRegister();
+            new Load(targetBasicBlock, integerType.size(), destinationRegister, this.valueToOperand(loadPointerIRValue));
+            this.valueMap.put(loadInst, destinationRegister);
         } else {
             throw new RuntimeException("When transformLoadInst(), LoadInst try to load a IRValue whose referenceType is other than IntegerType. Got " + loadPointerIRValue);
         }
-        VirtualRegister destinationRegister = targetBasicBlock.parent().addVirtualRegister();
-        new Load(targetBasicBlock, loadIntegerType.size(), destinationRegister, this.valueToOperand(loadPointerIRValue));
-        this.valueMap.put(loadInst, destinationRegister);
     }
 
     private void transformStoreInst(StoreInst storeInst, TargetBasicBlock targetBasicBlock) {
         // CAST StoreInst的构造函数限制
         IRValue<PointerType> storePointerIRValue = IRValue.cast(storeInst.getOperand(1));
-        IntegerType storeIntegerType;
-        if (storePointerIRValue instanceof IRGlobalVariable irGlobalVariable
-                && irGlobalVariable.variableType() instanceof IntegerType integerType) {
-            storeIntegerType = integerType;
-        } else if (storePointerIRValue instanceof AllocaInst allocaInst
-                && allocaInst.allocType() instanceof IntegerType integerType) {
-            storeIntegerType = integerType;
+        if (storePointerIRValue.type().referenceType() instanceof IntegerType integerType) {
+            TargetOperand storeOrigin = this.valueToOperand(storeInst.getOperand(0));
+            // 如果是立即数要先加载到寄存器中
+            if (storeOrigin instanceof Immediate) {
+                VirtualRegister immediateRegister = targetBasicBlock.parent().addVirtualRegister();
+                new Move(targetBasicBlock, immediateRegister, storeOrigin);
+                storeOrigin = immediateRegister;
+            }
+            new Store(targetBasicBlock, integerType.size(), storeOrigin, this.valueToOperand(storePointerIRValue));
         } else {
             throw new RuntimeException("When transformStoreInst(), StoreInst try to store to a IRValue whose referenceType is other than IntegerType. Got " + storePointerIRValue);
         }
-        TargetOperand storeOrigin = this.valueToOperand(storeInst.getOperand(0));
-        // 如果是立即数要先加载到寄存器中
-        if (storeOrigin instanceof Immediate) {
-            VirtualRegister immediateRegister = targetBasicBlock.parent().addVirtualRegister();
-            new Move(targetBasicBlock, immediateRegister, storeOrigin);
-            storeOrigin = immediateRegister;
-        }
-        new Store(targetBasicBlock, storeIntegerType.size(), storeOrigin, this.valueToOperand(storePointerIRValue));
     }
 
     private void transformReturnInst(ReturnInst returnInst, TargetBasicBlock targetBasicBlock) {

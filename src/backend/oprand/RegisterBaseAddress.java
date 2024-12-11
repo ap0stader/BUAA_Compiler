@@ -16,6 +16,10 @@ public final class RegisterBaseAddress extends TargetAddress<TargetRegister, Reg
         super(oldAddress, base);
     }
 
+    public RegisterBaseAddress replaceBaseRegister(TargetRegister newBase) {
+        return new RegisterBaseAddress(this, newBase);
+    }
+
     @Override
     public RegisterBaseAddress addImmediateOffset(ImmediateOffset immediateOffset) {
         return new RegisterBaseAddress(this, immediateOffset);
