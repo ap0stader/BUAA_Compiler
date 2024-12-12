@@ -439,18 +439,18 @@ public class Generator {
         // CAST CallInst的构造函数限制
         IRFunction callIRFunction = (IRFunction) callInst.getOperand(0);
         // 处理参数
-        for (int i = 1; i < callInst.getNumOperands(); i++) {
-            if (i <= 4) {
+        for (int i = 0; i < callInst.getNumOperands() - 1; i++) {
+            if (i <= 3) {
                 // 使用寄存器传递
                 new Move(targetBasicBlock,
-                        PhysicalRegister.argumentRegisterOfArgumentNumber(i - 1),
-                        this.valueToOperand(callInst.getOperand(i)));
+                        PhysicalRegister.argumentRegisterOfArgumentNumber(i),
+                        this.valueToOperand(callInst.getOperand(i + 1)));
             } else {
                 // 使用内存传递
                 RegisterBaseAddress outArgumentAddress = targetBasicBlock.parent().stackFrame.getOutArgumentAddress(i);
-                TargetOperand outArgumentOperand = this.valueToOperand(callInst.getOperand(i));
+                TargetOperand outArgumentOperand = this.valueToOperand(callInst.getOperand(i + 1));
                 // 如果是立即数要先加载到寄存器中
-                if (outArgumentOperand instanceof Immediate) {
+                if (outArgumentOperand instanceof Immediate || outArgumentOperand instanceof TargetAddress<?, ?>) {
                     VirtualRegister immediateRegister = targetBasicBlock.parent().addVirtualRegister();
                     new Move(targetBasicBlock, immediateRegister, outArgumentOperand);
                     outArgumentOperand = immediateRegister;
