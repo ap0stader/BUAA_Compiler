@@ -33,6 +33,10 @@ public abstract class CastInst<D extends IRType> extends IRInstruction<D> {
         this.addOperand(src);
     }
 
+    public IRValue<?> getSourceOperand() {
+        return this.getOperand(0);
+    }
+
     @Override
     public String llvmStr(LLVMStrRegCounter counter) {
         return counter.get(this) + " = " + this.castOp + " " +

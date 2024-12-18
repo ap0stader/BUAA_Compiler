@@ -15,17 +15,11 @@ public class Load extends TargetInstruction {
         WORD
     }
 
-    public Load(TargetBasicBlock targetBasicBlock, int size, TargetOperand destination, TargetOperand address) {
+    public Load(TargetBasicBlock targetBasicBlock, SIZE size, TargetOperand destination, TargetOperand address) {
         super(targetBasicBlock);
         if (destination instanceof TargetRegister destinationRegister
                 && address instanceof TargetAddress<?, ?> addressAddress) {
-            if (size == 8) {
-                this.size = SIZE.BYTE;
-            } else if (size == 32) {
-                this.size = SIZE.WORD;
-            } else {
-                throw new RuntimeException("When Load(), the size is invalid. Got " + size + ", expected 8 or 32");
-            }
+            this.size = size;
             this.destination = destinationRegister;
             this.address = addressAddress;
             addDef(this.destination);
@@ -59,7 +53,7 @@ public class Load extends TargetInstruction {
     public String mipsStr() {
         if (size == SIZE.BYTE) {
             return "lbu " + destination.mipsStr() + ", " + address.mipsStr();
-        } else { // size == SIZE.WORD
+        } else { // getBitWidth == SIZE.WORD
             return "lw " + destination.mipsStr() + ", " + address.mipsStr();
         }
     }

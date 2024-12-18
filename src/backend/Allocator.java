@@ -17,8 +17,6 @@ public class Allocator {
     private boolean finish = false;
     private final LinkedList<PhysicalRegister> tempRegisters;
 
-    private static final int REGISTER_SIZE = 32;
-
     public Allocator(TargetModule targetModule) {
         this.targetModule = targetModule;
         this.tempRegisters = new LinkedList<>();
@@ -75,7 +73,7 @@ public class Allocator {
             for (VirtualRegister useVirtualRegister : instruction.useVirtualRegisterSet()) {
                 PhysicalRegister physicalRegister = acquireTempPhysicalRegister(targetFunction);
                 acquiredPhysicalRegisters.add(physicalRegister);
-                Load loadVirtualRegister = new Load(null, REGISTER_SIZE,
+                Load loadVirtualRegister = new Load(null, Load.SIZE.WORD,
                         physicalRegister, targetFunction.stackFrame.getVirtualRegisterAddress(useVirtualRegister));
                 loadVirtualRegister.listNode().insertBefore(instructionNode);
                 instruction.replaceUseVirtualRegister(physicalRegister, useVirtualRegister);
@@ -87,7 +85,7 @@ public class Allocator {
                 PhysicalRegister physicalRegister = acquireTempPhysicalRegister(targetFunction);
                 acquiredPhysicalRegisters.add(physicalRegister);
                 instruction.replaceDefVirtualRegister(physicalRegister, defVirtualRegister);
-                Store storeVirtualRegister = new Store(null, REGISTER_SIZE,
+                Store storeVirtualRegister = new Store(null, Store.SIZE.WORD,
                         physicalRegister, targetFunction.stackFrame.getVirtualRegisterAddress(defVirtualRegister));
                 storeVirtualRegister.listNode().insertAfter(instructionNode);
             }

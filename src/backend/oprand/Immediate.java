@@ -5,14 +5,17 @@ public record Immediate(Integer value) implements TargetOperand, TargetAddress.I
         return new Immediate(0);
     }
 
+    // 定位数组元素时使用
     public static Immediate TWO() {
         return new Immediate(2);
     }
 
+    // 计算常数偏移地址时使用
     public Immediate add(Immediate other) {
         return new Immediate(value + other.value);
     }
 
+    // 定位数组元素时使用
     public Immediate multiplyFour() {
         return new Immediate(value * 4);
     }

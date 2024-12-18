@@ -7,8 +7,6 @@ import IR.value.instruction.IRInstruction;
 import util.DoublyLinkedList;
 import util.LLVMStrRegCounter;
 
-import java.util.LinkedList;
-
 public class IRBasicBlock extends IRValue<LabelType> {
     private final DoublyLinkedList<IRInstruction<?>> instructions;
 

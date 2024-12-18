@@ -9,11 +9,11 @@ import IR.value.instruction.*;
 import backend.instruction.*;
 import backend.oprand.*;
 import backend.target.*;
+import util.DoublyLinkedList;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 
 public class Generator {
     private final IRModule irModule;
@@ -31,8 +31,6 @@ public class Generator {
     private final HashMap<IRValue<?>, TargetOperand> valueMap;
 
     private final TargetModule targetModule;
-
-    private static final int REGISTER_SIZE = 32;
 
     public Generator(IRModule irModule) {
         this.irModule = irModule;
@@ -84,7 +82,7 @@ public class Generator {
         } else if (irGlobalVariable.initVals() instanceof ConstantAggregateZero initAggregateZero
                 && initAggregateZero.type() instanceof ArrayType initZeroArrayType
                 && initZeroArrayType.elementType() instanceof IntegerType initZeroArrayElementType) {
-            targetDataObject.appendZero(initZeroArrayElementType, initZeroArrayType.length());
+            targetDataObject.appendZero(initZeroArrayElementType, initZeroArrayType.numElements());
         } else if (irGlobalVariable.initVals() instanceof ConstantStruct initStruct) {
             // 由于StructType的IRGlobalVariable只会因为长数组的优化产生，故按照长数组优化形成的结构解析
             for (IRConstant<?> initValue : initStruct.constantValues()) {
@@ -93,7 +91,7 @@ public class Generator {
                 } else if (initValue instanceof ConstantAggregateZero initAggregateZero
                         && initAggregateZero.type() instanceof ArrayType initZeroArrayType
                         && initZeroArrayType.elementType() instanceof IntegerType initZeroArrayElementType) {
-                    targetDataObject.appendZero(initZeroArrayElementType, initZeroArrayType.length());
+                    targetDataObject.appendZero(initZeroArrayElementType, initZeroArrayType.numElements());
                 } else {
                     throw new RuntimeException("When transformIRGlobalVariable(), the member of ConstantStruct initVals of IRGlobalVariable is invalid. " +
                             "Got " + initValue.type());
@@ -129,8 +127,8 @@ public class Generator {
                 throw new RuntimeException("When transformIRFunction(), the basic block of function " + irFunction.name() +
                         " is less than requirements.");
             }
-            this.transformFunctionArgBlock(irFunction.basicBlocks().get(0), targetFunction);
-            this.transformFunctionDefBlock(irFunction.basicBlocks().get(1), targetFunction);
+            this.transformFunctionArgBlock(irFunction.basicBlocks().get(0), irFunction, targetFunction);
+            this.transformFunctionDefBlock(irFunction.basicBlocks().get(1), irFunction, targetFunction);
             // 先创建好一个函数的所有的TargetBasicBlock，方便后续跳转时使用Label
             for (int i = 2; i < irFunction.basicBlocks().size(); i++) {
                 IRBasicBlock irBasicBlock = irFunction.basicBlocks().get(i);
@@ -147,25 +145,25 @@ public class Generator {
         }
     }
 
-    private void transformFunctionArgBlock(IRBasicBlock argBlock, TargetFunction targetFunction) {
-        ArrayList<Argument> arguments = argBlock.parent().arguments();
+    private void transformFunctionArgBlock(IRBasicBlock argBlock, IRFunction irFunction, TargetFunction targetFunction) {
+        ArrayList<Argument> arguments = irFunction.arguments();
         // 为第0-3个参数登记对应的寄存器
         for (int i = 0; i < arguments.size(); i++) {
             if (PhysicalRegister.argumentRegisterOfArgumentNumber(i) != null) {
                 this.valueMap.put(arguments.get(i), PhysicalRegister.argumentRegisterOfArgumentNumber(i));
             }
         }
-        LinkedList<IRInstruction<?>> instructions = argBlock.instructions();
+        DoublyLinkedList<IRInstruction<?>> instructions = argBlock.instructions();
         // argBlock的规范是 一条alloca指令配上一条将参数写入alloca地址
-        Iterator<IRInstruction<?>> argBlockIterator = instructions.iterator();
+        Iterator<DoublyLinkedList.Node<IRInstruction<?>>> argBlockIterator = instructions.iterator();
         while (argBlockIterator.hasNext()) {
-            IRInstruction<?> irInstructionFirst = argBlockIterator.next();
+            IRInstruction<?> irInstructionFirst = argBlockIterator.next().value();
             if (irInstructionFirst instanceof AllocaInst allocaInst && argBlockIterator.hasNext()) {
-                IRInstruction<?> irInstructionSecond = argBlockIterator.next();
+                IRInstruction<?> irInstructionSecond = argBlockIterator.next().value();
                 if (irInstructionSecond instanceof StoreInst storeInst
                         // storeInst与allocaInst是搭配的
-                        && storeInst.getOperand(0) instanceof Argument argument
-                        && storeInst.getOperand(1) == allocaInst) {
+                        && storeInst.getValueOperand() instanceof Argument argument
+                        && storeInst.getPointerOperand() == allocaInst) {
                     int argumentNumber = arguments.indexOf(argument);
                     // 如果是通过寄存器传递的参数仍然在argBlock中保存了，那么要将寄存器保存到栈上合理的位置
                     if (PhysicalRegister.argumentRegisterOfArgumentNumber(argumentNumber) != null) {
@@ -180,44 +178,45 @@ public class Generator {
                 break;
             }
             // argBlock不符合约定
-            throw new RuntimeException("When transformFunctionArgBlock(), the argBlock of function " + argBlock.parent().name() + " is invalid");
+            throw new RuntimeException("When transformFunctionArgBlock(), the argBlock of function " + irFunction.name() + " is invalid");
         }
     }
 
-    private void transformFunctionDefBlock(IRBasicBlock defBlock, TargetFunction targetFunction) {
-        LinkedList<IRInstruction<?>> instructions = defBlock.instructions();
+    private void transformFunctionDefBlock(IRBasicBlock defBlock, IRFunction irFunction, TargetFunction targetFunction) {
+        DoublyLinkedList<IRInstruction<?>> instructions = defBlock.instructions();
         // defBlock的规范是 均为alloca指令
-        Iterator<IRInstruction<?>> defBlockIterator = instructions.iterator();
+        Iterator<DoublyLinkedList.Node<IRInstruction<?>>> defBlockIterator = instructions.iterator();
         while (defBlockIterator.hasNext()) {
-            IRInstruction<?> irInstruction = defBlockIterator.next();
+            IRInstruction<?> irInstruction = defBlockIterator.next().value();
             if (irInstruction instanceof AllocaInst allocaInst) {
-                if (allocaInst.allocType() instanceof IntegerType allocIntegerType
-                        && (allocIntegerType.size() == 8 || allocIntegerType.size() == 32)) {
+                if (allocaInst.allocatedType() instanceof IntegerType allocIntegerType
+                        && (IRType.isEqual(allocIntegerType, IRType.getInt8Ty()) || IRType.isEqual(allocIntegerType, IRType.getInt32Ty()))) {
                     this.valueMap.put(allocaInst, targetFunction.stackFrame.alloc(
-                            allocIntegerType.size() / 8));
+                            allocIntegerType.getByteWidth()));
                     continue;
-                } else if (allocaInst.allocType() instanceof ArrayType allocArrayType
+                } else if (allocaInst.allocatedType() instanceof ArrayType allocArrayType
                         && allocArrayType.elementType() instanceof IntegerType allocArrayElementType
-                        && (allocArrayElementType.size() == 8 || allocArrayElementType.size() == 32)) {
+                        && (IRType.isEqual(allocArrayElementType, IRType.getInt8Ty()) || IRType.isEqual(allocArrayElementType, IRType.getInt32Ty()))) {
                     this.valueMap.put(allocaInst, targetFunction.stackFrame.alloc(
-                            allocArrayType.length() * (allocArrayElementType.size() / 8)));
+                            allocArrayType.numElements() * allocArrayElementType.getByteWidth()));
                     continue;
                 } else {
                     throw new RuntimeException("When transformFunctionDefBlock(), the allocaInst of allocaInst " + allocaInst + " is invalid. " +
-                            "Got " + allocaInst.allocType());
+                            "Got " + allocaInst.allocatedType());
                 }
             } else if (irInstruction instanceof BranchInst && !defBlockIterator.hasNext()) {
                 // defBlock正确结束
                 break;
             }
             // defBlock不符合约定
-            throw new RuntimeException("When transformFunctionDefBlock(), the defBlock of function " + defBlock.parent().name() + " is invalid");
+            throw new RuntimeException("When transformFunctionDefBlock(), the defBlock of function " + irFunction.name() + " is invalid");
         }
     }
 
     private void transformIRBasicBlock(IRBasicBlock irBasicBlock, TargetBasicBlock targetBasicBlock) {
-        LinkedList<IRInstruction<?>> instructions = irBasicBlock.instructions();
-        for (IRInstruction<?> irInstruction : instructions) {
+        DoublyLinkedList<IRInstruction<?>> instructions = irBasicBlock.instructions();
+        for (DoublyLinkedList.Node<IRInstruction<?>> irInstructionNode : instructions) {
+            IRInstruction<?> irInstruction = irInstructionNode.value();
             if (irInstruction instanceof BinaryOperator binaryOperator) {
                 this.transformBinaryOperator(binaryOperator, targetBasicBlock);
             } else if (irInstruction instanceof IcmpInst icmpInst) {
@@ -243,9 +242,8 @@ public class Generator {
     }
 
     private void transformBinaryOperator(BinaryOperator binaryOperator, TargetBasicBlock targetBasicBlock) {
-        // CAST BinaryOperator的构造函数限制
-        IRValue<IntegerType> operandLeft = IRValue.cast(binaryOperator.getOperand(0));
-        IRValue<IntegerType> operandRight = IRValue.cast(binaryOperator.getOperand(1));
+        IRValue<IntegerType> operandLeft = binaryOperator.getOperand1();
+        IRValue<IntegerType> operandRight = binaryOperator.getOperand2();
         VirtualRegister destinationRegister = targetBasicBlock.parent().addVirtualRegister();
         Binary.BinaryOs targetBinaryOps = switch (binaryOperator.binaryOp()) {
             case ADD -> Binary.BinaryOs.ADD;
@@ -268,8 +266,8 @@ public class Generator {
 
     private void transformIcmpInst(IcmpInst icmpInst, TargetBasicBlock targetBasicBlock) {
         // CAST IcmpInst的构造函数限制
-        IRValue<IntegerType> operandLeft = IRValue.cast(icmpInst.getOperand(0));
-        IRValue<IntegerType> operandRight = IRValue.cast(icmpInst.getOperand(1));
+        IRValue<IntegerType> operandLeft = icmpInst.getOperand1();
+        IRValue<IntegerType> operandRight = icmpInst.getOperand2();
         VirtualRegister destinationRegister = targetBasicBlock.parent().addVirtualRegister();
         Binary.BinaryOs targetBinaryOps = switch (icmpInst.predicate()) {
             case EQ -> Binary.BinaryOs.SEQ;
@@ -302,26 +300,25 @@ public class Generator {
         // - 来源 均为IcmpInst产生，对应s__
         // - 计算 整型提升至32位
         // 故对于Zext和Trunc不需要特别处理
-        IRValue<?> sourceIRValue = castInst.getOperand(0);
+        IRValue<?> sourceIRValue = castInst.getSourceOperand();
         this.valueMap.put(castInst, this.valueToOperand(sourceIRValue));
     }
 
     private void transformGetElementPtrInst(GetElementPtrInst getElementPtrInst, TargetBasicBlock targetBasicBlock) {
-        IRValue<PointerType> pointerIRValue = IRValue.cast(getElementPtrInst.getOperand(0));
+        IRValue<PointerType> pointerIRValue = getElementPtrInst.getPointerOperand();
         IntegerType elementIntegerType;
         IRValue<IntegerType> indexIRValue;
-        // CAST GetElementPtrInst的构造函数限制
-        if (getElementPtrInst.getNumOperands() == 2
-                && pointerIRValue.type().referenceType() instanceof IntegerType integerType) {
+        if (pointerIRValue.type().referenceType() instanceof IntegerType pointIntegerType
+                && getElementPtrInst.getNumIndices() == 1) {
             // 访问指针
-            indexIRValue = IRValue.cast(getElementPtrInst.getOperand(1));
-            elementIntegerType = integerType;
-        } else if (getElementPtrInst.getNumOperands() == 3
-                && pointerIRValue.type().referenceType() instanceof ArrayType arrayType
-                && arrayType.elementType() instanceof IntegerType arrayElementIntegerType) {
+            elementIntegerType = pointIntegerType;
+            indexIRValue = getElementPtrInst.getIndexOperand(0);
+        } else if (pointerIRValue.type().referenceType() instanceof ArrayType pointArrayType
+                && pointArrayType.elementType() instanceof IntegerType arrayElementIntegerType
+                && getElementPtrInst.getNumIndices() == 2) {
             // 访问数组
-            indexIRValue = IRValue.cast(getElementPtrInst.getOperand(2));
             elementIntegerType = arrayElementIntegerType;
+            indexIRValue = getElementPtrInst.getIndexOperand(1);
         } else {
             throw new RuntimeException("When transformGetElementPtrInst(), the GetElementPtrInst is invalid. " +
                     "Got " + getElementPtrInst);
@@ -329,31 +326,31 @@ public class Generator {
         if (this.valueToOperand(pointerIRValue) instanceof LabelBaseAddress labelBaseAddress) {
             // Label作为基地址 全局变量
             LabelBaseAddress designatedLabelBaseAddress;
-            if (this.valueToOperand(indexIRValue) instanceof Immediate immediate) {
-                if (elementIntegerType.size() == 8) {
+            if (this.valueToOperand(indexIRValue) instanceof Immediate immediateOffset) {
+                if (IRType.isEqual(elementIntegerType, IRType.getInt8Ty())) {
                     // 全局变量 char 立即数偏移
-                    designatedLabelBaseAddress = labelBaseAddress.addImmediateOffset(immediate);
-                } else if (elementIntegerType.size() == 32) {
+                    designatedLabelBaseAddress = labelBaseAddress.addImmediateOffset(immediateOffset);
+                } else if (IRType.isEqual(elementIntegerType, IRType.getInt32Ty())) {
                     // 全局变量 int  立即数偏移
-                    designatedLabelBaseAddress = labelBaseAddress.addImmediateOffset(immediate.multiplyFour());
+                    designatedLabelBaseAddress = labelBaseAddress.addImmediateOffset(immediateOffset.multiplyFour());
                 } else {
-                    throw new RuntimeException("When transformGetElementPtrInst(), the size of elementIntegerType is invalid. " +
-                            "Got " + elementIntegerType.size() + ", expected 8 or 32");
+                    throw new RuntimeException("When transformGetElementPtrInst(), elementIntegerType is invalid. " +
+                            "Got " + elementIntegerType);
                 }
-            } else if (this.valueToOperand(indexIRValue) instanceof TargetRegister targetRegister) {
-                TargetRegister offsetRegister;
-                if (elementIntegerType.size() == 8) {
+            } else if (this.valueToOperand(indexIRValue) instanceof TargetRegister registerOffset) {
+                TargetRegister addressOffsetRegister;
+                if (IRType.isEqual(elementIntegerType, IRType.getInt8Ty())) {
                     // 全局变量 char 寄存器偏移
-                    offsetRegister = targetRegister;
-                } else if (elementIntegerType.size() == 32) {
+                    addressOffsetRegister = registerOffset;
+                } else if (IRType.isEqual(elementIntegerType, IRType.getInt32Ty())) {
                     // 全局变量 int  寄存器偏移
-                    offsetRegister = targetBasicBlock.parent().addVirtualRegister();
-                    new Binary(targetBasicBlock, Binary.BinaryOs.SLL, offsetRegister, targetRegister, Immediate.TWO());
+                    addressOffsetRegister = targetBasicBlock.parent().addVirtualRegister();
+                    new Binary(targetBasicBlock, Binary.BinaryOs.SLL, addressOffsetRegister, registerOffset, Immediate.TWO());
                 } else {
-                    throw new RuntimeException("When transformGetElementPtrInst(), the size of elementIntegerType is invalid. " +
-                            "Got " + elementIntegerType.size() + ", expected 8 or 32");
+                    throw new RuntimeException("When transformGetElementPtrInst(), elementIntegerType is invalid. " +
+                            "Got " + elementIntegerType);
                 }
-                designatedLabelBaseAddress = labelBaseAddress.addRegisterOffset(offsetRegister);
+                designatedLabelBaseAddress = labelBaseAddress.addRegisterOffset(addressOffsetRegister);
             } else {
                 throw new RuntimeException("When transformGetElementPtrInst(), te operand of index of GetElementPtrInst is not an Immediate or a TargetRegister");
             }
@@ -362,33 +359,33 @@ public class Generator {
         } else if (this.valueToOperand(pointerIRValue) instanceof RegisterBaseAddress registerBaseAddress) {
             // Register作为基地址 局部变量
             RegisterBaseAddress designatedRegisterBaseAddress;
-            if (this.valueToOperand(indexIRValue) instanceof Immediate immediate) {
-                if (elementIntegerType.size() == 8) {
+            if (this.valueToOperand(indexIRValue) instanceof Immediate immediateOffset) {
+                if (IRType.isEqual(elementIntegerType, IRType.getInt8Ty())) {
                     // 局部变量 char 立即数偏移
-                    designatedRegisterBaseAddress = registerBaseAddress.addImmediateOffset(immediate);
-                } else if (elementIntegerType.size() == 32) {
+                    designatedRegisterBaseAddress = registerBaseAddress.addImmediateOffset(immediateOffset);
+                } else if (IRType.isEqual(elementIntegerType, IRType.getInt32Ty())) {
                     // 局部变量 char 立即数偏移
-                    designatedRegisterBaseAddress = registerBaseAddress.addImmediateOffset(immediate.multiplyFour());
+                    designatedRegisterBaseAddress = registerBaseAddress.addImmediateOffset(immediateOffset.multiplyFour());
                 } else {
-                    throw new RuntimeException("When transformGetElementPtrInst(), the size of elementIntegerType is invalid. " +
-                            "Got " + elementIntegerType.size() + ", expected 8 or 32");
+                    throw new RuntimeException("When transformGetElementPtrInst(), elementIntegerType is invalid. " +
+                            "Got " + elementIntegerType);
                 }
-            } else if (this.valueToOperand(indexIRValue) instanceof TargetRegister targetRegister) {
-                TargetRegister offsetRegister;
-                if (elementIntegerType.size() == 8) {
+            } else if (this.valueToOperand(indexIRValue) instanceof TargetRegister registerOffset) {
+                TargetRegister addressOffsetRegister;
+                if (IRType.isEqual(elementIntegerType, IRType.getInt8Ty())) {
                     // 局部变量 char 寄存器偏移
-                    offsetRegister = targetRegister;
-                } else if (elementIntegerType.size() == 32) {
+                    addressOffsetRegister = registerOffset;
+                } else if (IRType.isEqual(elementIntegerType, IRType.getInt32Ty())) {
                     // 局部变量 int  寄存器偏移
-                    offsetRegister = targetBasicBlock.parent().addVirtualRegister();
-                    new Binary(targetBasicBlock, Binary.BinaryOs.SLL, offsetRegister, targetRegister, Immediate.TWO());
+                    addressOffsetRegister = targetBasicBlock.parent().addVirtualRegister();
+                    new Binary(targetBasicBlock, Binary.BinaryOs.SLL, addressOffsetRegister, registerOffset, Immediate.TWO());
                 } else {
-                    throw new RuntimeException("When transformGetElementPtrInst(), the size of elementIntegerType is invalid. " +
-                            "Got " + elementIntegerType.size() + ", expected 8 or 32");
+                    throw new RuntimeException("When transformGetElementPtrInst(), elementIntegerType is invalid. " +
+                            "Got " + elementIntegerType);
                 }
                 // 得到新的基地址寄存器
                 VirtualRegister newBaseRegister = targetBasicBlock.parent().addVirtualRegister();
-                new Binary(targetBasicBlock, Binary.BinaryOs.ADD, newBaseRegister, registerBaseAddress.base(), offsetRegister);
+                new Binary(targetBasicBlock, Binary.BinaryOs.ADD, newBaseRegister, registerBaseAddress.base(), addressOffsetRegister);
                 designatedRegisterBaseAddress = registerBaseAddress.replaceBaseRegister(newBaseRegister);
             } else {
                 throw new RuntimeException("When transformGetElementPtrInst(), te operand of index of GetElementPtrInst is not an Immediate or a TargetRegister");
@@ -401,76 +398,81 @@ public class Generator {
     }
 
     private void transformLoadInst(LoadInst loadInst, TargetBasicBlock targetBasicBlock) {
-        // CAST LoadInst的构造函数限制
-        IRValue<PointerType> loadPointerIRValue = IRValue.cast(loadInst.getOperand(0));
+        IRValue<PointerType> loadPointer = loadInst.getPointerOperand();
         VirtualRegister destinationRegister = targetBasicBlock.parent().addVirtualRegister();
-        if (loadPointerIRValue.type().referenceType() instanceof IntegerType integerType) {
-            new Load(targetBasicBlock, integerType.size(), destinationRegister, this.valueToOperand(loadPointerIRValue));
+        if (IRType.isEqual(loadPointer.type().referenceType(), IRType.getInt8Ty())) {
+            new Load(targetBasicBlock, Load.SIZE.BYTE, destinationRegister, this.valueToOperand(loadPointer));
             this.valueMap.put(loadInst, destinationRegister);
-        } else if (loadPointerIRValue.type().referenceType() instanceof PointerType pointerType) {
-            new Load(targetBasicBlock, REGISTER_SIZE, destinationRegister, this.valueToOperand(loadPointerIRValue));
+        } else if (IRType.isEqual(loadPointer.type().referenceType(), IRType.getInt32Ty())) {
+            new Load(targetBasicBlock, Load.SIZE.WORD, destinationRegister, this.valueToOperand(loadPointer));
+            this.valueMap.put(loadInst, destinationRegister);
+        } else if (loadPointer.type().referenceType() instanceof PointerType) {
+            // 加载参数
+            new Load(targetBasicBlock, Load.SIZE.WORD, destinationRegister, this.valueToOperand(loadPointer));
             RegisterBaseAddress registerBaseAddress = new RegisterBaseAddress(destinationRegister, Immediate.ZERO());
             this.valueMap.put(loadInst, registerBaseAddress);
         } else {
-            throw new RuntimeException("When transformLoadInst(), LoadInst try to load a IRValue whose referenceType is other than IntegerType. Got " + loadPointerIRValue);
+            throw new RuntimeException("When transformLoadInst(), LoadInst try to load a IRValue whose referenceType is invalid. Got " + loadPointer);
         }
     }
 
     private void transformStoreInst(StoreInst storeInst, TargetBasicBlock targetBasicBlock) {
-        // CAST StoreInst的构造函数限制
-        IRValue<PointerType> storePointerIRValue = IRValue.cast(storeInst.getOperand(1));
-        if (storePointerIRValue.type().referenceType() instanceof IntegerType integerType) {
-            TargetOperand storeOrigin = this.valueToOperand(storeInst.getOperand(0));
-            // 如果是立即数要先加载到寄存器中
-            if (storeOrigin instanceof Immediate) {
-                VirtualRegister immediateRegister = targetBasicBlock.parent().addVirtualRegister();
-                new Move(targetBasicBlock, immediateRegister, storeOrigin);
-                storeOrigin = immediateRegister;
-            }
-            new Store(targetBasicBlock, integerType.size(), storeOrigin, this.valueToOperand(storePointerIRValue));
+        IRValue<PointerType> storePointer = storeInst.getPointerOperand();
+        TargetOperand storeOrigin = this.valueToOperand(storeInst.getValueOperand());
+        // 如果是立即数要先加载到寄存器中
+        if (storeOrigin instanceof Immediate) {
+            VirtualRegister immediateRegister = targetBasicBlock.parent().addVirtualRegister();
+            new Move(targetBasicBlock, immediateRegister, storeOrigin);
+            storeOrigin = immediateRegister;
+        }
+        if (IRType.isEqual(storePointer.type().referenceType(), IRType.getInt8Ty())) {
+            new Store(targetBasicBlock, Store.SIZE.BYTE, storeOrigin, this.valueToOperand(storePointer));
+        } else if (IRType.isEqual(storePointer.type().referenceType(), IRType.getInt32Ty())) {
+            new Store(targetBasicBlock, Store.SIZE.WORD, storeOrigin, this.valueToOperand(storePointer));
         } else {
-            throw new RuntimeException("When transformStoreInst(), StoreInst try to store to a IRValue whose referenceType is other than IntegerType. Got " + storePointerIRValue);
+            throw new RuntimeException("When transformStoreInst(), StoreInst try to store to a IRValue whose referenceType is other than IntegerType. Got " + storePointer);
         }
     }
 
     private void transformCallInst(CallInst callInst, TargetBasicBlock targetBasicBlock) {
         // 有函数调用，要保存$ra
         targetBasicBlock.parent().stackFrame.ensureSaveRA();
-        // CAST CallInst的构造函数限制
-        IRFunction callIRFunction = (IRFunction) callInst.getOperand(0);
+        IRFunction calledIRFunction = callInst.getCalledFunction();
         // 处理参数
-        for (int i = 0; i < callInst.getNumOperands() - 1; i++) {
+        for (int i = 0; i < callInst.getNumArgs(); i++) {
             if (i <= 3) {
                 // 使用寄存器传递
                 new Move(targetBasicBlock,
                         PhysicalRegister.argumentRegisterOfArgumentNumber(i),
-                        this.valueToOperand(callInst.getOperand(i + 1)));
+                        this.valueToOperand(callInst.getArgOperand(i)));
             } else {
                 // 使用内存传递
                 RegisterBaseAddress outArgumentAddress = targetBasicBlock.parent().stackFrame.getOutArgumentAddress(i);
-                TargetOperand outArgumentOperand = this.valueToOperand(callInst.getOperand(i + 1));
+                TargetOperand outArgumentOperand = this.valueToOperand(callInst.getArgOperand(i));
                 // 如果是立即数要先加载到寄存器中
                 if (outArgumentOperand instanceof Immediate || outArgumentOperand instanceof TargetAddress<?, ?>) {
                     VirtualRegister immediateRegister = targetBasicBlock.parent().addVirtualRegister();
                     new Move(targetBasicBlock, immediateRegister, outArgumentOperand);
                     outArgumentOperand = immediateRegister;
                 }
-                if (callIRFunction.arguments().get(i).type() instanceof IntegerType integerType) {
-                    new Store(targetBasicBlock, integerType.size(), outArgumentOperand, outArgumentAddress);
-                } else if (callIRFunction.arguments().get(i).type() instanceof PointerType) {
-                    new Store(targetBasicBlock, REGISTER_SIZE, outArgumentOperand, outArgumentAddress);
+                if (IRType.isEqual(calledIRFunction.arguments().get(i).type(), IRType.getInt8Ty())) {
+                    new Store(targetBasicBlock, Store.SIZE.BYTE, outArgumentOperand, outArgumentAddress);
+                } else if (IRType.isEqual(calledIRFunction.arguments().get(i).type(), IRType.getInt32Ty())) {
+                    new Store(targetBasicBlock, Store.SIZE.WORD, outArgumentOperand, outArgumentAddress);
+                } else if (calledIRFunction.arguments().get(i).type() instanceof PointerType) {
+                    new Store(targetBasicBlock, Store.SIZE.WORD, outArgumentOperand, outArgumentAddress);
                 } else {
                     throw new RuntimeException("When transformCallInst, the type of argument " + i + "is invalid. " +
-                            "Got " + callIRFunction.arguments().get(i));
+                            "Got " + calledIRFunction.arguments().get(i));
                 }
             }
         }
-        if (callIRFunction.isLib()) {
-            new Syscall(targetBasicBlock, this.syscallMap.get(callIRFunction));
+        if (calledIRFunction.isLib()) {
+            new Syscall(targetBasicBlock, this.syscallMap.get(calledIRFunction));
         } else {
-            new Branch(targetBasicBlock, this.valueToOperand(callIRFunction), true);
+            new Branch(targetBasicBlock, this.valueToOperand(calledIRFunction), true);
         }
-        if (callInst.type() instanceof IntegerType integerType) {
+        if (callInst.type() instanceof IntegerType) {
             VirtualRegister resultRegister = targetBasicBlock.parent().addVirtualRegister();
             new Move(targetBasicBlock, resultRegister, PhysicalRegister.V0);
             this.valueMap.put(callInst, resultRegister);
@@ -481,29 +483,25 @@ public class Generator {
     }
 
     private void transformBranchInst(BranchInst branchInst, TargetBasicBlock targetBasicBlock) {
-        // CAST BranchInst的构造函数限制
-        if (branchInst.getNumOperands() == 1) {
-            // 无条件跳转
-            new Branch(targetBasicBlock, this.valueToOperand(branchInst.getOperand(0)), false);
-        } else if (branchInst.getNumOperands() == 3) {
+        if (branchInst.isConditional()) {
             // 有条件跳转
-            if (this.valueToOperand(branchInst.getOperand(0)) instanceof TargetRegister targetRegister) {
-                new Branch(targetBasicBlock, targetRegister, this.valueToOperand(branchInst.getOperand(1)));
-                new Branch(targetBasicBlock, this.valueToOperand(branchInst.getOperand(2)), false);
+            if (this.valueToOperand(branchInst.getCondition()) instanceof TargetRegister condRegister) {
+                new Branch(targetBasicBlock, condRegister, this.valueToOperand(branchInst.getTrueSuccessor()));
+                new Branch(targetBasicBlock, this.valueToOperand(branchInst.getFalseSuccessor()), false);
             } else {
                 throw new RuntimeException("When transformBranchInst(), the operand of cond of branchInst is not a TargetRegister");
             }
         } else {
-            throw new RuntimeException("When transformBranchInst(), the number of operands of BranchInst is invalid. " +
-                    "Got " + branchInst.getNumOperands() + ", expected 1 or 3");
+            // 无条件跳转
+            new Branch(targetBasicBlock, this.valueToOperand(branchInst.getSuccessor()), false);
         }
     }
 
     private void transformReturnInst(ReturnInst returnInst, TargetBasicBlock targetBasicBlock) {
-        if (returnInst.getNumOperands() == 1) {
+        if (returnInst.getReturnValue() != null) {
             // 有参数
             // 因为之后将进入函数尾声，$v0的原始值不会再被使用了
-            new Move(targetBasicBlock, PhysicalRegister.V0, this.valueToOperand(returnInst.getOperand(0)));
+            new Move(targetBasicBlock, PhysicalRegister.V0, this.valueToOperand(returnInst.getReturnValue()));
         }
         new Branch(targetBasicBlock, targetBasicBlock.parent().labelEpilogue(), false);
     }

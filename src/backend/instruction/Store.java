@@ -15,17 +15,11 @@ public class Store extends TargetInstruction {
         WORD
     }
 
-    public Store(TargetBasicBlock targetBasicBlock, int size, TargetOperand origin, TargetOperand address) {
+    public Store(TargetBasicBlock targetBasicBlock, SIZE size, TargetOperand origin, TargetOperand address) {
         super(targetBasicBlock);
         if (origin instanceof TargetRegister originRegister
                 && address instanceof TargetAddress<?, ?> addressAddress) {
-            if (size == 8) {
-                this.size = SIZE.BYTE;
-            } else if (size == 32) {
-                this.size = SIZE.WORD;
-            } else {
-                throw new RuntimeException("When Store(), the size is invalid. Got " + size + ", expected 8 or 32");
-            }
+            this.size = size;
             this.origin = originRegister;
             this.address = addressAddress;
             addUse(this.origin);
@@ -56,7 +50,7 @@ public class Store extends TargetInstruction {
     public String mipsStr() {
         if (size == SIZE.BYTE) {
             return "sb " + origin.mipsStr() + ", " + address.mipsStr();
-        } else { // size == SIZE.WORD
+        } else { // getBitWidth == SIZE.WORD
             return "sw " + origin.mipsStr() + ", " + address.mipsStr();
         }
     }

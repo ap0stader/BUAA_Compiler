@@ -1,5 +1,6 @@
 package backend.target;
 
+import IR.type.IRType;
 import IR.type.IntegerType;
 import IR.value.constant.ConstantInt;
 import backend.oprand.Label;
@@ -25,35 +26,34 @@ public class TargetDataObject {
     }
 
     public void appendData(ConstantInt initInt) {
-        if (initInt.type().size() == 8) {
+        if (IRType.isEqual(initInt.type(), IRType.getInt8Ty())) {
             if (this.directives.isEmpty()
                     || !(this.directives.peekLast() instanceof DirectiveList)
                     || this.directives.peekLast().directiveType != DirectiveType.BYTE) {
                 this.directives.add(new DirectiveList(DirectiveType.BYTE));
             }
-
-        } else if (initInt.type().size() == 32) {
+        } else if (IRType.isEqual(initInt.type(), IRType.getInt32Ty())) {
             if (this.directives.isEmpty()
                     || !(this.directives.peekLast() instanceof DirectiveList)
                     || this.directives.peekLast().directiveType != DirectiveType.WORD) {
                 this.directives.add(new DirectiveList(DirectiveType.WORD));
             }
         } else {
-            throw new RuntimeException("When appendData(), the size of initInt is invalid. " +
-                    "Got " + initInt.type().size() + ", expected 8 or 32");
+            throw new RuntimeException("When appendData(), the type of initInt is invalid. " +
+                    "Got " + initInt.type());
         }
         // CAST 上方的instanceof确保转换正确
         ((DirectiveList) directives.peekLast()).values.add(initInt.constantValue());
     }
 
     public void appendZero(IntegerType elementType, Integer repeats) {
-        if (elementType.size() == 8) {
+        if (IRType.isEqual(elementType, IRType.getInt8Ty())) {
             this.directives.add(new DirectiveBundle(DirectiveType.BYTE, 0, repeats));
-        } else if (elementType.size() == 32) {
+        } else if (IRType.isEqual(elementType, IRType.getInt32Ty())) {
             this.directives.add(new DirectiveBundle(DirectiveType.WORD, 0, repeats));
         } else {
-            throw new RuntimeException("When appendZero(), the size of elementType is invalid. " +
-                    "Got " + elementType.size() + ", expected 8 or 32");
+            throw new RuntimeException("When appendZero(), elementType is invalid. " +
+                    "Got " + elementType);
         }
     }
 

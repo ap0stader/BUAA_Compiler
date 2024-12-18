@@ -12,6 +12,8 @@ public class IntegerType
 
     static final IntegerType I1_INSTANCE = new IntegerType(1);
 
+    public static final int BYTE_BITS = 8;
+
     private IntegerType(int numBits) {
         if (numBits < 0) {
             throw new IllegalArgumentException("When IntegerType(), got negative numBits");
@@ -20,7 +22,11 @@ public class IntegerType
     }
 
     public int getBitWidth() {
-        return numBits;
+        return this.numBits;
+    }
+
+    public int getByteWidth() {
+        return this.numBits / BYTE_BITS;
     }
 
     @Override

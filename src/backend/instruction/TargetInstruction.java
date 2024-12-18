@@ -21,7 +21,7 @@ public abstract class TargetInstruction {
         this.useVirtualRegisterSet = new TreeSet<>();
     }
 
-    public DoublyLinkedList.Node<TargetInstruction> listNode() {
+    public DoublyLinkedList.Node<TargetInstruction> listNode () {
         return listNode;
     }
 

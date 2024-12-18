@@ -7,8 +7,6 @@ import IR.type.VoidType;
 import IR.value.IRBasicBlock;
 import util.LLVMStrRegCounter;
 
-import java.util.Objects;
-
 // br i1 <cond>, label <iftrue>, label <iffalse>
 // br label <dest>
 public class BranchInst extends IRInstruction<VoidType> {
