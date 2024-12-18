@@ -28,21 +28,31 @@ public class BinaryOperator extends IRInstruction<IntegerType> {
 
     private final BinaryOps binaryOp;
 
-    public BinaryOps binaryOp() {
-        return binaryOp;
-    }
-
     // BinaryOperator要求两个operand的类型相等并且是可运算类型（在Sysy中为IntegerType），返回的类型也为operand的类型
     public BinaryOperator(BinaryOps binaryOp, IRValue<IntegerType> operand1, IRValue<IntegerType> operand2, IRBasicBlock parent) {
         super(operand1.type(), parent);
-        if (operand1.type().size() != operand2.type().size()) {
-            throw new RuntimeException("When BinaryOperator(), two operands sizes are mismatch. " +
-                    "Got " + operand1.type().size() + " operand1 " + operand1 +
-                    " and " + operand2.type().size() + " operand2 " + operand2);
+        if (operand1.type().getBitWidth() != operand2.type().getBitWidth()) {
+            throw new RuntimeException("When BinaryOperator(), two operands bit width are mismatch. " +
+                    "Got " + operand1.type().getBitWidth() + " operand1 " + operand1 +
+                    " and " + operand2.type().getBitWidth() + " operand2 " + operand2);
         }
         this.binaryOp = binaryOp;
         this.addOperand(operand1);
         this.addOperand(operand2);
+    }
+
+    public BinaryOps binaryOp() {
+        return binaryOp;
+    }
+
+    public IRValue<IntegerType> getOperand1() {
+        // CAST 构造函数限制
+        return IRValue.cast(this.getOperand(0));
+    }
+
+    public IRValue<IntegerType> getOperand2() {
+        // CAST 构造函数限制
+        return IRValue.cast(this.getOperand(1));
     }
 
     @Override

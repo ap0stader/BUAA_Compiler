@@ -11,10 +11,15 @@ public class ConstantArray extends IRConstant<ArrayType> {
     public ConstantArray(ArrayType arrayType, ArrayList<IRConstant<?>> constantValues) {
         super(arrayType);
         // 检查类型是否匹配
-        for (IRConstant<?> value : constantValues) {
-            if (!IRType.isEqual(arrayType.elementType(), value.type())) {
-                throw new RuntimeException("When ConstantArray(), type mismatch. Got " + value.type() + " value " + value +
-                        ", expected " + arrayType.elementType());
+        if (arrayType.numElements() != constantValues.size()) {
+            throw new RuntimeException("When ConstantArray(), number of elements mismatch. Got " + constantValues.size() +
+                    ", expected " + constantValues.size());
+        } else {
+            for (IRConstant<?> value : constantValues) {
+                if (!IRType.isEqual(arrayType.elementType(), value.type())) {
+                    throw new RuntimeException("When ConstantArray(), type mismatch. Got " + value.type() + " value " + value +
+                            ", expected " + arrayType.elementType());
+                }
             }
         }
         this.constantValues = constantValues;

@@ -21,6 +21,20 @@ public class CallInst extends IRInstruction<IRType> {
         }
     }
 
+    public IRFunction getCalledFunction() {
+        // CAST 构造函数限制
+        return (IRFunction) this.getOperand(0);
+    }
+
+    public int getNumArgs() {
+        return this.getNumOperands() - 1;
+    }
+
+    public IRValue<?> getArgOperand(int argNo) {
+        // CAST 构造函数限制
+        return this.getOperand(argNo + 1);
+    }
+
     @Override
     public String llvmStr(LLVMStrRegCounter counter) {
         StringBuilder sb = new StringBuilder();

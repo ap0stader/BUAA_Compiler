@@ -17,6 +17,11 @@ public class LoadInst extends IRInstruction<IRType> {
         this.addOperand(pointerOperand);
     }
 
+    // CAST 构造函数限制
+    public IRValue<PointerType> getPointerOperand() {
+        return IRValue.cast(this.getOperand(0));
+    }
+
     @Override
     public String llvmStr(LLVMStrRegCounter counter) {
         return counter.get(this) +

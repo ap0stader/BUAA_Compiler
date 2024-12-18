@@ -22,6 +22,15 @@ public class StoreInst extends IRInstruction<VoidType> {
         this.addOperand(pointerOperand);
     }
 
+    public IRValue<?> getValueOperand() {
+        return this.getOperand(0);
+    }
+
+    public IRValue<PointerType> getPointerOperand() {
+        // CAST 构造函数限制
+        return IRValue.cast(this.getOperand(1));
+    }
+
     @Override
     public String llvmStr(LLVMStrRegCounter counter) {
         return "store " +

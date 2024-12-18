@@ -4,37 +4,31 @@ import IR.IRValue;
 import IR.type.IRType;
 import IR.type.LabelType;
 import IR.value.instruction.IRInstruction;
+import util.DoublyLinkedList;
 import util.LLVMStrRegCounter;
 
 import java.util.LinkedList;
 
 public class IRBasicBlock extends IRValue<LabelType> {
-    // TODO 根据实际需要修改使用的类，必要时自己构建
-    private final LinkedList<IRInstruction<?>> instructions;
-    private final IRFunction parent;
+    private final DoublyLinkedList<IRInstruction<?>> instructions;
 
-    public IRBasicBlock(IRFunction parent) {
+    public IRBasicBlock() {
         super(IRType.getLabelTy());
-        this.instructions = new LinkedList<>();
-        this.parent = parent;
+        this.instructions = new DoublyLinkedList<>();
     }
 
-    public LinkedList<IRInstruction<?>> instructions() {
+    public DoublyLinkedList<IRInstruction<?>> instructions() {
         return instructions;
     }
 
-    public IRFunction parent() {
-        return parent;
-    }
-
-    public void appendInstruction(IRInstruction<?> instruction) {
-        this.instructions.add(instruction);
+    public void appendInstruction(IRInstruction<?> instructionNode) {
+        this.instructions.insertAfterTail(instructionNode.listNode());
     }
 
     public String llvmStr(LLVMStrRegCounter counter) {
         StringBuilder sb = new StringBuilder();
-        for (IRInstruction<?> instruction : instructions) {
-            sb.append("\t").append(instruction.llvmStr(counter)).append("\n");
+        for (DoublyLinkedList.Node<IRInstruction<?>> instructionNode : this.instructions) {
+            sb.append("\t").append(instructionNode.value().llvmStr(counter)).append("\n");
         }
         return sb.toString();
     }

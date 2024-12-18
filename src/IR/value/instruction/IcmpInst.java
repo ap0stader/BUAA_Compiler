@@ -32,10 +32,10 @@ public class IcmpInst extends IRInstruction<IntegerType> {
 
     public IcmpInst(Predicate predicate, IRValue<IntegerType> operand1, IRValue<IntegerType> operand2, IRBasicBlock parent) {
         super(IRType.getInt1Ty(), parent);
-        if (operand1.type().size() != operand2.type().size()) {
-            throw new RuntimeException("When IcmpInst(), two operands size are mismatch. " +
-                    "Got " + operand1.type().size() + " operand1 " + operand1 +
-                    " and " + operand2.type().size() + " operand2 " + operand2);
+        if (operand1.type().getBitWidth() != operand2.type().getBitWidth()) {
+            throw new RuntimeException("When IcmpInst(), two operands bit width are mismatch. " +
+                    "Got " + operand1.type().getBitWidth() + " operand1 " + operand1 +
+                    " and " + operand2.type().getBitWidth() + " operand2 " + operand2);
         }
         this.predicate = predicate;
         this.addOperand(operand1);
@@ -44,6 +44,16 @@ public class IcmpInst extends IRInstruction<IntegerType> {
 
     public Predicate predicate() {
         return predicate;
+    }
+
+    public IRValue<IntegerType> getOperand1() {
+        // CAST 构造函数限制
+        return IRValue.cast(this.getOperand(0));
+    }
+
+    public IRValue<IntegerType> getOperand2() {
+        // CAST 构造函数限制
+        return IRValue.cast(this.getOperand(1));
     }
 
     @Override

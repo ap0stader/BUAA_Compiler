@@ -3,20 +3,23 @@ package IR.value.instruction;
 import IR.IRUser;
 import IR.type.IRType;
 import IR.value.IRBasicBlock;
+import util.DoublyLinkedList;
 import util.LLVMStrRegCounter;
 
 public abstract class IRInstruction<IT extends IRType> extends IRUser<IT> {
-    private final IRBasicBlock parent;
+    private final DoublyLinkedList.Node<IRInstruction<?>> listNode;
 
     public IRInstruction(IT type, IRBasicBlock parent) {
         super(type);
-        this.parent = parent;
+        this.listNode = new DoublyLinkedList.Node<>(this);
         // 加入到BasicBlock中
-        parent.appendInstruction(this);
+        if (parent != null) {
+            parent.appendInstruction(this);
+        }
     }
 
-    public IRBasicBlock parent() {
-        return parent;
+    public DoublyLinkedList.Node<IRInstruction<?>> listNode() {
+        return listNode;
     }
 
     public abstract String llvmStr(LLVMStrRegCounter counter);

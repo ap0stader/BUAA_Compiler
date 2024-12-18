@@ -19,6 +19,14 @@ public class ReturnInst extends IRInstruction<VoidType> {
         }
     }
 
+    public IRValue<IntegerType> getReturnValue() {
+        if (this.getNumOperands() == 0) {
+            return null;
+        } else {
+            return IRValue.cast(this.getOperand(0));
+        }
+    }
+
     @Override
     public String llvmStr(LLVMStrRegCounter counter) {
         if (this.getNumOperands() == 0) {

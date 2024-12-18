@@ -13,7 +13,18 @@ public class ConstantInt extends IRConstant<IntegerType> {
 
     public ConstantInt(IntegerType type, Integer constantValue) {
         super(type);
-        this.constantValue = constantValue;
+        // 针对位宽进行处理
+        int integerBitWidth = type.getBitWidth();
+        if (integerBitWidth < IRType.getInt32Ty().getBitWidth()) {
+            int lowerMask = (1 << integerBitWidth) - 1;
+            int lowerBit = constantValue & lowerMask;
+            if ((lowerBit & (1 << (integerBitWidth - 1))) != 0) {
+                lowerBit = lowerBit | ~lowerMask;
+            }
+            this.constantValue = lowerBit;
+        } else {
+            this.constantValue = constantValue;
+        }
     }
 
     public Integer constantValue() {
@@ -22,17 +33,6 @@ public class ConstantInt extends IRConstant<IntegerType> {
 
     @Override
     public String llvmStr() {
-        int integerSize = this.type.size();
-        // 根据type的size进行截断
-        if (integerSize < 32) {
-            int lowerMask = (1 << integerSize) - 1;
-            int lowerBit = this.constantValue & lowerMask;
-            if ((lowerBit & (1 << (integerSize - 1))) != 0) {
-                lowerBit = lowerBit | ~lowerMask;
-            }
-            return String.valueOf(lowerBit);
-        } else {
-            return this.constantValue.toString();
-        }
+        return this.constantValue.toString();
     }
 }

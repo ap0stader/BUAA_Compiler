@@ -6,7 +6,7 @@ import java.util.Objects;
 
 public record ArrayType(
         IRType elementType,
-        int length
+        int numElements
 ) implements IRType, SymbolType.Var, SymbolType.Const {
     // 数组类型，在SysY中只有一维数组，数组元素的类型只有IntegerType，并且只能为int和char
     // 数组类型可以作为符号表中变量符号和常量符号的登记类型
@@ -18,7 +18,7 @@ public record ArrayType(
 
     @Override
     public String llvmStr() {
-        return "[" + this.length + " x " + this.elementType.llvmStr() + "]";
+        return "[" + this.numElements + " x " + this.elementType.llvmStr() + "]";
     }
 
     // DEBUG 重写toString方法以供调试
@@ -32,7 +32,7 @@ public record ArrayType(
     public boolean equals(Object obj) {
         if (obj instanceof ArrayType otherArrayType) {
             return Objects.equals(this.elementType, otherArrayType.elementType)
-                    && this.length == otherArrayType.length;
+                    && this.numElements == otherArrayType.numElements;
         } else {
             return false;
         }

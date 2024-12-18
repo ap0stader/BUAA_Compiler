@@ -18,14 +18,6 @@ public class BranchInst extends IRInstruction<VoidType> {
         if (!IRType.isEqual(cond.type(), IRType.getInt1Ty())) {
             throw new RuntimeException("When BranchInst(), the type of cond is not i1. Got " + cond.type() + " value " + cond);
         }
-        if (!Objects.equals(ifTrue.parent(), parent.parent())) {
-            throw new RuntimeException("When BranchInst(), the parent of ifTrue is not the function where the instruction in. " +
-                    "Instruction: " + parent.parent().name() + " ifTrue: " + ifTrue.parent().name());
-        }
-        if (!Objects.equals(ifFalse.parent(), parent.parent())) {
-            throw new RuntimeException("When BranchInst(), the parent of ifFalse is not the function where the instruction in. " +
-                    "Instruction: " + parent.parent().name() + " ifFalse: " + ifFalse.parent().name());
-        }
         this.addOperand(cond);
         this.addOperand(ifTrue);
         this.addOperand(ifFalse);
@@ -34,11 +26,47 @@ public class BranchInst extends IRInstruction<VoidType> {
     // 无条件跳转
     public BranchInst(IRBasicBlock dest, IRBasicBlock parent) {
         super(IRType.getVoidTy(), parent);
-        if (!Objects.equals(dest.parent(), parent.parent())) {
-            throw new RuntimeException("When BranchInst(), the parent of dest is not the function where the instruction in. " +
-                    "Instruction: " + parent.parent().name() + " dest: " + dest.parent().name());
-        }
         this.addOperand(dest);
+    }
+
+    public boolean isConditional() {
+        return this.getNumOperands() == 3;
+    }
+
+    public IRValue<IntegerType> getCondition() {
+        // CAST 构造函数限制
+        if (this.isConditional()) {
+            return IRValue.cast(this.getOperand(0));
+        } else {
+            throw new RuntimeException("When getCondition(), the branchInst is unconditional.");
+        }
+    }
+
+    public IRBasicBlock getTrueSuccessor() {
+        // CAST 构造函数限制
+        if (this.isConditional()) {
+            return (IRBasicBlock) this.getOperand(1);
+        } else {
+            throw new RuntimeException("When getTrueSuccessor(), the branchInst is unconditional.");
+        }
+    }
+
+    public IRBasicBlock getFalseSuccessor() {
+        // CAST 构造函数限制
+        if (this.isConditional()) {
+            return (IRBasicBlock) this.getOperand(2);
+        } else {
+            throw new RuntimeException("When getFalseSuccessor(), the branchInst is unconditional.");
+        }
+    }
+
+    public IRBasicBlock getSuccessor() {
+        // CAST 构造函数限制
+        if (!this.isConditional()) {
+            return (IRBasicBlock) this.getOperand(0);
+        } else {
+            throw new RuntimeException("When getSuccessor(), the branchInst is conditional.");
+        }
     }
 
     @Override

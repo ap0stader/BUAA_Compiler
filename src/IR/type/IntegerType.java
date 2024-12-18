@@ -8,19 +8,19 @@ public class IntegerType
     // 整数类型可以作为符号表中变量符号、常量符号、参数符号的登记类型
     // 整数类型的实例不能任意创建，需使用已经创建好的静态实例
 
-    private final int size;
+    private final int numBits;
 
     static final IntegerType I1_INSTANCE = new IntegerType(1);
 
-    private IntegerType(int size) {
-        if (size < 0) {
-            throw new IllegalArgumentException("When IntegerType(), got negative size");
+    private IntegerType(int numBits) {
+        if (numBits < 0) {
+            throw new IllegalArgumentException("When IntegerType(), got negative numBits");
         }
-        this.size = size;
+        this.numBits = numBits;
     }
 
-    public int size() {
-        return size;
+    public int getBitWidth() {
+        return numBits;
     }
 
     @Override
@@ -30,7 +30,7 @@ public class IntegerType
 
     @Override
     public String llvmStr() {
-        return "i" + this.size;
+        return "i" + this.numBits;
     }
 
     // DEBUG 重写toString方法以供调试
@@ -42,7 +42,7 @@ public class IntegerType
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof IntegerType otherIntegerType) {
-            return this.size == otherIntegerType.size;
+            return this.numBits == otherIntegerType.numBits;
         } else {
             return false;
         }

@@ -43,6 +43,20 @@ public class GetElementPtrInst extends IRInstruction<PointerType> {
         return new PointerType(resultElementType);
     }
 
+    public IRValue<PointerType> getPointerOperand() {
+        // CAST 构造函数限制
+        return IRValue.cast(this.getOperand(0));
+    }
+
+    public int getNumIndices() {
+        return this.getNumOperands() - 1;
+    }
+
+    public IRValue<IntegerType> getIndexOperand(int indexNo) {
+        // CAST 构造函数限制
+        return IRValue.cast(this.getOperand(indexNo + 1));
+    }
+
     @Override
     public String llvmStr(LLVMStrRegCounter counter) {
         StringBuilder sb = new StringBuilder();

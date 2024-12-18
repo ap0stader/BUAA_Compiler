@@ -122,6 +122,9 @@ public class DoublyLinkedList<T> implements Iterable<DoublyLinkedList.Node<T>> {
         }
 
         public void insertBefore(Node<T> next) {
+            if (this.parent != null) {
+                throw new RuntimeException("When insertBefore(), the node is already inserted.");
+            }
             // 更新本节点信息
             this.parent = next.parent;
             this.pred = next.pred;
@@ -140,6 +143,9 @@ public class DoublyLinkedList<T> implements Iterable<DoublyLinkedList.Node<T>> {
         }
 
         public void insertAfter(Node<T> pred) {
+            if (this.parent != null) {
+                throw new RuntimeException("When insertAfter(), the node is already inserted.");
+            }
             // 更新本节点信息
             this.parent = pred.parent;
             this.pred = pred;
@@ -158,6 +164,9 @@ public class DoublyLinkedList<T> implements Iterable<DoublyLinkedList.Node<T>> {
         }
 
         public void eliminate() {
+            if (this.parent == null) {
+                throw new RuntimeException("When eliminate(), the node is not inserted.");
+            }
             // 处理上一节点
             if (this.pred != null) {
                 this.pred.next = this.next;
