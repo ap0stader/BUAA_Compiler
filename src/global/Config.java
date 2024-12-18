@@ -34,7 +34,7 @@ public class Config {
        5. 生成目标代码
      */
     public final static int maxStages = 5;
-    public static int stages = 5;
+    public static int stages = 4;
 
     // 词法分析后，是否输出TokenStream、输出的文件名、是否输出行号等信息
     public static boolean dumpTokenStream = false;
@@ -57,6 +57,9 @@ public class Config {
     // 中端优化后，是否输出优化后的LLVM
     public static boolean dumpLLVMAfterOptimized = true;
     public static String dumpLLVMAfterOptimizedFileName = "llvm_ir.txt";
+
+    // 输出LLVM时，是否输出debug信息
+    public static boolean dumpLLVMDetail = true;
 
     // 生成目标代码后，是否输出未进行寄存器分配的目标代码
     public static boolean dumpMIPSAssemblyBeforeAllocation = true;
@@ -133,7 +136,7 @@ public class Config {
                 }
                 // Code Generation(MIPS, optimized): -O
                 case "-O" -> {
-                    stages = 5;
+                    stages = 4;
                     dumpLLVMBeforeOptimized = true;
                     enableMiddleOptimization = true;
                     dumpLLVMAfterOptimized = true;

@@ -17,7 +17,9 @@ public class LLVMStrRegCounter {
     }
 
     public String get(IRValue<?> value) {
-        if (value instanceof IRGlobalVariable || value instanceof IRFunction) {
+        if (value == null) {
+            return "NULL";
+        } else if (value instanceof IRGlobalVariable || value instanceof IRFunction) {
             return "@" + value.name();
         } else if (value instanceof IRConstant<?> constant) {
             return constant.llvmStr();
