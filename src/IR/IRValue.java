@@ -2,26 +2,25 @@ package IR;
 
 import IR.type.IRType;
 
-import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.Objects;
 
 public abstract class IRValue<T extends IRType> {
     protected final String name;
     protected final T type;
-    // 使用HashSet防止有重复的use
-    // WARNING 需十分留意User中有相同的操作数的情况下对于Use的删除操作
-    private final HashSet<IRUse> useList;
+    private final LinkedList<IRUse> useList;
 
     // 匿名初始化
     public IRValue(T type) {
         this.name = null;
         this.type = type;
-        this.useList = new HashSet<>();
+        this.useList = new LinkedList<>();
     }
 
     public IRValue(String name, T type) {
         this.name = name;
         this.type = type;
-        this.useList = new HashSet<>();
+        this.useList = new LinkedList<>();
     }
 
     @SuppressWarnings("unchecked")
@@ -38,12 +37,17 @@ public abstract class IRValue<T extends IRType> {
         return type;
     }
 
-    public HashSet<IRUse> useList() {
+    public LinkedList<IRUse> useList() {
         return useList;
     }
 
     // 传入User，维护User-Use关系
     public void addUse(IRUser<?> user) {
         this.useList.add(new IRUse(user, this));
+    }
+
+    // 传入User，删除所有该User的Use
+    public void removeUserAllUse(IRUser<?> user) {
+        this.useList.removeIf(use -> Objects.equals(use.user(), user));
     }
 }

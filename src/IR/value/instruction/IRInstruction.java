@@ -22,6 +22,13 @@ public abstract class IRInstruction<IT extends IRType> extends IRUser<IT> {
         return listNode;
     }
 
+    public void eliminate() {
+        for (int i = 0; i < this.getNumOperands(); i++) {
+            this.getOperand(i).removeUserAllUse(this);
+        }
+        this.listNode.eliminate();
+    }
+
     public abstract String llvmStr(LLVMStrRegCounter counter);
 
     @Override

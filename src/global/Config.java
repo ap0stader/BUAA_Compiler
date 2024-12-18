@@ -21,7 +21,7 @@ public class Config {
     public static final boolean disableLongArrayOptimization = false;
 
     // 是否开启中端优化
-    public static boolean enableMiddleOptimization = false;
+    public static boolean enableMiddleOptimization = true;
 
     /* 总共进行阶段数
        ==== 前端 ====
@@ -51,7 +51,7 @@ public class Config {
     public static boolean dumpSymbolTableDetail = false;
 
     // 中端优化前，是否输出优化前的LLVM
-    public static boolean dumpLLVMBeforeOptimized = false;
+    public static boolean dumpLLVMBeforeOptimized = true;
     public static String dumpLLVMBeforeOptimizedFileName = "llvm_ir_before.txt";
 
     // 中端优化后，是否输出优化后的LLVM

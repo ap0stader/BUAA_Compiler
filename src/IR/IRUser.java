@@ -18,11 +18,11 @@ public abstract class IRUser<T extends IRType> extends IRValue<T> {
         operand.addUse(this);
     }
 
-    protected IRValue<?> getOperand(int index) {
-        return this.operands.get(index);
+    public int getNumOperands() {
+        return this.operands.size();
     }
 
-    protected int getNumOperands() {
-        return this.operands.size();
+    public IRValue<?> getOperand(int index) {
+        return this.operands.get(index);
     }
 }

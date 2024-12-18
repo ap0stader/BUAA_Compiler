@@ -1,12 +1,17 @@
 package pass;
 
 import IR.IRModule;
+import pass.refactor.RemoveInstructionAfterTerminator;
 
 public class Optimizer {
-    public static void run(IRModule irModule) {
+    private final IRModule irModule;
 
+    public Optimizer(IRModule irModule) {
+        this.irModule = irModule;
     }
 
-    private Optimizer(){
+    public void optimize() {
+        new RemoveInstructionAfterTerminator(irModule).run();
+
     }
 }
