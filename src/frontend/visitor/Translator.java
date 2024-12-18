@@ -123,7 +123,7 @@ class Translator {
                     return new ArrayType(IRType.getInt32Ty(), length);
                 }
             } else {
-                throw new RuntimeException("When getConstIRType(), the length " + length + " of " + bType + " is illegal");
+                throw new RuntimeException("When getConstIRType(), the numElements " + length + " of " + bType + " is illegal");
             }
         } else {
             throw new RuntimeException("When getConstIRType(), got unexpected bType " + bType);
@@ -147,7 +147,7 @@ class Translator {
                     return new ArrayType(IRType.getInt32Ty(), length);
                 }
             } else {
-                throw new RuntimeException("When getVarIRType(), the length " + length + " of " + bType + " is illegal");
+                throw new RuntimeException("When getVarIRType(), the numElements " + length + " of " + bType + " is illegal");
             }
         } else {
             throw new RuntimeException("When getVarIRType(), got unexpected bType " + bType);

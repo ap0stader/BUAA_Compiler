@@ -159,7 +159,7 @@ public class Visitor {
                 // 数组
                 int length = this.calculator.calculateConstExp(constDef.constExp());
                 if (constInitVals.size() > length) {
-                    throw new RuntimeException("When visitConstDecl(), constInitVals of identifier " + ident + " is longer than its length");
+                    throw new RuntimeException("When visitConstDecl(), constInitVals of identifier " + ident + " is longer than its numElements");
                 } else {
                     // 补齐未显示写出的0
                     for (int i = constInitVals.size(); i < length; i++) {
@@ -223,7 +223,7 @@ public class Visitor {
                 // 数组
                 Integer length = this.calculator.calculateConstExp(varDef.constExp());
                 if (initVals.size() > length) {
-                    throw new RuntimeException("When visitGlobalVarDecl(), initVals of identifier " + ident + " is longer than its length");
+                    throw new RuntimeException("When visitGlobalVarDecl(), initVals of identifier " + ident + " is longer than its numElements");
                 } else {
                     // 补齐未显示写出的0
                     for (int i = initVals.size(); i < length; i++) {
@@ -304,15 +304,15 @@ public class Visitor {
                 !(block.blockItems().get(block.blockItems().size() - 1) instanceof Stmt) || // 最后一条语句不是Stmt
                 (block.blockItems().get(block.blockItems().size() - 1) instanceof Stmt stmt // 最后一条语句是Stmt但是不是返回语句
                         && !(stmt.extract() instanceof Stmt.Stmt_Return))) {
-            if (defBlock.parent().type().returnType() instanceof VoidType) {
+            if (this.builder.getNowFunctionReturnType() instanceof VoidType) {
                 // 无返回值的函数，补充一条返回语句
-                this.builder.addReturnInstruction(null, defBlock.parent().type().returnType(), nowBlock);
-            } else if (defBlock.parent().type().returnType() instanceof IntegerType returnIntegerType) {
+                this.builder.addReturnInstruction(null, nowBlock);
+            } else if (this.builder.getNowFunctionReturnType() instanceof IntegerType returnIntegerType) {
                 // 有返回值的函数缺少return语句（且只判断有没有 return 语句，不需要考虑 return 语句是否有返回值）
                 // 也不需要检查函数体内其他的 return 语句是否有值
                 // 报错，报错行号为函数结尾的’}’所在行号。强制补充一条返回0
                 this.errorTable.addErrorRecord(block.rbraceToken().line(), ErrorType.MISSING_RETURN);
-                this.builder.addReturnInstruction(new ConstantInt(returnIntegerType, 0), returnIntegerType, nowBlock);
+                this.builder.addReturnInstruction(new ConstantInt(returnIntegerType, 0), nowBlock);
             }
         }
     }
@@ -378,7 +378,7 @@ public class Visitor {
                                 "Got " + varDef.initVal().getType() + ", expected " + InitVal.Type.ARRAY + "/" + InitVal.Type.STRING);
                     }
                     if (initVals.size() > length) {
-                        throw new RuntimeException("When visitLocalVarDecl(), initVals of identifier " + ident + " is longer than its length");
+                        throw new RuntimeException("When visitLocalVarDecl(), initVals of identifier " + ident + " is longer than its numElements");
                     } else {
                         // 补齐未显示写出的0
                         IntegerType initValType = bType.type() == TokenType.CHARTK ? IRType.getInt8Ty() : IRType.getInt32Ty();
@@ -518,11 +518,11 @@ public class Visitor {
                     }
                 } else if (rType instanceof IntegerType rIntegerType && fType instanceof IntegerType fIntegerType) {
                     // 传递变量给变量，若size不相同要处理
-                    if (rIntegerType.size() < fIntegerType.size()) {
+                    if (rIntegerType.getBitWidth() < fIntegerType.getBitWidth()) {
                         // 实参小于形参，扩展
                         // CAST 上方的instanceof确保转换正确
                         funcRParamsValues.set(i, this.builder.addExtendOperation(IRValue.cast(funcRParamsValues.get(i)), fIntegerType, insertBlock));
-                    } else if (rIntegerType.size() > fIntegerType.size()) {
+                    } else if (rIntegerType.getBitWidth() > fIntegerType.getBitWidth()) {
                         // 实参大于形参，截断
                         // CAST 上方的instanceof确保转换正确
                         funcRParamsValues.set(i, this.builder.addTruncOperation(IRValue.cast(funcRParamsValues.get(i)), fIntegerType, insertBlock));
@@ -661,21 +661,21 @@ public class Visitor {
 
     // Stmt → 'return' [Exp] ';'
     private void visitStmtReturn(Stmt.Stmt_Return stmt_return, IRBasicBlock nowBlock) {
-        if (nowBlock.parent().type().returnType() instanceof VoidType) {
+        if (this.builder.getNowFunctionReturnType() instanceof VoidType) {
             if (stmt_return.exp() != null) {
                 this.errorTable.addErrorRecord(stmt_return.returnToken().line(), ErrorType.RETURN_TYPE_MISMATCH);
                 // MAYBE 由于不存在恶意换行，此处不分析Exp的内容
             }
             // 无返回值函数无论是否给定Exp，都返回void
-            this.builder.addReturnInstruction(null, nowBlock.parent().type().returnType(), nowBlock);
-        } else if (nowBlock.parent().type().returnType() instanceof IntegerType returnIntegerType) {
+            this.builder.addReturnInstruction(null, nowBlock);
+        } else if (this.builder.getNowFunctionReturnType() instanceof IntegerType returnIntegerType) {
             if (stmt_return.exp() == null) {
                 // 有返回值函数如果没有给定Exp，强制置为0
-                this.builder.addReturnInstruction(new ConstantInt(returnIntegerType, 0), returnIntegerType, nowBlock);
+                this.builder.addReturnInstruction(new ConstantInt(returnIntegerType, 0), nowBlock);
             } else {
                 // CAST 并非函数调用处，SysY保证Exp经过evaluation的类型为IntegerType
                 IRValue<IntegerType> returnValue = IRValue.cast(this.visitExp(stmt_return.exp(), nowBlock));
-                this.builder.addReturnInstruction(returnValue, returnIntegerType, nowBlock);
+                this.builder.addReturnInstruction(returnValue, nowBlock);
             }
         }
     }
@@ -770,7 +770,7 @@ public class Visitor {
                         printValue = IRValue.cast(this.visitExp(stmt_printf.exps().get(expIndex), nowBlock));
                     }
                     expIndex++;
-                    if (printValue.type().size() < IRType.getInt32Ty().size()) {
+                    if (printValue.type().getBitWidth() < IRType.getInt32Ty().getBitWidth()) {
                         printValue = this.builder.addExtendOperation(printValue, IRType.getInt32Ty(), nowBlock);
                     }
                     if (formatStringChar.get(i) == 'c') {

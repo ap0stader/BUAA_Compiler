@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.Objects;
 
 class Builder {
     private final IRModule irModule;
@@ -131,7 +130,7 @@ class Builder {
         if (endIndex < 0) {
             endIndex = initVals.size() - 1;
         } else if (endIndex >= initVals.size()) {
-            throw new IndexOutOfBoundsException("When convertInitValIntegerArray(), endIndex is greater than the size of initVals. " +
+            throw new IndexOutOfBoundsException("When convertInitValIntegerArray(), endIndex is greater than the getBitWidth of initVals. " +
                     "Got " + endIndex + ", expected " + initVals.size());
         }
         for (int i = 0; i <= endIndex; i++) {
@@ -156,17 +155,16 @@ class Builder {
         this.nowFunction = mainFunction;
     }
 
+    IRType getNowFunctionReturnType() {
+        return this.nowFunction.type().returnType();
+    }
+
     IRBasicBlock newBasicBlock() {
-        return new IRBasicBlock(this.nowFunction);
+        return new IRBasicBlock();
     }
 
     void appendBasicBlock(IRBasicBlock basicBlock) {
-        if (Objects.equals(this.nowFunction, basicBlock.parent())) {
-            this.nowFunction.appendBasicBlock(basicBlock);
-        } else {
-            throw new RuntimeException("When appendBasicBlock(), parent of basicBlock is not nowFunction. " +
-                    "Got " + basicBlock.parent().name() + ", expected " + this.nowFunction.name());
-        }
+        this.nowFunction.appendBasicBlock(basicBlock);
     }
 
     AllocaInst addArgument(ArgSymbol argSymbol, IRBasicBlock argBlock) {
@@ -254,10 +252,10 @@ class Builder {
         // 在赋值的地址不为空的时候才创建StoreInst
         if (lValAddress != null) {
             if (lValAddress.type().referenceType() instanceof IntegerType lValType) {
-                if (value.type().size() < lValType.size()) {
+                if (value.type().getBitWidth() < lValType.getBitWidth()) {
                     // 短值向长值
                     value = this.addExtendOperation(value, lValType, insertBlock);
-                } else if (value.type().size() > lValType.size()) {
+                } else if (value.type().getBitWidth() > lValType.getBitWidth()) {
                     // 长值向短值
                     value = this.addTruncOperation(value, lValType, insertBlock);
                 }
@@ -275,10 +273,10 @@ class Builder {
 
     BinaryOperator addBinaryOperation(Token symbol, IRValue<IntegerType> value1, IRValue<IntegerType> value2, IRBasicBlock insertBlock) {
         // 自动处理类型转换
-        if (value1.type().size() < IRType.getInt32Ty().size()) {
+        if (value1.type().getBitWidth() < IRType.getInt32Ty().getBitWidth()) {
             value1 = this.addExtendOperation(value1, IRType.getInt32Ty(), insertBlock);
         }
-        if (value2.type().size() < IRType.getInt32Ty().size()) {
+        if (value2.type().getBitWidth() < IRType.getInt32Ty().getBitWidth()) {
             value2 = this.addExtendOperation(value2, IRType.getInt32Ty(), insertBlock);
         }
         return switch (symbol.type()) {
@@ -321,9 +319,9 @@ class Builder {
     IcmpInst addIcmpOperation(Token symbol, IRValue<IntegerType> value1, IRValue<IntegerType> value2, IRBasicBlock insertBlock) {
         if (value2 != null) {
             // 自动处理类型转换
-            if (value1.type().size() < value2.type().size()) {
+            if (value1.type().getBitWidth() < value2.type().getBitWidth()) {
                 value1 = this.addExtendOperation(value1, value2.type(), insertBlock);
-            } else if (value1.type().size() > value2.type().size()) {
+            } else if (value1.type().getBitWidth() > value2.type().getBitWidth()) {
                 value2 = this.addExtendOperation(value2, value1.type(), insertBlock);
             }
             return switch (symbol.type()) {
@@ -349,12 +347,12 @@ class Builder {
         }
     }
 
-    void addReturnInstruction(IRValue<IntegerType> returnValue, IRType returnType, IRBasicBlock insertBlock) {
-        if (returnValue != null && returnType instanceof IntegerType returnIntegerType) {
-            if (returnValue.type().size() < returnIntegerType.size()) {
+    void addReturnInstruction(IRValue<IntegerType> returnValue, IRBasicBlock insertBlock) {
+        if (returnValue != null && this.getNowFunctionReturnType() instanceof IntegerType returnIntegerType) {
+            if (returnValue.type().getBitWidth() < returnIntegerType.getBitWidth()) {
                 // 短值向长值
                 returnValue = this.addExtendOperation(returnValue, returnIntegerType, insertBlock);
-            } else if (returnValue.type().size() > returnIntegerType.size()) {
+            } else if (returnValue.type().getBitWidth() > returnIntegerType.getBitWidth()) {
                 // 长值向短值
                 returnValue = this.addTruncOperation(returnValue, returnIntegerType, insertBlock);
             }
