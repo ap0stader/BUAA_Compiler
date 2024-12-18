@@ -53,7 +53,7 @@ public class Load extends TargetInstruction {
     public String mipsStr() {
         if (size == SIZE.BYTE) {
             return "lbu " + destination.mipsStr() + ", " + address.mipsStr();
-        } else { // getBitWidth == SIZE.WORD
+        } else { // size == SIZE.WORD
             return "lw " + destination.mipsStr() + ", " + address.mipsStr();
         }
     }

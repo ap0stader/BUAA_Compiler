@@ -35,7 +35,7 @@ public class Binary extends TargetInstruction {
         if (destination instanceof TargetRegister destinationRegister
                 && registerSource instanceof TargetRegister registerSourceRegister
                 && (operandSource instanceof TargetRegister || operandSource instanceof Immediate)) {
-            // CAST instanceof确保转换正确
+            // CAST 上方的instanceof确保转换正确
             this.operation = operation;
             this.destination = destinationRegister;
             this.registerSource = registerSourceRegister;

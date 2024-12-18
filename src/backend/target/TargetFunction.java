@@ -88,12 +88,14 @@ public class TargetFunction {
         private final TreeSet<PhysicalRegister> savedRegisters = new TreeSet<>();
         private int argumentsNumbers = 4;
 
+        private final static int REGISTER_BYTES = 4;
+
         // 栈帧的大小
         private int size() {
-            return virtualRegisters.size() * 4 +
+            return virtualRegisters.size() * REGISTER_BYTES +
                     this.allocaSize +
-                    this.savedRegisters.size() * 4 +
-                    this.argumentsNumbers * 4;
+                    this.savedRegisters.size() * REGISTER_BYTES +
+                    this.argumentsNumbers * REGISTER_BYTES;
         }
 
         // 传入参数的偏移值
@@ -106,7 +108,7 @@ public class TargetFunction {
 
             @Override
             public Immediate calc() {
-                return new Immediate(size() + this.number * 4);
+                return new Immediate(size() + this.number * REGISTER_BYTES);
             }
 
             @Override
@@ -128,10 +130,10 @@ public class TargetFunction {
             @Override
             public Immediate calc() {
                 if (virtualRegisters.contains(this.register)) {
-                    return new Immediate(virtualRegisters.headSet(this.register).size() * 4 +
+                    return new Immediate(virtualRegisters.headSet(this.register).size() * REGISTER_BYTES +
                             allocaSize +
-                            savedRegisters.size() * 4 +
-                            argumentsNumbers * 4);
+                            savedRegisters.size() * REGISTER_BYTES +
+                            argumentsNumbers * REGISTER_BYTES);
                 } else {
                     throw new RuntimeException("When VirtualRegisterOffset.calc(), the function " + label.name() +
                             "does not use virtual register " + this.register);
@@ -157,8 +159,8 @@ public class TargetFunction {
             @Override
             public Immediate calc() {
                 return new Immediate(this.accumulateSizeBefore +
-                        savedRegisters.size() * 4 +
-                        argumentsNumbers * 4);
+                        savedRegisters.size() * REGISTER_BYTES +
+                        argumentsNumbers * REGISTER_BYTES);
             }
 
             @Override
@@ -180,8 +182,8 @@ public class TargetFunction {
             @Override
             public Immediate calc() {
                 if (savedRegisters.contains(this.register)) {
-                    return new Immediate(savedRegisters.headSet(this.register).size() * 4 +
-                            argumentsNumbers * 4);
+                    return new Immediate(savedRegisters.headSet(this.register).size() * REGISTER_BYTES +
+                            argumentsNumbers * REGISTER_BYTES);
                 } else {
                     throw new RuntimeException("When SavedRegisterOffset.calc(), function " + label.name() +
                             "dose not save register " + this.register);
@@ -200,7 +202,7 @@ public class TargetFunction {
         private record OutArgumentOffset(int number) implements TargetAddress.ImmediateOffset {
             @Override
             public Immediate calc() {
-                return new Immediate(this.number * 4);
+                return new Immediate(this.number * REGISTER_BYTES);
             }
         }
 
@@ -218,7 +220,7 @@ public class TargetFunction {
         public RegisterBaseAddress alloc(int size) {
             int accumulateSizeBefore = this.allocaSize;
             // (getBitWidth + 3) / 4 * 4 即 getBitWidth % 4 == 0 ? getBitWidth : getBitWidth + (4 - getBitWidth % 4);
-            this.allocaSize += (size + 3) / 4 * 4;
+            this.allocaSize += (size + 3) / REGISTER_BYTES * REGISTER_BYTES;
             return new RegisterBaseAddress(PhysicalRegister.SP, new allocaOffset(accumulateSizeBefore));
         }
 
@@ -258,7 +260,7 @@ public class TargetFunction {
             StringBuilder sb = new StringBuilder();
             sb.append(labelPrologue.mipsStr()).append(":\n");
             // 调整栈的大小
-            sb.append("\t").append("# stack frame getBitWidth ").append(this.size()).append(" bytes\n");
+            sb.append("\t").append("# stack frame size").append(this.size()).append(" bytes\n");
             sb.append("\t").append("addiu $sp, $sp, 0x").append(Integer.toHexString(-this.size()).toUpperCase()).append("\n");
             // 保存需要保存的参数寄存器
             for (PhysicalRegister savedArgumentRegister : this.savedArgumentRegisters) {
@@ -283,7 +285,7 @@ public class TargetFunction {
                         .append(this.getSavedRegisterAddress(savedRegister).mipsStr()).append("\n");
             }
             // 调整栈的大小
-            sb.append("\t").append("# stack frame getBitWidth ").append(this.size()).append(" bytes\n");
+            sb.append("\t").append("# stack frame size").append(this.size()).append(" bytes\n");
             sb.append("\t").append("addiu $sp, $sp, 0x").append(Integer.toHexString(this.size()).toUpperCase()).append("\n");
             // 返回到之前的函数
             sb.append("\t").append("jr $ra").append("\n");

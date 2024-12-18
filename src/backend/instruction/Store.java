@@ -50,7 +50,7 @@ public class Store extends TargetInstruction {
     public String mipsStr() {
         if (size == SIZE.BYTE) {
             return "sb " + origin.mipsStr() + ", " + address.mipsStr();
-        } else { // getBitWidth == SIZE.WORD
+        } else { // size == SIZE.WORD
             return "sw " + origin.mipsStr() + ", " + address.mipsStr();
         }
     }

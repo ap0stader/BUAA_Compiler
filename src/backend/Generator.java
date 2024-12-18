@@ -265,7 +265,6 @@ public class Generator {
     }
 
     private void transformIcmpInst(IcmpInst icmpInst, TargetBasicBlock targetBasicBlock) {
-        // CAST IcmpInst的构造函数限制
         IRValue<IntegerType> operandLeft = icmpInst.getOperand1();
         IRValue<IntegerType> operandRight = icmpInst.getOperand2();
         VirtualRegister destinationRegister = targetBasicBlock.parent().addVirtualRegister();
