@@ -62,10 +62,9 @@ public class Binary extends TargetInstruction {
     public void replaceUseVirtualRegister(PhysicalRegister physicalRegister, VirtualRegister virtualRegister) {
         if (Objects.equals(registerSource, virtualRegister)) {
             this.registerSource = physicalRegister;
-        } else if (Objects.equals(operandSource, virtualRegister)) {
+        }
+        if (Objects.equals(operandSource, virtualRegister)) {
             this.operandSource = physicalRegister;
-        } else {
-            throw new RuntimeException("When Binary.replaceUseVirtualRegister(), the virtualRegister is not source");
         }
     }
 

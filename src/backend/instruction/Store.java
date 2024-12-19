@@ -39,10 +39,9 @@ public class Store extends TargetInstruction {
     public void replaceUseVirtualRegister(PhysicalRegister physicalRegister, VirtualRegister virtualRegister) {
         if (Objects.equals(origin, virtualRegister)) {
             this.origin = physicalRegister;
-        } else if (this.address.useRegisterSet().contains(virtualRegister)) {
+        }
+        if (this.address.useRegisterSet().contains(virtualRegister)) {
             this.address = this.address.replaceUseVirtualRegister(physicalRegister, virtualRegister);
-        } else {
-            throw new RuntimeException("When Store().replaceUseVirtualRegister(), the virtualRegister is not origin and not in address");
         }
     }
 

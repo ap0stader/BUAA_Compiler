@@ -9,6 +9,7 @@ import java.util.TreeSet;
 
 public abstract class TargetInstruction {
     private final DoublyLinkedList.Node<TargetInstruction> listNode;
+
     private final Set<VirtualRegister> defVirtualRegisterSet;
     private final Set<VirtualRegister> useVirtualRegisterSet;
 

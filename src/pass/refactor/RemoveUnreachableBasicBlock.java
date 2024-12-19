@@ -36,6 +36,7 @@ public class RemoveUnreachableBasicBlock implements Pass {
             if (!Objects.equals(basicBlock, irFunction.basicBlocks().get(0)) &&
                     basicBlock.predecessors().isEmpty()) {
                 basicBlock.eraseAllInstruction();
+                basicBlock.successors().forEach(block -> block.predecessors().remove(basicBlock));
                 iterator.remove();
             }
         }
@@ -58,6 +59,7 @@ public class RemoveUnreachableBasicBlock implements Pass {
         for (Map.Entry<IRBasicBlock, Boolean> entry : dfsVisit.entrySet()) {
             if (!entry.getValue()) {
                 entry.getKey().eraseAllInstruction();
+                entry.getKey().successors().forEach(block -> block.predecessors().remove(entry.getKey()));
             }
         }
         irFunction.basicBlocks().removeIf(basicBlock -> !dfsVisit.get(basicBlock));

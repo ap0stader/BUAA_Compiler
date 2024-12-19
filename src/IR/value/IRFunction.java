@@ -6,6 +6,7 @@ import IR.type.IRType;
 import util.LLVMStrRegCounter;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.LinkedList;
 
 public class IRFunction extends IRValue<FunctionType> {
@@ -53,6 +54,14 @@ public class IRFunction extends IRValue<FunctionType> {
 
     public LinkedList<IRBasicBlock> basicBlocks() {
         return basicBlocks;
+    }
+
+    public Iterator<IRBasicBlock> getIteratorFromStartBlock() {
+        Iterator<IRBasicBlock> iterator = this.basicBlocks.iterator();
+        // 跳过argBlock和defBlock
+        iterator.next();
+        iterator.next();
+        return iterator;
     }
 
     public void appendBasicBlock(IRBasicBlock basicBlock) {

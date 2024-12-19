@@ -48,7 +48,7 @@ public class Allocator {
     private void allocFunction(TargetFunction targetFunction) {
         // 对每一个函数，寄存器的占用状态要重置
         this.initRegisters();
-        targetFunction.basicBlocks().forEach(this::allocBasicBlock);
+        targetFunction.basicBlocks().forEach((node) -> this.allocBasicBlock(node.value()));
     }
 
     private PhysicalRegister acquireTempPhysicalRegister(TargetFunction targetFunction) {

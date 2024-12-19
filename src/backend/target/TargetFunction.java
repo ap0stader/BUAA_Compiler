@@ -1,8 +1,8 @@
 package backend.target;
 
 import backend.oprand.*;
+import util.DoublyLinkedList;
 
-import java.util.LinkedList;
 import java.util.TreeSet;
 
 public class TargetFunction {
@@ -11,15 +11,15 @@ public class TargetFunction {
     private final Label labelEpilogue;
     public final StackFrame stackFrame;
     private final TreeSet<VirtualRegister> virtualRegisters = new TreeSet<>();
-    // TODO 根据实际需要修改使用的类，必要时自己构建
-    private final LinkedList<TargetBasicBlock> basicBlocks;
+
+    private final DoublyLinkedList<TargetBasicBlock> basicBlocks;
 
     public TargetFunction(String name) {
         this.label = new Label(name);
         this.labelPrologue = new Label(name + ".prologue");
         this.labelEpilogue = new Label(name + ".epilogue");
         this.stackFrame = new StackFrame();
-        this.basicBlocks = new LinkedList<>();
+        this.basicBlocks = new DoublyLinkedList<>();
     }
 
     public Label label() {
@@ -30,7 +30,7 @@ public class TargetFunction {
         return labelEpilogue;
     }
 
-    public LinkedList<TargetBasicBlock> basicBlocks() {
+    public DoublyLinkedList<TargetBasicBlock> basicBlocks() {
         return basicBlocks;
     }
 
@@ -40,8 +40,8 @@ public class TargetFunction {
         return newRegister;
     }
 
-    public void appendBasicBlock(TargetBasicBlock basicBlock) {
-        this.basicBlocks.add(basicBlock);
+    public void appendBasicBlock(DoublyLinkedList.Node<TargetBasicBlock> basicBlockNode) {
+        this.basicBlocks.insertAfterTail(basicBlockNode);
     }
 
     public String mipsStr() {
@@ -50,8 +50,8 @@ public class TargetFunction {
         sb.append(this.label.mipsStr()).append(":\n");
         // 函数序言
         sb.append(this.stackFrame.prologue());
-        for (TargetBasicBlock targetBasicBlock : basicBlocks) {
-            sb.append(targetBasicBlock.mipsStr());
+        for (DoublyLinkedList.Node<TargetBasicBlock> targetBasicBlockNode : basicBlocks) {
+            sb.append(targetBasicBlockNode.value().mipsStr());
         }
         // 函数尾声
         sb.append(this.stackFrame.epilogue());

@@ -4,6 +4,9 @@ import IR.IRValue;
 import IR.type.IntegerType;
 import IR.value.IRBasicBlock;
 import util.LLVMStrRegCounter;
+import util.Pair;
+
+import java.util.ArrayList;
 
 public class PHINode extends IRInstruction<IntegerType> {
     public PHINode(IntegerType allocaType, IRBasicBlock parent) {
@@ -16,6 +19,19 @@ public class PHINode extends IRInstruction<IntegerType> {
     public void addIncoming(IRValue<?> value, IRBasicBlock basicBlock) {
         this.addOperand(value);
         this.addOperand(basicBlock);
+    }
+
+    public ArrayList<Pair<IRBasicBlock, IRValue<?>>> getIncomingBlockValuePairs() {
+        if (this.getNumOperands() % 2 == 0) {
+            ArrayList<Pair<IRBasicBlock, IRValue<?>>> pairs = new ArrayList<>();
+            for (int i = 0; i < this.getNumOperands(); i = i + 2) {
+                // CAST 构造函数限制
+                pairs.add(new Pair<>((IRBasicBlock) this.getOperand(i + 1), this.getOperand(i)));
+            }
+            return pairs;
+        } else {
+            throw new RuntimeException("getIncomingBlockValuePairs, the number of operands(" + this.getNumOperands() + ") is incorrect, expected an even number.");
+        }
     }
 
     @Override
