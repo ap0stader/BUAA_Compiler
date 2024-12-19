@@ -89,10 +89,8 @@ public class Mem2Reg implements Pass {
         HashMap<AllocaInst, IRValue<?>> defaultReachingDefs = new HashMap<>();
         localVariables.forEach(variable -> defaultReachingDefs.put(variable, ConstantInt.ZERO_I32()));
         // 跳过参数块和定义块开始处理
+        dfsStack.push(new Pair<>(irFunction.basicBlocks().get(0), defaultReachingDefs));
         dfsVisit.put(irFunction.basicBlocks().get(0), true);
-        dfsVisit.put(irFunction.basicBlocks().get(1), true);
-        dfsStack.push(new Pair<>(irFunction.basicBlocks().get(2), defaultReachingDefs));
-        dfsVisit.put(irFunction.basicBlocks().get(2), true);
         while (!dfsStack.isEmpty()) {
             Pair<IRBasicBlock, HashMap<AllocaInst, IRValue<?>>> dfsNowPair = dfsStack.pop();
             IRBasicBlock currentBasicBlock = dfsNowPair.key();

@@ -5,6 +5,7 @@ import pass.analyzer.GenerateCFG;
 import pass.analyzer.GenerateDominateInfo;
 import pass.refactor.Mem2Reg;
 import pass.refactor.RemoveInstructionAfterTerminator;
+import pass.refactor.RemoveUnreachableBasicBlock;
 
 public class Optimizer {
     private final IRModule irModule;
@@ -16,7 +17,9 @@ public class Optimizer {
     public void optimize() {
         new RemoveInstructionAfterTerminator(irModule).run();
         new GenerateCFG(irModule).run();
+        new RemoveUnreachableBasicBlock(irModule).run();
         new GenerateDominateInfo(irModule).run();
+
         new Mem2Reg(irModule).run();
     }
 }

@@ -27,8 +27,8 @@ public class RemoveInstructionAfterTerminator implements Pass {
         }
         for (IRFunction irFunction : irModule.functions()) {
             if (!irFunction.isLib()) {
-                for (int i = 2; i < irFunction.basicBlocks().size(); i++) {
-                    this.processBasicBlock(irFunction.basicBlocks().get(i));
+                for (IRBasicBlock basicBlock : irFunction.basicBlocks()) {
+                    this.processBasicBlock(basicBlock);
                 }
             }
         }

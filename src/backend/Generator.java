@@ -130,6 +130,7 @@ public class Generator {
             this.transformFunctionArgBlock(irFunction.basicBlocks().get(0), irFunction, targetFunction);
             this.transformFunctionDefBlock(irFunction.basicBlocks().get(1), irFunction, targetFunction);
             // 先创建好一个函数的所有的TargetBasicBlock，方便后续跳转时使用Label
+            // TODO 此处使用迭代器优化访问链表的性能
             for (int i = 2; i < irFunction.basicBlocks().size(); i++) {
                 IRBasicBlock irBasicBlock = irFunction.basicBlocks().get(i);
                 TargetBasicBlock targetBasicBlock = new TargetBasicBlock(targetFunction, i - 2);

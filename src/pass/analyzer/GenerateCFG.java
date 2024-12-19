@@ -7,9 +7,6 @@ import IR.value.instruction.BranchInst;
 import IR.value.instruction.IRInstruction;
 import pass.Pass;
 
-import java.util.Iterator;
-import java.util.Objects;
-
 public class GenerateCFG implements Pass {
     private final IRModule irModule;
     private boolean finished = false;
@@ -26,7 +23,6 @@ public class GenerateCFG implements Pass {
         for (IRFunction irFunction : irModule.functions()) {
             if (!irFunction.isLib()) {
                 this.generateFunctionCFG(irFunction);
-                this.removeUnreachableBasicBlock(irFunction);
             }
         }
         this.finished = true;
@@ -45,21 +41,6 @@ public class GenerateCFG implements Pass {
                     basicBlock.successors().add(tailBranchInstruction.getSuccessor());
                     tailBranchInstruction.getSuccessor().predecessors().add(basicBlock);
                 }
-            }
-        }
-    }
-
-    // 消除不可达的基本块
-    private void removeUnreachableBasicBlock(IRFunction irFunction) {
-        Iterator<IRBasicBlock> iterator = irFunction.basicBlocks().iterator();
-        while (iterator.hasNext()) {
-            IRBasicBlock basicBlock = iterator.next();
-            if (!Objects.equals(basicBlock, irFunction.basicBlocks().get(0)) &&
-                    basicBlock.predecessors().isEmpty()) {
-                while (basicBlock.instructions().tail() != null) {
-                    basicBlock.instructions().tail().value().eliminate();
-                }
-                iterator.remove();
             }
         }
     }

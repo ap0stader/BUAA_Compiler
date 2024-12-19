@@ -84,6 +84,12 @@ public class IRBasicBlock extends IRValue<LabelType> {
         this.immediateDominator = immediateDominator;
     }
 
+    public void eraseAllInstruction() {
+        while (this.instructions.tail() != null) {
+            this.instructions.tail().value().eliminate();
+        }
+    }
+
     public String llvmStr(LLVMStrRegCounter counter) {
         StringBuilder sb = new StringBuilder();
         if (Config.dumpLLVMDetail) {

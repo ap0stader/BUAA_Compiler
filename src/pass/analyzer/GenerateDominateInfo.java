@@ -23,7 +23,6 @@ public class GenerateDominateInfo implements Pass {
         for (IRFunction irFunction : irModule.functions()) {
             if (!irFunction.isLib()) {
                 this.generateDominateInfo(irFunction);
-                this.removeUnreachableBasicBlock(irFunction);
             }
         }
         this.finished = true;
@@ -31,11 +30,11 @@ public class GenerateDominateInfo implements Pass {
 
     private void generateDominateInfo(IRFunction irFunction) {
         // 初始化
-        for (int i = 0; i < irFunction.basicBlocks().size(); i++) {
-            if (i == 0) {
-                irFunction.basicBlocks().get(i).dominators().add(irFunction.basicBlocks().get(i));
+        for (IRBasicBlock basicBlock : irFunction.basicBlocks()) {
+            if (Objects.equals(basicBlock, irFunction.basicBlocks().get(0))) {
+                basicBlock.dominators().add(basicBlock);
             } else {
-                irFunction.basicBlocks().get(i).dominators().addAll(irFunction.basicBlocks());
+                basicBlock.dominators().addAll(irFunction.basicBlocks());
             }
         }
         // 迭代计算各个基本块的支配者
@@ -93,34 +92,6 @@ public class GenerateDominateInfo implements Pass {
                 }
             }
         }
-    }
-
-    // 消除不可达的基本块
-    private void removeUnreachableBasicBlock(IRFunction irFunction) {
-        HashMap<IRBasicBlock, Boolean> dfsVisit = new HashMap<>();
-        irFunction.basicBlocks().forEach(block -> dfsVisit.put(block, false));
-        LinkedList<IRBasicBlock> dfsStack = new LinkedList<>();
-        dfsVisit.put(irFunction.basicBlocks().get(0), true);
-        dfsVisit.put(irFunction.basicBlocks().get(1), true);
-        dfsStack.push(irFunction.basicBlocks().get(2));
-        dfsVisit.put(irFunction.basicBlocks().get(2), true);
-        while (!dfsStack.isEmpty()) {
-            IRBasicBlock currentBasicBlock = dfsStack.pop();
-            for (IRBasicBlock successor : currentBasicBlock.successors()) {
-                if (!dfsVisit.get(successor)) {
-                    dfsStack.push(successor);
-                    dfsVisit.put(successor, true);
-                }
-            }
-        }
-        for (Map.Entry<IRBasicBlock, Boolean> entry : dfsVisit.entrySet()) {
-            if (!entry.getValue()) {
-                while (entry.getKey().instructions().tail() != null) {
-                    entry.getKey().instructions().tail().value().eliminate();
-                }
-            }
-        }
-        irFunction.basicBlocks().removeIf(basicBlock -> !dfsVisit.get(basicBlock));
     }
 
     @Override
