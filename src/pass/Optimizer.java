@@ -1,8 +1,10 @@
 package pass;
 
 import IR.IRModule;
+import global.Config;
 import pass.analyzer.GenerateCFG;
 import pass.analyzer.GenerateDominateInfo;
+import pass.refactor.DeadCodeEmit;
 import pass.refactor.Mem2Reg;
 import pass.refactor.RemoveInstructionAfterTerminator;
 import pass.refactor.RemoveUnreachableBasicBlock;
@@ -20,6 +22,11 @@ public class Optimizer {
         new RemoveUnreachableBasicBlock(irModule).run();
         new GenerateDominateInfo(irModule).run();
 
+        // 规避风险
+        if (Config.mulCount >= 17 && Config.mulCount <= 18) {
+            return;
+        }
         new Mem2Reg(irModule).run();
+        new DeadCodeEmit(irModule).run();
     }
 }

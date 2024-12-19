@@ -49,6 +49,12 @@ public abstract class IRInstruction<IT extends IRType> extends IRUser<IT> {
         }
     }
 
+    // 适用于大规模确保正确的删除
+    public void eliminateWithoutCheck() {
+        this.dropAllOperands();
+        this.listNode.eliminate();
+    }
+
     public abstract String llvmStr(LLVMStrRegCounter counter);
 
     @Override

@@ -18,15 +18,22 @@ public class Binary extends TargetInstruction {
         MUL,
         DIV,
         MOD,
+        // 按位运算
+        AND,
         // 移位运算
         SLL,
+        SRA,
+        SRL,
         // 比较运算
         SEQ,
         SNE,
         SGT,
         SGE,
         SLT,
-        SLE
+        SLE,
+        // 除法优化
+        HIMUL,
+        HIMADD,
     }
 
     public Binary(TargetBasicBlock targetBasicBlock, BinaryOs operation, TargetOperand destination,
@@ -86,8 +93,14 @@ public class Binary extends TargetInstruction {
                         "div " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
                 case MOD ->
                         "rem " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case AND ->
+                        "andi " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
                 case SLL ->
                         "sll " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case SRA ->
+                        "sra " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case SRL ->
+                        "srl " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
                 case SEQ ->
                         "seq " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
                 case SNE ->
@@ -100,6 +113,7 @@ public class Binary extends TargetInstruction {
                         "slti " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
                 case SLE ->
                         "sle " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                default -> throw new RuntimeException("When Binary(), the type of destination or source is invalid");
             };
         } else { // operandSource instanceof TargetRegister
             return switch (this.operation) {
@@ -114,8 +128,14 @@ public class Binary extends TargetInstruction {
                         "mflo " + destination.mipsStr();
                 case MOD -> "div " + registerSource.mipsStr() + ", " + operandSource.mipsStr() + "\n\t" +
                         "mfhi " + destination.mipsStr();
+                case AND ->
+                        "and " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
                 case SLL ->
                         "sllv " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case SRA ->
+                        "srav " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case SRL ->
+                        "srlv " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
                 case SEQ ->
                         "seq " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
                 case SNE ->
@@ -128,6 +148,12 @@ public class Binary extends TargetInstruction {
                         "slt " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
                 case SLE ->
                         "sle " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
+                case HIMUL -> "mult " + registerSource.mipsStr() + ", " + operandSource.mipsStr() + "\n\t" +
+                        "mfhi " + destination.mipsStr();
+                case HIMADD -> "mthi " + registerSource.mipsStr() + "\n\t" +
+                        "madd " + registerSource.mipsStr() + ", " + operandSource.mipsStr() + "\n\t" +
+                        "mfhi " + destination.mipsStr();
+
             };
         }
     }

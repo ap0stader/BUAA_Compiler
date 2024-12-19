@@ -224,7 +224,10 @@ public class Lexer {
             }
             case '+' -> this.gotToken(TokenType.PLUS, "+");
             case '-' -> this.gotToken(TokenType.MINU, "-");
-            case '*' -> this.gotToken(TokenType.MULT, "*");
+            case '*' -> {
+                Config.mulCount++;
+                this.gotToken(TokenType.MULT, "*");
+            }
             case '%' -> this.gotToken(TokenType.MOD, "%");
             case '!' -> {
                 fgetc();

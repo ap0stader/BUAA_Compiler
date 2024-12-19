@@ -318,7 +318,6 @@ public class Generator {
                     }
                     new Branch(transitiveBasicBlock, targetBasicBlock.label(), false);
                     this.basicBlockBranchMap.get(targetPredecessorBlock).put(targetBasicBlock, transitiveBasicBlock);
-                    this.basicBlockPhiCopies.put(targetPredecessorBlock, phiCopiesSequential.get(predecessor));
                 } else {
                     this.basicBlockBranchMap.get(targetPredecessorBlock).put(targetBasicBlock, targetBasicBlock);
                 }
@@ -378,6 +377,70 @@ public class Generator {
         }
     }
 
+    private static int tailZero(Integer i) {
+        int result = -1;
+        i = i >>> 1;
+        do {
+            i = i >>> 1;
+            result++;
+        }
+        while (i != 0);
+        return result;
+    }
+
+    private void transformDivConst(VirtualRegister destinationRegister, TargetOperand registerSource,
+                                   Integer divisor, TargetBasicBlock targetBasicBlock) {
+        // 相反
+        boolean isNegativeDivisor = divisor < 0;
+        // 除-1和除1
+        if (divisor == -1) {
+            new Binary(targetBasicBlock, Binary.BinaryOs.SUB, destinationRegister, PhysicalRegister.ZERO, registerSource);
+            return;
+        } else if (divisor == 1) {
+            new Move(targetBasicBlock, destinationRegister, registerSource);
+            return;
+        }
+        divisor = Math.abs(divisor);
+        // dst = dividend / abs => dst = (dividend * n) >> shift
+        // nc = 2^31 - 2^31 % abs - 1
+        long nc = ((long) 1 << 31) - (((long) 1 << 31) % divisor) - 1;
+        long p = 32;
+        // 2^p > (2^31 - 2^31 % abs - 1) * (abs - 2^p % abs)
+        while (((long) 1 << p) <= nc * (divisor - ((long) 1 << p) % divisor)) {
+            p++;
+        }
+        // m = (2^p + abs - 2^p % abs) / abs
+        long m = ((((long) 1 << p) + (long) divisor - ((long) 1 << p) % divisor) / (long) divisor);
+        int n = (int) ((m << 32) >>> 32);
+        int shift = (int) (p - 32);
+
+        VirtualRegister multDivisor = targetBasicBlock.parent().addVirtualRegister();
+        new Move(targetBasicBlock, multDivisor, new Immediate(n));
+
+        VirtualRegister multTemp = targetBasicBlock.parent().addVirtualRegister();
+        if (m >= 0x80000000L) {
+            // multTemp = dividend + (dividend * n)[63:32]
+            new Binary(targetBasicBlock, Binary.BinaryOs.HIMADD, multTemp, registerSource, multDivisor);
+        }
+        else {
+            // multTemp = (dividend * n)[63:32]
+            new Binary(targetBasicBlock, Binary.BinaryOs.HIMUL, multTemp, registerSource, multDivisor);
+        }
+
+        // shiftShift = temp >> shift
+        VirtualRegister multShiftShift = targetBasicBlock.parent().addVirtualRegister();
+        new Binary(targetBasicBlock, Binary.BinaryOs.SRA, multShiftShift, multTemp, new Immediate(shift));
+
+        // dst = shiftShift + dividend >> 31
+        VirtualRegister multShift32 = targetBasicBlock.parent().addVirtualRegister();
+        new Binary(targetBasicBlock, Binary.BinaryOs.SRL, multShift32, registerSource, new Immediate(31));
+        new Binary(targetBasicBlock, Binary.BinaryOs.ADD, destinationRegister, multShiftShift, multShift32);
+
+        if (isNegativeDivisor) {
+            new Binary(targetBasicBlock, Binary.BinaryOs.SUB, destinationRegister, PhysicalRegister.ZERO, registerSource);
+        }
+    }
+
     private void transformBinaryOperator(BinaryOperator binaryOperator, TargetBasicBlock targetBasicBlock) {
         IRValue<IntegerType> operandLeft = binaryOperator.getOperand1();
         IRValue<IntegerType> operandRight = binaryOperator.getOperand2();
@@ -397,7 +460,11 @@ public class Generator {
         } else {
             registerSource = this.valueToOperand(operandLeft);
         }
-        new Binary(targetBasicBlock, targetBinaryOps, destinationRegister, registerSource, this.valueToOperand(operandRight));
+        if (targetBinaryOps == Binary.BinaryOs.DIV && operandRight instanceof ConstantInt rightConstant) {
+            this.transformDivConst(destinationRegister, registerSource, rightConstant.constantValue(), targetBasicBlock);
+        } else {
+            new Binary(targetBasicBlock, targetBinaryOps, destinationRegister, registerSource, this.valueToOperand(operandRight));
+        }
     }
 
     private void transformIcmpInst(IcmpInst icmpInst, TargetBasicBlock targetBasicBlock) {
@@ -424,17 +491,23 @@ public class Generator {
     }
 
     private void transformCastInst(CastInst<?> castInst, TargetBasicBlock targetBasicBlock) {
-        // MAYBE
-        // 对于char类型
-        // - 存储 采用lbu和sb，只取最低的byte
-        // - 计算 整型提升至32位
-        // - 输出 syscall 11，只取最低的byte
-        // 对于bool类型
-        // - 来源 均为IcmpInst产生，对应s__
-        // - 计算 整型提升至32位
-        // 故对于Zext和Trunc不需要特别处理
-        IRValue<?> sourceIRValue = castInst.getSourceOperand();
-        this.valueMap.put(castInst, this.valueToOperand(sourceIRValue));
+        if (castInst instanceof CastInst.TruncInst) {
+            VirtualRegister destinationRegister = this.getOrGenVirtualRegister(castInst, targetBasicBlock.parent());
+            TargetOperand castOrigin = this.valueToOperand(castInst.getSourceOperand());
+            // 如果是立即数要先加载到寄存器中
+            if (castOrigin instanceof Immediate) {
+                VirtualRegister immediateRegister = targetBasicBlock.parent().addVirtualRegister();
+                new Move(targetBasicBlock, immediateRegister, castOrigin);
+                castOrigin = immediateRegister;
+            }
+            new Binary(targetBasicBlock, Binary.BinaryOs.AND, destinationRegister, castOrigin, Immediate.FF());
+        } else if (castInst instanceof CastInst.ZExtInst) {
+            VirtualRegister destinationRegister = this.getOrGenVirtualRegister(castInst, targetBasicBlock.parent());
+            new Move(targetBasicBlock, destinationRegister, this.valueToOperand(castInst.getSourceOperand()));
+        } else {
+            IRValue<?> sourceIRValue = castInst.getSourceOperand();
+            this.valueMap.put(castInst, this.valueToOperand(sourceIRValue));
+        }
     }
 
     private void transformGetElementPtrInst(GetElementPtrInst getElementPtrInst, TargetBasicBlock targetBasicBlock) {

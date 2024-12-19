@@ -10,6 +10,10 @@ public record Immediate(Integer value) implements TargetOperand, TargetAddress.I
         return new Immediate(2);
     }
 
+    public static Immediate FF() {
+        return new Immediate(0x7f);
+    }
+
     // 计算常数偏移地址时使用
     public Immediate add(Immediate other) {
         return new Immediate(value + other.value);

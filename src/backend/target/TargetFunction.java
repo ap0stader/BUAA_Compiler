@@ -260,7 +260,7 @@ public class TargetFunction {
             StringBuilder sb = new StringBuilder();
             sb.append(labelPrologue.mipsStr()).append(":\n");
             // 调整栈的大小
-            sb.append("\t").append("# stack frame size").append(this.size()).append(" bytes\n");
+            sb.append("\t").append("# stack frame size ").append(this.size()).append(" bytes\n");
             sb.append("\t").append("addiu $sp, $sp, 0x").append(Integer.toHexString(-this.size()).toUpperCase()).append("\n");
             // 保存需要保存的参数寄存器
             for (PhysicalRegister savedArgumentRegister : this.savedArgumentRegisters) {
@@ -285,7 +285,7 @@ public class TargetFunction {
                         .append(this.getSavedRegisterAddress(savedRegister).mipsStr()).append("\n");
             }
             // 调整栈的大小
-            sb.append("\t").append("# stack frame size").append(this.size()).append(" bytes\n");
+            sb.append("\t").append("# stack frame size ").append(this.size()).append(" bytes\n");
             sb.append("\t").append("addiu $sp, $sp, 0x").append(Integer.toHexString(this.size()).toUpperCase()).append("\n");
             // 返回到之前的函数
             sb.append("\t").append("jr $ra").append("\n");

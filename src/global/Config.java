@@ -26,6 +26,9 @@ public class Config {
     // 是否开启中端优化
     public static boolean enableMiddleOptimization = true;
 
+    public static int mulCount = 0;
+    public static boolean tryMem = true;
+
     /* 总共进行阶段数
        ==== 前端 ====
        1. 词法分析，生成TokenStream
