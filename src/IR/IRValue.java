@@ -2,25 +2,24 @@ package IR;
 
 import IR.type.IRType;
 
-import java.util.LinkedList;
-import java.util.Objects;
+import java.util.HashSet;
 
 public abstract class IRValue<T extends IRType> {
     protected final String name;
     protected final T type;
-    private final LinkedList<IRUse> useList;
+    protected final HashSet<IRUser<?>> users;
 
     // 匿名初始化
     public IRValue(T type) {
         this.name = null;
         this.type = type;
-        this.useList = new LinkedList<>();
+        this.users = new HashSet<>();
     }
 
     public IRValue(String name, T type) {
         this.name = name;
         this.type = type;
-        this.useList = new LinkedList<>();
+        this.users = new HashSet<>();
     }
 
     @SuppressWarnings("unchecked")
@@ -37,17 +36,20 @@ public abstract class IRValue<T extends IRType> {
         return type;
     }
 
-    public LinkedList<IRUse> useList() {
-        return useList;
+    public HashSet<IRUser<?>> users() {
+        return users;
     }
 
-    // 传入User，维护User-Use关系
-    public void addUse(IRUser<?> user) {
-        this.useList.add(new IRUse(user, this));
+    public void addUser(IRUser<?> user) {
+        this.users.add(user);
     }
 
-    // 传入User，删除所有该User的Use
-    public void removeUserAllUse(IRUser<?> user) {
-        this.useList.removeIf(use -> Objects.equals(use.user(), user));
+    public void removeUser(IRUser<?> user) {
+        this.users.remove(user);
+    }
+
+    public void replaceAllUsesWith(IRValue<?> value) {
+        HashSet<IRUser<?>> tempUser = new HashSet<>(this.users);
+        tempUser.forEach(user -> user.replaceUsesOfWith(this, value));
     }
 }

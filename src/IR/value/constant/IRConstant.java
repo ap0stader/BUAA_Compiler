@@ -15,7 +15,7 @@ public abstract class IRConstant<CT extends IRType> extends IRValue<CT> {
 
     // 对于Constant，即用即抛，不维护包括其的Use
     @Override
-    public void addUse(IRUser<?> user) {
+    public void addUser(IRUser<?> user) {
     }
 
     public abstract String llvmStr();

@@ -3,6 +3,7 @@ package pass;
 import IR.IRModule;
 import pass.analyzer.GenerateCFG;
 import pass.analyzer.GenerateDominateInfo;
+import pass.refactor.Mem2Reg;
 import pass.refactor.RemoveInstructionAfterTerminator;
 
 public class Optimizer {
@@ -16,5 +17,6 @@ public class Optimizer {
         new RemoveInstructionAfterTerminator(irModule).run();
         new GenerateCFG(irModule).run();
         new GenerateDominateInfo(irModule).run();
+        new Mem2Reg(irModule).run();
     }
 }

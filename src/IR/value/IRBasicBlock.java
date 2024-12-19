@@ -23,6 +23,8 @@ public class IRBasicBlock extends IRValue<LabelType> {
     private final HashSet<IRBasicBlock> dominating;
     // 直接支配者
     private IRBasicBlock immediateDominator;
+    // 直接支配的基本块
+    private final HashSet<IRBasicBlock> immediateDominating;
     // 支配边界
     private final HashSet<IRBasicBlock> dominanceFrontiers;
 
@@ -34,6 +36,7 @@ public class IRBasicBlock extends IRValue<LabelType> {
         this.dominators = new HashSet<>();
         this.dominating = new HashSet<>();
         this.immediateDominator = null;
+        this.immediateDominating = new HashSet<>();
         this.dominanceFrontiers = new HashSet<>();
     }
 
@@ -61,12 +64,20 @@ public class IRBasicBlock extends IRValue<LabelType> {
         return immediateDominator;
     }
 
+    public HashSet<IRBasicBlock> immediateDominating() {
+        return immediateDominating;
+    }
+
     public HashSet<IRBasicBlock> dominanceFrontiers() {
         return dominanceFrontiers;
     }
 
-    public void appendInstruction(IRInstruction<?> instructionNode) {
-        this.instructions.insertAfterTail(instructionNode.listNode());
+    public void pushInstruction(IRInstruction<?> instruction) {
+        this.instructions.insertBeforeHead(instruction.listNode());
+    }
+
+    public void appendInstruction(IRInstruction<?> instruction) {
+        this.instructions.insertAfterTail(instruction.listNode());
     }
 
     public void setImmediateDominator(IRBasicBlock immediateDominator) {
@@ -97,6 +108,11 @@ public class IRBasicBlock extends IRValue<LabelType> {
             }
             sb.append("\n");
             sb.append("\t;immediateDominator: ").append(counter.get(immediateDominator)).append("\n");
+            sb.append("\t;immediateDominating: ");
+            for (IRBasicBlock immediateDominating : immediateDominating) {
+                sb.append(counter.get(immediateDominating)).append(" ");
+            }
+            sb.append("\n");
             sb.append("\t;dominanceFrontiers: ");
             for (IRBasicBlock dominanceFrontier : dominanceFrontiers) {
                 sb.append(counter.get(dominanceFrontier)).append(" ");

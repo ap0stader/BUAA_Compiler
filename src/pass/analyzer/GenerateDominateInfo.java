@@ -5,7 +5,7 @@ import IR.value.IRBasicBlock;
 import IR.value.IRFunction;
 import pass.Pass;
 
-import java.util.HashSet;
+import java.util.*;
 
 public class GenerateDominateInfo implements Pass {
     private final IRModule irModule;
@@ -23,6 +23,7 @@ public class GenerateDominateInfo implements Pass {
         for (IRFunction irFunction : irModule.functions()) {
             if (!irFunction.isLib()) {
                 this.generateDominateInfo(irFunction);
+                this.removeUnreachableBasicBlock(irFunction);
             }
         }
         this.finished = true;
@@ -75,6 +76,9 @@ public class GenerateDominateInfo implements Pass {
                     break;
                 }
             }
+            if (basicBlock.immediateDominator() != null) {
+                basicBlock.immediateDominator().immediateDominating().add(basicBlock);
+            }
         }
         // 计算支配边界
         for (IRBasicBlock predecessor : irFunction.basicBlocks()) {
@@ -89,6 +93,34 @@ public class GenerateDominateInfo implements Pass {
                 }
             }
         }
+    }
+
+    // 消除不可达的基本块
+    private void removeUnreachableBasicBlock(IRFunction irFunction) {
+        HashMap<IRBasicBlock, Boolean> dfsVisit = new HashMap<>();
+        irFunction.basicBlocks().forEach(block -> dfsVisit.put(block, false));
+        LinkedList<IRBasicBlock> dfsStack = new LinkedList<>();
+        dfsVisit.put(irFunction.basicBlocks().get(0), true);
+        dfsVisit.put(irFunction.basicBlocks().get(1), true);
+        dfsStack.push(irFunction.basicBlocks().get(2));
+        dfsVisit.put(irFunction.basicBlocks().get(2), true);
+        while (!dfsStack.isEmpty()) {
+            IRBasicBlock currentBasicBlock = dfsStack.pop();
+            for (IRBasicBlock successor : currentBasicBlock.successors()) {
+                if (!dfsVisit.get(successor)) {
+                    dfsStack.push(successor);
+                    dfsVisit.put(successor, true);
+                }
+            }
+        }
+        for (Map.Entry<IRBasicBlock, Boolean> entry : dfsVisit.entrySet()) {
+            if (!entry.getValue()) {
+                while (entry.getKey().instructions().tail() != null) {
+                    entry.getKey().instructions().tail().value().eliminate();
+                }
+            }
+        }
+        irFunction.basicBlocks().removeIf(basicBlock -> !dfsVisit.get(basicBlock));
     }
 
     @Override

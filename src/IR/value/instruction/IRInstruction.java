@@ -8,11 +8,13 @@ import util.LLVMStrRegCounter;
 
 public abstract class IRInstruction<IT extends IRType> extends IRUser<IT> {
     private final DoublyLinkedList.Node<IRInstruction<?>> listNode;
+    protected IRBasicBlock parent;
 
     public IRInstruction(IT type, IRBasicBlock parent) {
         super(type);
         this.listNode = new DoublyLinkedList.Node<>(this);
-        // 加入到BasicBlock中
+        this.parent = parent;
+        // 自动加入到BasicBlock中
         if (parent != null) {
             parent.appendInstruction(this);
         }
@@ -22,11 +24,29 @@ public abstract class IRInstruction<IT extends IRType> extends IRUser<IT> {
         return listNode;
     }
 
-    public void eliminate() {
+    public IRBasicBlock parent() {
+        return parent;
+    }
+
+    public void setParent(IRBasicBlock parent) {
+        this.parent = parent;
+    }
+
+    // WARNING 调用本方法后该指令必须被移除
+    public void dropAllOperands() {
         for (int i = 0; i < this.getNumOperands(); i++) {
-            this.getOperand(i).removeUserAllUse(this);
+            this.getOperand(i).removeUser(this);
         }
-        this.listNode.eliminate();
+    }
+
+    // WARNING 不得边迭代边调用本方法
+    public void eliminate() {
+        if (this.users.isEmpty()) {
+            this.dropAllOperands();
+            this.listNode.eliminate();
+        } else {
+            throw new RuntimeException("When eliminate(), try to eliminate an instruction that was used. ");
+        }
     }
 
     public abstract String llvmStr(LLVMStrRegCounter counter);

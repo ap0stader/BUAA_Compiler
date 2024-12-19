@@ -10,6 +10,7 @@ import pass.Pass;
 import util.DoublyLinkedList;
 
 import java.util.Iterator;
+import java.util.Objects;
 
 public class RemoveInstructionAfterTerminator implements Pass {
     private final IRModule irModule;
@@ -45,10 +46,12 @@ public class RemoveInstructionAfterTerminator implements Pass {
             }
         }
         if (terminator != null) {
-            while (terminator.listNode().next() != null) {
-                IRInstruction<?> unreachableInstruction = terminator.listNode().next().value();
-                unreachableInstruction.eliminate();
+            while (!Objects.equals(irBasicBlock.instructions().tail().value(), terminator)) {
+                irBasicBlock.instructions().tail().value().eliminate();
             }
+        } else {
+            throw new RuntimeException("When RemoveInstructionAfterTerminator.run(), irBasicBlock is not end with a terminator. " +
+                    "Got " + irBasicBlock);
         }
     }
 
