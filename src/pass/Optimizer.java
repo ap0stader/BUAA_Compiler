@@ -4,10 +4,7 @@ import IR.IRModule;
 import global.Config;
 import pass.analyzer.GenerateCFG;
 import pass.analyzer.GenerateDominateInfo;
-import pass.refactor.DeadCodeEmit;
-import pass.refactor.Mem2Reg;
-import pass.refactor.RemoveInstructionAfterTerminator;
-import pass.refactor.RemoveUnreachableBasicBlock;
+import pass.refactor.*;
 
 public class Optimizer {
     private final IRModule irModule;
@@ -21,6 +18,8 @@ public class Optimizer {
         new GenerateCFG(irModule).run();
         new RemoveUnreachableBasicBlock(irModule).run();
         new GenerateDominateInfo(irModule).run();
+
+        new CalculateConst(irModule).run();
 
         // 规避风险
         if (Config.mulCount >= 17 && Config.mulCount <= 18) {
