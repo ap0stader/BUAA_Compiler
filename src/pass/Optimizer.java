@@ -21,10 +21,6 @@ public class Optimizer {
 
         new CalculateConst(irModule).run();
 
-        // 规避风险
-        if (Config.mulCount >= 17 && Config.mulCount <= 18) {
-            return;
-        }
         new Mem2Reg(irModule).run();
         new DeadCodeEmit(irModule).run();
     }

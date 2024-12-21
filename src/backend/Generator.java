@@ -26,7 +26,7 @@ public class Generator {
     private final HashMap<IRFunction, Integer> syscallMap;
     // 存储一个函数内IR的BasicBlock与Target的BasicBlock之间的对应关系，在跳转指令处使用
     private final HashMap<IRBasicBlock, TargetBasicBlock> basicBlockMap;
-    // 存疑一个函数内Target的BasicBlock与实际要跳转到的Label之间的对应管理，处理PHI指令时记录，在跳转指令处使用
+    // 存储一个函数内Target的BasicBlock与实际要跳转到的Label之间的对应管理，处理PHI指令时记录，在跳转指令处使用
     private final HashMap<TargetBasicBlock, HashMap<TargetBasicBlock, TargetBasicBlock>> basicBlockBranchMap;
     // 存储一个函数内Target的BasicBlock中还未释放的消除PHI指令的Move，在跳转指令处释放
     private final HashMap<TargetBasicBlock, LinkedList<Pair<VirtualRegister, TargetOperand>>> basicBlockPhiCopies;
@@ -272,9 +272,7 @@ public class Generator {
         // 初始化
         irBasicBlock.predecessors().forEach((block -> phiCopiesSequential.put(block, new LinkedList<>())));
         for (Map.Entry<IRBasicBlock, LinkedList<Pair<VirtualRegister, TargetOperand>>> phiCopyEntry : phiCopies.entrySet()) {
-            Iterator<Pair<VirtualRegister, TargetOperand>> phiCopyIterator = phiCopyEntry.getValue().iterator();
-            while (phiCopyIterator.hasNext()) {
-                Pair<VirtualRegister, TargetOperand> phiCopyMove = phiCopyIterator.next();
+            for (Pair<VirtualRegister, TargetOperand> phiCopyMove : phiCopyEntry.getValue()) {
                 if (!Objects.equals(phiCopyMove.key(), phiCopyMove.value())) {
                     // MAYBE 如果Move起点终点相同可以消去
                     boolean crash = false;
@@ -295,7 +293,6 @@ public class Generator {
                         phiCopiesSequential.get(phiCopyEntry.getKey()).add(new Pair<>(phiCopyMove.key(), phiCopyMove.value()));
                     }
                 }
-                phiCopyIterator.remove();
             }
         }
         // 保留Copy或直接插入
