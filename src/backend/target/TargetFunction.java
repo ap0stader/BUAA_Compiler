@@ -86,7 +86,7 @@ public class TargetFunction {
         private final TreeSet<VirtualRegister> tempVirtualRegisters = new TreeSet<>();
         private int allocaSize = 0;
         private final TreeSet<PhysicalRegister> savedRegisters = new TreeSet<>();
-        private int argumentsNumbers = 4;
+        private int outArgumentSize = 4;
 
         private final static int REGISTER_BYTES = 4;
 
@@ -95,7 +95,7 @@ public class TargetFunction {
             return this.tempVirtualRegisters.size() * REGISTER_BYTES +
                     this.allocaSize +
                     this.savedRegisters.size() * REGISTER_BYTES +
-                    this.argumentsNumbers * REGISTER_BYTES;
+                    this.outArgumentSize * REGISTER_BYTES;
         }
 
         // 传入参数的偏移值
@@ -133,7 +133,7 @@ public class TargetFunction {
                     return new Immediate(tempVirtualRegisters.headSet(this.register).size() * REGISTER_BYTES +
                             allocaSize +
                             savedRegisters.size() * REGISTER_BYTES +
-                            argumentsNumbers * REGISTER_BYTES);
+                            outArgumentSize * REGISTER_BYTES);
                 } else {
                     throw new RuntimeException("When TempVirtualRegisterOffset.calc(), the function " + label.name() +
                             "does not use temp virtual register " + this.register);
@@ -160,7 +160,7 @@ public class TargetFunction {
             public Immediate calc() {
                 return new Immediate(this.accumulateSizeBefore +
                         savedRegisters.size() * REGISTER_BYTES +
-                        argumentsNumbers * REGISTER_BYTES);
+                        outArgumentSize * REGISTER_BYTES);
             }
 
             @Override
@@ -183,7 +183,7 @@ public class TargetFunction {
             public Immediate calc() {
                 if (savedRegisters.contains(this.register)) {
                     return new Immediate(savedRegisters.headSet(this.register).size() * REGISTER_BYTES +
-                            argumentsNumbers * REGISTER_BYTES);
+                            outArgumentSize * REGISTER_BYTES);
                 } else {
                     throw new RuntimeException("When SavedRegisterOffset.calc(), function " + label.name() +
                             "dose not save register " + this.register);
@@ -245,14 +245,15 @@ public class TargetFunction {
         public void ensureSaveRegister(PhysicalRegister register) {
             if (PhysicalRegister.isArgumentRegister(register)) {
                 this.savedArgumentRegisters.add(register);
-            } else {
+            } else if (register != null) {
                 this.savedRegisters.add(register);
             }
         }
 
         // 获得传出参数的地址
         public RegisterBaseAddress getOutArgumentAddress(int argumentNumber) {
-            this.argumentsNumbers = Math.max(this.argumentsNumbers, argumentNumber);
+            // 需要存储的参数的数量比参数的编号多1
+            this.outArgumentSize = Math.max(this.outArgumentSize, argumentNumber + 1);
             return new RegisterBaseAddress(PhysicalRegister.SP, new OutArgumentOffset(argumentNumber));
         }
 

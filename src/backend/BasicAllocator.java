@@ -15,33 +15,26 @@ import java.util.*;
 public class BasicAllocator {
     private final TargetModule targetModule;
     private boolean finish = false;
-    private final LinkedList<PhysicalRegister> tempRegisters;
+
+    // 调度寄存器
+    private final LinkedList<PhysicalRegister> dispatchRegisters;
 
     public BasicAllocator(TargetModule targetModule) {
         this.targetModule = targetModule;
-        this.tempRegisters = new LinkedList<>();
+        this.dispatchRegisters = new LinkedList<>();
     }
 
     private void initRegisters() {
-        // 临时寄存器
-        tempRegisters.add(PhysicalRegister.T0);
-        tempRegisters.add(PhysicalRegister.T1);
-        tempRegisters.add(PhysicalRegister.T2);
-        tempRegisters.add(PhysicalRegister.T3);
-        tempRegisters.add(PhysicalRegister.T4);
-        tempRegisters.add(PhysicalRegister.T5);
-        tempRegisters.add(PhysicalRegister.T6);
-        tempRegisters.add(PhysicalRegister.T7);
-        tempRegisters.add(PhysicalRegister.T8);
-        tempRegisters.add(PhysicalRegister.T9);
-        tempRegisters.add(PhysicalRegister.T10);
+        this.dispatchRegisters.clear();
+        this.dispatchRegisters.add(PhysicalRegister.V0);
+        this.dispatchRegisters.add(PhysicalRegister.V1);
     }
 
     public void allocRegister() {
         if (this.finish) {
             return;
         }
-        targetModule.functions().forEach(this::allocFunction);
+        this.targetModule.functions().forEach(this::allocFunction);
         this.finish = true;
     }
 
@@ -51,14 +44,16 @@ public class BasicAllocator {
         targetFunction.basicBlocks().forEach((node) -> this.allocBasicBlock(node.value()));
     }
 
-    private PhysicalRegister acquireTempPhysicalRegister(TargetFunction targetFunction) {
-        PhysicalRegister resultRegister = tempRegisters.poll();
-        targetFunction.stackFrame.ensureSaveRegister(resultRegister);
+    private PhysicalRegister acquireDispatchPhysicalRegister(TargetFunction targetFunction) {
+        PhysicalRegister resultRegister = this.dispatchRegisters.poll();
+        if (resultRegister == null) {
+            throw new RuntimeException("When acquireDispatchPhysicalRegister(), no more dispatch registers");
+        }
         return resultRegister;
     }
 
-    private void releaseTempPhysicalRegister(PhysicalRegister physicalRegister) {
-        tempRegisters.push(physicalRegister);
+    private void releaseDispatchPhysicalRegister(PhysicalRegister physicalRegister) {
+        this.dispatchRegisters.push(physicalRegister);
     }
 
     private void allocBasicBlock(TargetBasicBlock targetBasicBlock) {
@@ -67,7 +62,7 @@ public class BasicAllocator {
             TargetInstruction instruction = instructionNode.value();
             TreeSet<PhysicalRegister> acquiredPhysicalRegisters = new TreeSet<>();
             for (VirtualRegister useVirtualRegister : instruction.useVirtualRegisterSet()) {
-                PhysicalRegister physicalRegister = acquireTempPhysicalRegister(targetFunction);
+                PhysicalRegister physicalRegister = acquireDispatchPhysicalRegister(targetFunction);
                 acquiredPhysicalRegisters.add(physicalRegister);
                 Load loadVirtualRegister = new Load(null, Load.SIZE.WORD,
                         physicalRegister, useVirtualRegister.address());
@@ -75,10 +70,10 @@ public class BasicAllocator {
                 instruction.replaceUseVirtualRegister(physicalRegister, useVirtualRegister);
             }
             // 顺序申请，逆序释放
-            acquiredPhysicalRegisters.descendingSet().forEach(this::releaseTempPhysicalRegister);
+            acquiredPhysicalRegisters.descendingSet().forEach(this::releaseDispatchPhysicalRegister);
             acquiredPhysicalRegisters.clear();
             for (VirtualRegister defVirtualRegister : instruction.defVirtualRegisterSet()) {
-                PhysicalRegister physicalRegister = acquireTempPhysicalRegister(targetFunction);
+                PhysicalRegister physicalRegister = acquireDispatchPhysicalRegister(targetFunction);
                 acquiredPhysicalRegisters.add(physicalRegister);
                 instruction.replaceDefVirtualRegister(physicalRegister, defVirtualRegister);
                 Store storeVirtualRegister = new Store(null, Store.SIZE.WORD,
@@ -86,7 +81,7 @@ public class BasicAllocator {
                 storeVirtualRegister.listNode().insertAfter(instructionNode);
             }
             // 顺序申请，逆序释放
-            acquiredPhysicalRegisters.descendingSet().forEach(this::releaseTempPhysicalRegister);
+            acquiredPhysicalRegisters.descendingSet().forEach(this::releaseDispatchPhysicalRegister);
         }
     }
 }

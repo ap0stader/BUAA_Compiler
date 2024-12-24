@@ -35,6 +35,6 @@ public final class VirtualRegister implements TargetRegister, Comparable<Virtual
 
     @Override
     public String toString() {
-        return this.mipsStr() + "@" + this.address;
+        return this.mipsStr();
     }
 }
