@@ -8,15 +8,15 @@ public final class RegisterBaseAddress extends TargetAddress<TargetRegister, Reg
         super(base, immediateOffset);
     }
 
-    private RegisterBaseAddress(RegisterBaseAddress oldAddress, ImmediateOffset immediateOffset) {
-        super(oldAddress, immediateOffset);
-    }
-
     private RegisterBaseAddress(RegisterBaseAddress oldAddress, TargetRegister base) {
         super(oldAddress, base);
     }
 
-    public TargetOperand base() {
+    private RegisterBaseAddress(RegisterBaseAddress oldAddress, ImmediateOffset immediateOffset) {
+        super(oldAddress, immediateOffset);
+    }
+
+    public TargetRegister base() {
         return base;
     }
 
@@ -39,7 +39,7 @@ public final class RegisterBaseAddress extends TargetAddress<TargetRegister, Reg
         if (Objects.equals(base, virtualRegister)) {
             return new RegisterBaseAddress(this, physicalRegister);
         } else {
-            throw new RuntimeException("When RegisterBaseAddress.replaceUseVirtualRegister, virtualRegister is not base");
+            throw new RuntimeException("When RegisterBaseAddress.replaceUseVirtualRegister(), virtualRegister is not base");
         }
     }
 

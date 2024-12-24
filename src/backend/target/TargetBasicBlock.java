@@ -4,8 +4,6 @@ import backend.instruction.TargetInstruction;
 import backend.oprand.Label;
 import util.DoublyLinkedList;
 
-import java.util.HashSet;
-
 public class TargetBasicBlock {
     private final DoublyLinkedList.Node<TargetBasicBlock> listNode;
 
@@ -14,19 +12,12 @@ public class TargetBasicBlock {
     private final TargetFunction parent;
     private final Integer order;
 
-    // 前驱基本块
-    private final HashSet<TargetBasicBlock> predecessors;
-    // 后继基本块
-    private final HashSet<TargetBasicBlock> successors;
-
     public TargetBasicBlock(TargetFunction parent, int order) {
         this.listNode = new DoublyLinkedList.Node<>(this);
         this.label = new Label(parent.label().name() + "." + order);
         this.instructions = new DoublyLinkedList<>();
         this.parent = parent;
         this.order = order;
-        this.predecessors = new HashSet<>();
-        this.successors = new HashSet<>();
     }
 
     public TargetBasicBlock(TargetFunction parent, int fromOrder, int toOrder) {
@@ -35,8 +26,6 @@ public class TargetBasicBlock {
         this.parent = parent;
         this.instructions = new DoublyLinkedList<>();
         this.order = null;
-        this.predecessors = new HashSet<>();
-        this.successors = new HashSet<>();
     }
 
     public DoublyLinkedList.Node<TargetBasicBlock> listNode() {
@@ -57,14 +46,6 @@ public class TargetBasicBlock {
 
     public Integer order() {
         return order;
-    }
-
-    public HashSet<TargetBasicBlock> predecessors() {
-        return predecessors;
-    }
-
-    public HashSet<TargetBasicBlock> successors() {
-        return successors;
     }
 
     public void appendInstruction(TargetInstruction instruction) {

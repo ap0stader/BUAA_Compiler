@@ -23,14 +23,16 @@ public class Generator {
     private final HashMap<IRGlobalVariable, LabelBaseAddress> globalVariableMap;
     // 存储IR的Function与Target的Function之间的对应关系，在函数调用处使用
     private final HashMap<IRFunction, TargetFunction> functionMap;
-    // 存储是库函数的IR的Function与系统调用号之间的对应关系，在函数调用出使用
+    // 存储库函数的IR的Function与系统调用号之间的对应关系，在函数调用处使用
     private final HashMap<IRFunction, Integer> syscallMap;
+
     // 存储一个函数内IR的BasicBlock与Target的BasicBlock之间的对应关系，在跳转指令处使用
     private final HashMap<IRBasicBlock, TargetBasicBlock> basicBlockMap;
-    // 存储一个函数内Target的BasicBlock与实际要跳转到的Label之间的对应管理，处理PHI指令时记录，在跳转指令处使用
+    // 存储一个函数内跳转到Target的BasicBlock与实际要跳转到的Label之间的对应关系，在处理PHI指令时记录，在跳转指令处使用
     private final HashMap<TargetBasicBlock, HashMap<TargetBasicBlock, TargetBasicBlock>> basicBlockBranchMap;
-    // 存储一个函数内Target的BasicBlock中还未释放的消除PHI指令的Move，在跳转指令处释放
+    // 存储一个函数内Target的BasicBlock中还未释放的消除PHI指令的Move，在跳转指令前释放
     private final HashMap<TargetBasicBlock, LinkedList<Pair<VirtualRegister, TargetOperand>>> basicBlockPhiCopies;
+
     // 存储一个函数内IR的Value与Target的Operand之间的对应关系
     private final HashMap<IRValue<?>, TargetOperand> valueMap;
 
@@ -69,7 +71,7 @@ public class Generator {
             return this.functionMap.get(irValue).label();
         } else if (irValue instanceof IRBasicBlock) {
             return this.basicBlockMap.get(irValue).label();
-        } else if (irValue instanceof IRInstruction) {
+        } else if (irValue instanceof Argument || irValue instanceof IRInstruction) {
             return this.valueMap.get(irValue);
         } else {
             throw new RuntimeException("When valueToOperand(), the type of irValue is invalid. Got " + irValue);
@@ -136,7 +138,7 @@ public class Generator {
                 throw new RuntimeException("When transformIRFunction(), the basic block of function " + irFunction.name() +
                         " is less than requirements.");
             }
-            this.transformFunctionArgBlock(irFunction.basicBlocks().get(0), irFunction, targetFunction);
+            this.transformFunctionArgument(irFunction, targetFunction);
             this.transformFunctionDefBlock(irFunction.basicBlocks().get(1), irFunction, targetFunction);
             // 先创建好一个函数的所有的TargetBasicBlock
             Iterator<IRBasicBlock> basicBlockIterator;
@@ -148,17 +150,6 @@ public class Generator {
                 this.basicBlockMap.put(irBasicBlock, targetBasicBlock);
                 this.basicBlockBranchMap.put(targetBasicBlock, new HashMap<>());
                 targetFunction.appendBasicBlock(targetBasicBlock.listNode());
-            }
-            // 计算TargetBasicBlock的前驱和后驱信息
-            basicBlockIterator = irFunction.getIteratorFromStartBlock();
-            while (basicBlockIterator.hasNext()) {
-                IRBasicBlock irBasicBlock = basicBlockIterator.next();
-                TargetBasicBlock targetBasicBlock = this.basicBlockMap.get(irBasicBlock);
-                if (targetBasicBlock.order() != 0) {
-                    // 开始基本块在MIPS中无前驱基本块
-                    targetBasicBlock.predecessors().addAll(irBasicBlock.predecessors().stream().map(this.basicBlockMap::get).toList());
-                }
-                targetBasicBlock.successors().addAll(irBasicBlock.successors().stream().map(this.basicBlockMap::get).toList());
             }
             // 处理PHI指令
             basicBlockIterator = irFunction.getIteratorFromStartBlock();
@@ -181,40 +172,21 @@ public class Generator {
         }
     }
 
-    private void transformFunctionArgBlock(IRBasicBlock argBlock, IRFunction irFunction, TargetFunction targetFunction) {
+    private void transformFunctionArgument(IRFunction irFunction, TargetFunction targetFunction) {
         ArrayList<Argument> arguments = irFunction.arguments();
-        // 为第0-3个参数登记对应的寄存器
         for (int i = 0; i < arguments.size(); i++) {
             if (PhysicalRegister.argumentRegisterOfArgumentNumber(i) != null) {
-                this.valueMap.put(arguments.get(i), PhysicalRegister.argumentRegisterOfArgumentNumber(i));
+                // 保存第0-3个参数对应的物理寄存器
+                targetFunction.stackFrame.ensureSaveRegister(PhysicalRegister.argumentRegisterOfArgumentNumber(i));
             }
-        }
-        DoublyLinkedList<IRInstruction<?>> instructions = argBlock.instructions();
-        // argBlock的规范是 一条alloca指令配上一条将参数写入alloca地址
-        Iterator<DoublyLinkedList.Node<IRInstruction<?>>> argBlockIterator = instructions.iterator();
-        while (argBlockIterator.hasNext()) {
-            IRInstruction<?> irInstructionFirst = argBlockIterator.next().value();
-            if (irInstructionFirst instanceof AllocaInst allocaInst && argBlockIterator.hasNext()) {
-                IRInstruction<?> irInstructionSecond = argBlockIterator.next().value();
-                if (irInstructionSecond instanceof StoreInst storeInst
-                        // storeInst与allocaInst是搭配的
-                        && storeInst.getValueOperand() instanceof Argument argument
-                        && storeInst.getPointerOperand() == allocaInst) {
-                    int argumentNumber = arguments.indexOf(argument);
-                    // 如果是通过寄存器传递的参数，那么要将寄存器保存到栈上合理的位置
-                    if (PhysicalRegister.argumentRegisterOfArgumentNumber(argumentNumber) != null) {
-                        targetFunction.stackFrame.ensureSaveRegister(PhysicalRegister.argumentRegisterOfArgumentNumber(argumentNumber));
-                    }
-                    this.valueMap.put(allocaInst, targetFunction.stackFrame.getInArgumentAddress(argumentNumber));
-                    // 该段argBlock正确结束
-                    continue;
-                }
-            } else if (irInstructionFirst instanceof BranchInst && !argBlockIterator.hasNext()) {
-                // argBlock正确结束
-                break;
+            // 为剩余参数登记对应的虚拟寄存器
+            VirtualRegister newArgRegister = new VirtualRegister();
+            newArgRegister.setAddress(targetFunction.stackFrame.getInArgumentAddress(i));
+            if (arguments.get(i).type() instanceof IntegerType) {
+                this.valueMap.put(arguments.get(i), newArgRegister);
+            } else if (arguments.get(i).type() instanceof PointerType) {
+                this.valueMap.put(arguments.get(i), new RegisterBaseAddress(newArgRegister, Immediate.ZERO()));
             }
-            // argBlock不符合约定
-            throw new RuntimeException("When transformFunctionArgBlock(), the argBlock of function " + irFunction.name() + " is invalid");
         }
     }
 
@@ -256,10 +228,11 @@ public class Generator {
         // 计算需要Copy的内容，目前是并行的版本
         for (DoublyLinkedList.Node<IRInstruction<?>> instructionNode : irBasicBlock.instructions()) {
             if (instructionNode.value() instanceof PHINode phiNode) {
-                VirtualRegister phiVirtualRegister = this.getOrGenVirtualRegister(phiNode, targetFunction);
+                VirtualRegister phiVirtualRegister = this.getOrGenTempVirtualRegister(phiNode, targetFunction);
                 for (Pair<IRBasicBlock, IRValue<?>> blockValuePair : phiNode.getIncomingBlockValuePairs()) {
+                    // 如果引用的是指令，可能要提前生成新的虚拟寄存器
                     if (blockValuePair.value() instanceof IRInstruction<?> irInstruction) {
-                        this.getOrGenVirtualRegister(irInstruction, targetFunction);
+                        this.getOrGenTempVirtualRegister(irInstruction, targetFunction);
                     }
                     phiCopies.get(blockValuePair.key()).add(new Pair<>(phiVirtualRegister, this.valueToOperand(blockValuePair.value())));
                 }
@@ -285,7 +258,7 @@ public class Generator {
                         }
                     }
                     if (crash) {
-                        VirtualRegister transitiveVirtualRegister = targetFunction.addVirtualRegister();
+                        VirtualRegister transitiveVirtualRegister = targetFunction.addTempVirtualRegister();
                         // 增加临时Move
                         phiCopiesSequential.get(phiCopyEntry.getKey()).push(new Pair<>(transitiveVirtualRegister, phiCopyMove.value()));
                         phiCopiesSequential.get(phiCopyEntry.getKey()).add(new Pair<>(phiCopyMove.key(), transitiveVirtualRegister));
@@ -323,13 +296,13 @@ public class Generator {
         }
     }
 
-    // 用于动态决定是否分配寄存器，因为PHI是乱序的
-    private VirtualRegister getOrGenVirtualRegister(IRInstruction<?> irInstruction, TargetFunction targetFunction) {
+    // 用于动态决定是否为临时变量分配寄存器，因为PHI是乱序的
+    private VirtualRegister getOrGenTempVirtualRegister(IRInstruction<?> irInstruction, TargetFunction targetFunction) {
         if (this.valueMap.containsKey(irInstruction)) {
             // CAST 生成规范限制
             return (VirtualRegister) this.valueMap.get(irInstruction);
         } else {
-            VirtualRegister virtualRegister = targetFunction.addVirtualRegister();
+            VirtualRegister virtualRegister = targetFunction.addTempVirtualRegister();
             this.valueMap.put(irInstruction, virtualRegister);
             return virtualRegister;
         }
@@ -393,11 +366,11 @@ public class Generator {
             // 除数是2的幂次
             int times = Integer.toBinaryString(divisor).length() - 1;
             // 由于高级语言的除法是向0取整，但是移位运算使得除法是向下取整的，所以需要处理被除数
-            VirtualRegister sraRegister = targetBasicBlock.parent().addVirtualRegister();
+            VirtualRegister sraRegister = targetBasicBlock.parent().addTempVirtualRegister();
             new Binary(targetBasicBlock, Binary.BinaryOs.SRA, sraRegister, registerSource, new Immediate(31));
-            VirtualRegister srlRegister = targetBasicBlock.parent().addVirtualRegister();
+            VirtualRegister srlRegister = targetBasicBlock.parent().addTempVirtualRegister();
             new Binary(targetBasicBlock, Binary.BinaryOs.SRL, srlRegister, sraRegister, new Immediate(32 - times));
-            VirtualRegister addRegister = targetBasicBlock.parent().addVirtualRegister();
+            VirtualRegister addRegister = targetBasicBlock.parent().addTempVirtualRegister();
             new Binary(targetBasicBlock, Binary.BinaryOs.ADD, addRegister, registerSource, srlRegister);
             // 移位
             new Binary(targetBasicBlock, Binary.BinaryOs.SRA, destinationRegister, addRegister, new Immediate(times));
@@ -423,10 +396,10 @@ public class Generator {
             int multiplier = (int) m;
             int shift = p - 32;
 
-            VirtualRegister multiplierRegister = targetBasicBlock.parent().addVirtualRegister();
+            VirtualRegister multiplierRegister = targetBasicBlock.parent().addTempVirtualRegister();
             new Move(targetBasicBlock, multiplierRegister, new Immediate(multiplier));
 
-            VirtualRegister multResultHIRegister = targetBasicBlock.parent().addVirtualRegister();
+            VirtualRegister multResultHIRegister = targetBasicBlock.parent().addTempVirtualRegister();
             if (m >= 0x80000000L) {
                 // multResultHI = dividend + (dividend * multiplier)[63:32]
                 new Binary(targetBasicBlock, Binary.BinaryOs.HIMADD, multResultHIRegister, registerSource, multiplierRegister);
@@ -436,11 +409,11 @@ public class Generator {
             }
 
             // multResultHIShift = multResultHI >> shift
-            VirtualRegister multResultHIShiftRegister = targetBasicBlock.parent().addVirtualRegister();
+            VirtualRegister multResultHIShiftRegister = targetBasicBlock.parent().addTempVirtualRegister();
             new Binary(targetBasicBlock, Binary.BinaryOs.SRA, multResultHIShiftRegister, multResultHIRegister, new Immediate(shift));
 
             // dividendShift = dividend >> 31
-            VirtualRegister dividendShiftRegister = targetBasicBlock.parent().addVirtualRegister();
+            VirtualRegister dividendShiftRegister = targetBasicBlock.parent().addTempVirtualRegister();
             new Binary(targetBasicBlock, Binary.BinaryOs.SRA, dividendShiftRegister, registerSource, new Immediate(31));
 
             if (isNegativeDivisor) {
@@ -456,7 +429,7 @@ public class Generator {
     private void transformBinaryOperator(BinaryOperator binaryOperator, TargetBasicBlock targetBasicBlock) {
         IRValue<IntegerType> operandLeft = binaryOperator.getOperand1();
         IRValue<IntegerType> operandRight = binaryOperator.getOperand2();
-        VirtualRegister destinationRegister = this.getOrGenVirtualRegister(binaryOperator, targetBasicBlock.parent());
+        VirtualRegister destinationRegister = this.getOrGenTempVirtualRegister(binaryOperator, targetBasicBlock.parent());
         Binary.BinaryOs targetBinaryOps = switch (binaryOperator.binaryOp()) {
             case ADD -> Binary.BinaryOs.ADD;
             case SUB -> Binary.BinaryOs.SUB;
@@ -467,7 +440,7 @@ public class Generator {
         TargetOperand registerSource;
         if (this.valueToOperand(operandLeft) instanceof Immediate) {
             // 左侧的Immediate要先进入寄存器
-            registerSource = targetBasicBlock.parent().addVirtualRegister();
+            registerSource = targetBasicBlock.parent().addTempVirtualRegister();
             new Move(targetBasicBlock, registerSource, this.valueToOperand(operandLeft));
         } else {
             registerSource = this.valueToOperand(operandLeft);
@@ -483,7 +456,7 @@ public class Generator {
     private void transformIcmpInst(IcmpInst icmpInst, TargetBasicBlock targetBasicBlock) {
         IRValue<IntegerType> operandLeft = icmpInst.getOperand1();
         IRValue<IntegerType> operandRight = icmpInst.getOperand2();
-        VirtualRegister destinationRegister = this.getOrGenVirtualRegister(icmpInst, targetBasicBlock.parent());
+        VirtualRegister destinationRegister = this.getOrGenTempVirtualRegister(icmpInst, targetBasicBlock.parent());
         Binary.BinaryOs targetBinaryOps = switch (icmpInst.predicate()) {
             case EQ -> Binary.BinaryOs.SEQ;
             case NE -> Binary.BinaryOs.SNE;
@@ -495,7 +468,7 @@ public class Generator {
         TargetOperand registerSource;
         if (this.valueToOperand(operandLeft) instanceof Immediate) {
             // 左侧的Immediate要先进入寄存器
-            registerSource = targetBasicBlock.parent().addVirtualRegister();
+            registerSource = targetBasicBlock.parent().addTempVirtualRegister();
             new Move(targetBasicBlock, registerSource, this.valueToOperand(operandLeft));
         } else {
             registerSource = this.valueToOperand(operandLeft);
@@ -505,17 +478,17 @@ public class Generator {
 
     private void transformCastInst(CastInst<?> castInst, TargetBasicBlock targetBasicBlock) {
         if (castInst instanceof CastInst.TruncInst) {
-            VirtualRegister destinationRegister = this.getOrGenVirtualRegister(castInst, targetBasicBlock.parent());
+            VirtualRegister destinationRegister = this.getOrGenTempVirtualRegister(castInst, targetBasicBlock.parent());
             TargetOperand castOrigin = this.valueToOperand(castInst.getSourceOperand());
             // 如果是立即数要先加载到寄存器中
             if (castOrigin instanceof Immediate) {
-                VirtualRegister immediateRegister = targetBasicBlock.parent().addVirtualRegister();
+                VirtualRegister immediateRegister = targetBasicBlock.parent().addTempVirtualRegister();
                 new Move(targetBasicBlock, immediateRegister, castOrigin);
                 castOrigin = immediateRegister;
             }
             new Binary(targetBasicBlock, Binary.BinaryOs.AND, destinationRegister, castOrigin, Immediate.FF());
         } else if (castInst instanceof CastInst.ZExtInst) {
-            VirtualRegister destinationRegister = this.getOrGenVirtualRegister(castInst, targetBasicBlock.parent());
+            VirtualRegister destinationRegister = this.getOrGenTempVirtualRegister(castInst, targetBasicBlock.parent());
             new Move(targetBasicBlock, destinationRegister, this.valueToOperand(castInst.getSourceOperand()));
         } else {
             IRValue<?> sourceIRValue = castInst.getSourceOperand();
@@ -563,7 +536,7 @@ public class Generator {
                     addressOffsetRegister = registerOffset;
                 } else if (IRType.isEqual(elementIntegerType, IRType.getInt32Ty())) {
                     // 全局变量 int  寄存器偏移
-                    addressOffsetRegister = targetBasicBlock.parent().addVirtualRegister();
+                    addressOffsetRegister = targetBasicBlock.parent().addTempVirtualRegister();
                     new Binary(targetBasicBlock, Binary.BinaryOs.SLL, addressOffsetRegister, registerOffset, Immediate.TWO());
                 } else {
                     throw new RuntimeException("When transformGetElementPtrInst(), elementIntegerType is invalid. " +
@@ -596,14 +569,14 @@ public class Generator {
                     addressOffsetRegister = registerOffset;
                 } else if (IRType.isEqual(elementIntegerType, IRType.getInt32Ty())) {
                     // 局部变量 int  寄存器偏移
-                    addressOffsetRegister = targetBasicBlock.parent().addVirtualRegister();
+                    addressOffsetRegister = targetBasicBlock.parent().addTempVirtualRegister();
                     new Binary(targetBasicBlock, Binary.BinaryOs.SLL, addressOffsetRegister, registerOffset, Immediate.TWO());
                 } else {
                     throw new RuntimeException("When transformGetElementPtrInst(), elementIntegerType is invalid. " +
                             "Got " + elementIntegerType);
                 }
                 // 得到新的基地址寄存器
-                VirtualRegister newBaseRegister = targetBasicBlock.parent().addVirtualRegister();
+                VirtualRegister newBaseRegister = targetBasicBlock.parent().addTempVirtualRegister();
                 new Binary(targetBasicBlock, Binary.BinaryOs.ADD, newBaseRegister, registerBaseAddress.base(), addressOffsetRegister);
                 designatedRegisterBaseAddress = registerBaseAddress.replaceBaseRegister(newBaseRegister);
             } else {
@@ -618,7 +591,7 @@ public class Generator {
 
     private void transformLoadInst(LoadInst loadInst, TargetBasicBlock targetBasicBlock) {
         IRValue<PointerType> loadPointer = loadInst.getPointerOperand();
-        VirtualRegister destinationRegister = this.getOrGenVirtualRegister(loadInst, targetBasicBlock.parent());
+        VirtualRegister destinationRegister = this.getOrGenTempVirtualRegister(loadInst, targetBasicBlock.parent());
         if (IRType.isEqual(loadPointer.type().referenceType(), IRType.getInt8Ty())) {
             new Load(targetBasicBlock, Load.SIZE.BYTE, destinationRegister, this.valueToOperand(loadPointer));
         } else if (IRType.isEqual(loadPointer.type().referenceType(), IRType.getInt32Ty())) {
@@ -639,7 +612,7 @@ public class Generator {
         TargetOperand storeOrigin = this.valueToOperand(storeInst.getValueOperand());
         // 如果是立即数要先加载到寄存器中
         if (storeOrigin instanceof Immediate) {
-            VirtualRegister immediateRegister = targetBasicBlock.parent().addVirtualRegister();
+            VirtualRegister immediateRegister = targetBasicBlock.parent().addTempVirtualRegister();
             new Move(targetBasicBlock, immediateRegister, storeOrigin);
             storeOrigin = immediateRegister;
         }
@@ -658,7 +631,7 @@ public class Generator {
         IRFunction calledIRFunction = callInst.getCalledFunction();
         // 处理参数
         for (int i = 0; i < callInst.getNumArgs(); i++) {
-            if (i <= 3) {
+            if (PhysicalRegister.argumentRegisterOfArgumentNumber(i) != null) {
                 // 使用寄存器传递
                 new Move(targetBasicBlock,
                         PhysicalRegister.argumentRegisterOfArgumentNumber(i),
@@ -669,7 +642,7 @@ public class Generator {
                 TargetOperand outArgumentOperand = this.valueToOperand(callInst.getArgOperand(i));
                 // 如果是立即数要先加载到寄存器中
                 if (outArgumentOperand instanceof Immediate || outArgumentOperand instanceof TargetAddress<?, ?>) {
-                    VirtualRegister immediateRegister = targetBasicBlock.parent().addVirtualRegister();
+                    VirtualRegister immediateRegister = targetBasicBlock.parent().addTempVirtualRegister();
                     new Move(targetBasicBlock, immediateRegister, outArgumentOperand);
                     outArgumentOperand = immediateRegister;
                 }
@@ -691,7 +664,7 @@ public class Generator {
             new Branch(targetBasicBlock, this.valueToOperand(calledIRFunction), true);
         }
         if (callInst.type() instanceof IntegerType) {
-            VirtualRegister resultRegister = this.getOrGenVirtualRegister(callInst, targetBasicBlock.parent());
+            VirtualRegister resultRegister = this.getOrGenTempVirtualRegister(callInst, targetBasicBlock.parent());
             // 移走结果寄存器中的值
             new Move(targetBasicBlock, resultRegister, PhysicalRegister.V0);
         } else if (!(callInst.type() instanceof VoidType)) {

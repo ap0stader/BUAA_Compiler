@@ -153,7 +153,6 @@ public class Binary extends TargetInstruction {
                 case HIMADD -> "mthi " + registerSource.mipsStr() + "\n\t" +
                         "madd " + registerSource.mipsStr() + ", " + operandSource.mipsStr() + "\n\t" +
                         "mfhi " + destination.mipsStr();
-
             };
         }
     }

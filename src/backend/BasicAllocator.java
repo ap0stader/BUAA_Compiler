@@ -70,7 +70,7 @@ public class BasicAllocator {
                 PhysicalRegister physicalRegister = acquireTempPhysicalRegister(targetFunction);
                 acquiredPhysicalRegisters.add(physicalRegister);
                 Load loadVirtualRegister = new Load(null, Load.SIZE.WORD,
-                        physicalRegister, targetFunction.stackFrame.getVirtualRegisterAddress(useVirtualRegister));
+                        physicalRegister, useVirtualRegister.address());
                 loadVirtualRegister.listNode().insertBefore(instructionNode);
                 instruction.replaceUseVirtualRegister(physicalRegister, useVirtualRegister);
             }
@@ -82,7 +82,7 @@ public class BasicAllocator {
                 acquiredPhysicalRegisters.add(physicalRegister);
                 instruction.replaceDefVirtualRegister(physicalRegister, defVirtualRegister);
                 Store storeVirtualRegister = new Store(null, Store.SIZE.WORD,
-                        physicalRegister, targetFunction.stackFrame.getVirtualRegisterAddress(defVirtualRegister));
+                        physicalRegister, defVirtualRegister.address());
                 storeVirtualRegister.listNode().insertAfter(instructionNode);
             }
             // 顺序申请，逆序释放

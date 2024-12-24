@@ -38,6 +38,7 @@ public abstract class TargetAddress<B, C extends TargetAddress<B, ?>> implements
         return this.immediateOffsetList.stream().map(ImmediateOffset::calc).reduce(Immediate.ZERO(), Immediate::add);
     }
 
+    // 添加立即数偏移
     public abstract C addImmediateOffset(ImmediateOffset immediateOffset);
 
     public abstract Set<TargetRegister> useRegisterSet();

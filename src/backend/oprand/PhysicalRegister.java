@@ -9,7 +9,7 @@ public enum PhysicalRegister implements TargetRegister {
     // AT(1, "at"),
     // 返回值和系统调用号，保留寄存器
     V0(2, "v0"),
-    // 参数，在保存之后可以被分配为临时变量寄存器
+    // 参数寄存器（4个）
     A0(4, "a0"),
     A1(5, "a1"),
     A2(6, "a2"),

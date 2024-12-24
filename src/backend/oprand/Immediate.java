@@ -10,6 +10,7 @@ public record Immediate(Integer value) implements TargetOperand, TargetAddress.I
         return new Immediate(2);
     }
 
+    // 翻译trunc时使用
     public static Immediate FF() {
         return new Immediate(0x7f);
     }

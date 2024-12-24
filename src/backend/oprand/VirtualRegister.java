@@ -1,10 +1,26 @@
 package backend.oprand;
 
 public final class VirtualRegister implements TargetRegister, Comparable<VirtualRegister> {
-    private final int number;
+    private static int counter = 0;
 
-    private VirtualRegister(int number) {
-        this.number = number;
+    private final int number;
+    private TargetAddress<?, ?> address = null;
+
+    public VirtualRegister() {
+        this.number = counter++;
+    }
+
+    public void setAddress(TargetAddress<?, ?> address) {
+        if (this.address == null) {
+            this.address = address;
+        } else {
+            throw new RuntimeException("When setAddress(), address has already been set");
+        }
+    }
+
+    public TargetAddress<?, ?> address() {
+        // WARNING address不应包含其他的VirtualRegister否则会导致替换失败
+        return address;
     }
 
     @Override
@@ -19,12 +35,6 @@ public final class VirtualRegister implements TargetRegister, Comparable<Virtual
 
     @Override
     public String toString() {
-        return this.mipsStr();
-    }
-
-    private static int counter = 0;
-
-    public static VirtualRegister create() {
-        return new VirtualRegister(counter++);
+        return this.mipsStr() + "@" + this.address;
     }
 }

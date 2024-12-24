@@ -10,7 +10,6 @@ public class TargetFunction {
     private final Label labelPrologue;
     private final Label labelEpilogue;
     public final StackFrame stackFrame;
-    private final TreeSet<VirtualRegister> virtualRegisters = new TreeSet<>();
 
     private final DoublyLinkedList<TargetBasicBlock> basicBlocks;
 
@@ -34,9 +33,9 @@ public class TargetFunction {
         return basicBlocks;
     }
 
-    public VirtualRegister addVirtualRegister() {
-        VirtualRegister newRegister = VirtualRegister.create();
-        this.virtualRegisters.add(newRegister);
+    public VirtualRegister addTempVirtualRegister() {
+        VirtualRegister newRegister = new VirtualRegister();
+        newRegister.setAddress(this.stackFrame.getTempVirtualRegisterAddress(newRegister));
         return newRegister;
     }
 
@@ -84,6 +83,7 @@ public class TargetFunction {
             ================ 本级函数的$sp
         */
         private final TreeSet<PhysicalRegister> savedArgumentRegisters = new TreeSet<>();
+        private final TreeSet<VirtualRegister> tempVirtualRegisters = new TreeSet<>();
         private int allocaSize = 0;
         private final TreeSet<PhysicalRegister> savedRegisters = new TreeSet<>();
         private int argumentsNumbers = 4;
@@ -92,7 +92,7 @@ public class TargetFunction {
 
         // 栈帧的大小
         private int size() {
-            return virtualRegisters.size() * REGISTER_BYTES +
+            return this.tempVirtualRegisters.size() * REGISTER_BYTES +
                     this.allocaSize +
                     this.savedRegisters.size() * REGISTER_BYTES +
                     this.argumentsNumbers * REGISTER_BYTES;
@@ -119,30 +119,30 @@ public class TargetFunction {
             }
         }
 
-        // 临时变量（虚拟寄存器）的偏移值
-        private final class VirtualRegisterOffset implements TargetAddress.ImmediateOffset {
+        // 临时变量虚拟寄存器的偏移值
+        private final class TempVirtualRegisterOffset implements TargetAddress.ImmediateOffset {
             private final VirtualRegister register;
 
-            public VirtualRegisterOffset(VirtualRegister register) {
+            public TempVirtualRegisterOffset(VirtualRegister register) {
                 this.register = register;
             }
 
             @Override
             public Immediate calc() {
-                if (virtualRegisters.contains(this.register)) {
-                    return new Immediate(virtualRegisters.headSet(this.register).size() * REGISTER_BYTES +
+                if (tempVirtualRegisters.contains(this.register)) {
+                    return new Immediate(tempVirtualRegisters.headSet(this.register).size() * REGISTER_BYTES +
                             allocaSize +
                             savedRegisters.size() * REGISTER_BYTES +
                             argumentsNumbers * REGISTER_BYTES);
                 } else {
-                    throw new RuntimeException("When VirtualRegisterOffset.calc(), the function " + label.name() +
-                            "does not use virtual register " + this.register);
+                    throw new RuntimeException("When TempVirtualRegisterOffset.calc(), the function " + label.name() +
+                            "does not use temp virtual register " + this.register);
                 }
             }
 
             @Override
             public String toString() {
-                return "VirtualRegisterOffset{" +
+                return "TempVirtualRegisterOffset{" +
                         "register=" + register +
                         '}';
             }
@@ -206,17 +206,18 @@ public class TargetFunction {
             }
         }
 
-        // 传入参数的地址，在IRFunction中的第一个IRBasicBlock中，即argBlock中使用
+        // 获得传入参数的地址
         public RegisterBaseAddress getInArgumentAddress(int argumentNumber) {
             return new RegisterBaseAddress(PhysicalRegister.SP, new InArgumentOffset(argumentNumber));
         }
 
-        // 临时变量（虚拟寄存器）的地址
-        public RegisterBaseAddress getVirtualRegisterAddress(VirtualRegister virtualRegister) {
-            return new RegisterBaseAddress(PhysicalRegister.SP, new VirtualRegisterOffset(virtualRegister));
+        // 获得临时变量虚拟寄存器的地址
+        private RegisterBaseAddress getTempVirtualRegisterAddress(VirtualRegister virtualRegister) {
+            this.tempVirtualRegisters.add(virtualRegister);
+            return new RegisterBaseAddress(PhysicalRegister.SP, new TempVirtualRegisterOffset(virtualRegister));
         }
 
-        // 局部变量的地址
+        // 获得局部变量的地址
         public RegisterBaseAddress alloc(int size) {
             int accumulateSizeBefore = this.allocaSize;
             // (getBitWidth + 3) / 4 * 4 即 getBitWidth % 4 == 0 ? getBitWidth : getBitWidth + (4 - getBitWidth % 4);
@@ -224,7 +225,7 @@ public class TargetFunction {
             return new RegisterBaseAddress(PhysicalRegister.SP, new allocaOffset(accumulateSizeBefore));
         }
 
-        // 保存寄存器的地址
+        // 获得保存寄存器的地址
         private RegisterBaseAddress getSavedRegisterAddress(PhysicalRegister savedRegister) {
             if (PhysicalRegister.isArgumentRegister(savedRegister)) {
                 return new RegisterBaseAddress(PhysicalRegister.SP,
