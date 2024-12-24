@@ -9,6 +9,7 @@ import IR.value.instruction.*;
 import backend.instruction.*;
 import backend.oprand.*;
 import backend.target.*;
+import global.Config;
 import util.DoublyLinkedList;
 import util.Pair;
 
@@ -471,7 +472,8 @@ public class Generator {
         } else {
             registerSource = this.valueToOperand(operandLeft);
         }
-        if (targetBinaryOps == Binary.BinaryOs.DIV && operandRight instanceof ConstantInt rightConstant) {
+        if (Config.enableBackendOptimization &&
+                targetBinaryOps == Binary.BinaryOs.DIV && operandRight instanceof ConstantInt rightConstant) {
             this.transformDivConst(destinationRegister, registerSource, rightConstant.constantValue(), targetBasicBlock);
         } else {
             new Binary(targetBasicBlock, targetBinaryOps, destinationRegister, registerSource, this.valueToOperand(operandRight));

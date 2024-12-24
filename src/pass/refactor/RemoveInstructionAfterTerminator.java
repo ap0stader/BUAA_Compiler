@@ -54,9 +54,4 @@ public class RemoveInstructionAfterTerminator implements Pass {
                     "Got " + irBasicBlock);
         }
     }
-
-    @Override
-    public void restart() {
-        this.finished = false;
-    }
 }

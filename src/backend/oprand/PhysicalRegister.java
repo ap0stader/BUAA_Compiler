@@ -9,7 +9,7 @@ public enum PhysicalRegister implements TargetRegister {
     // AT(1, "at"),
     // 返回值和系统调用号，保留寄存器
     V0(2, "v0"),
-    // 参数，在保存之后可以被分配
+    // 参数，在保存之后可以被分配为临时变量寄存器
     A0(4, "a0"),
     A1(5, "a1"),
     A2(6, "a2"),
@@ -39,7 +39,7 @@ public enum PhysicalRegister implements TargetRegister {
     S9(27), // $k1
     S10(28), // $gp，初始值虽然不是0，但是并不会假设寄存器的初始值为0
     S11(30), // $fp
-    // 返回地址，在保存之后可以被分配
+    // 返回地址，在保存之后可以被分配为保存变量寄存器
     RA(31, "ra");
 
     private final String name;

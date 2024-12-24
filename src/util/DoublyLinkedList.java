@@ -3,6 +3,7 @@ package util;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+@SuppressWarnings("unused")
 public class DoublyLinkedList<T> implements Iterable<DoublyLinkedList.Node<T>> {
     // 头节点
     private Node<T> head;
@@ -96,6 +97,7 @@ public class DoublyLinkedList<T> implements Iterable<DoublyLinkedList.Node<T>> {
         }
     }
 
+    @SuppressWarnings("unused")
     public static class Node<T> {
         private final T value;
         private Node<T> pred;

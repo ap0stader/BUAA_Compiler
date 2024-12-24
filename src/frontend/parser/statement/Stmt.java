@@ -7,6 +7,7 @@ import frontend.parser.expression.Exp;
 import frontend.parser.expression.LVal;
 import frontend.type.ASTNodeOption;
 import frontend.type.ASTNodeWithOption;
+import frontend.type.CatchableUnexpectedToken;
 import frontend.type.TokenType;
 import frontend.type.ErrorType;
 
@@ -335,7 +336,7 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
             int checkpointID = stream.checkpoint("ReturnTry");
             try {
                 tryExp = new Exp(stream);
-            } catch (RuntimeException e) {
+            } catch (CatchableUnexpectedToken e) {
                 // 尝试读取一次Exp，如果有RuntimeError并且和checkpoint的比较偏移为0，说明没有Exp
                 if (stream.offset(checkpointID) == 0) {
                     tryExp = null;

@@ -132,9 +132,4 @@ public class Mem2Reg implements Pass {
             allocaInst.eliminate();
         }
     }
-
-    @Override
-    public void restart() {
-        throw new RuntimeException("Mem2Reg can not restart");
-    }
 }

@@ -64,9 +64,4 @@ public class RemoveUnreachableBasicBlock implements Pass {
         }
         irFunction.basicBlocks().removeIf(basicBlock -> !dfsVisit.get(basicBlock));
     }
-
-    @Override
-    public void restart() {
-        this.finished = false;
-    }
 }

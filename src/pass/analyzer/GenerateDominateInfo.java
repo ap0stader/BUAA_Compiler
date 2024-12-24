@@ -9,7 +9,6 @@ import java.util.*;
 
 public class GenerateDominateInfo implements Pass {
     private final IRModule irModule;
-    private boolean finished = false;
 
     public GenerateDominateInfo(IRModule irModule) {
         this.irModule = irModule;
@@ -17,15 +16,11 @@ public class GenerateDominateInfo implements Pass {
 
     @Override
     public void run() {
-        if (finished) {
-            throw new RuntimeException("When GenerateDominateInfo.run(), the pass is finished");
-        }
         for (IRFunction irFunction : irModule.functions()) {
             if (!irFunction.isLib()) {
                 this.generateDominateInfo(irFunction);
             }
         }
-        this.finished = true;
     }
 
     private void generateDominateInfo(IRFunction irFunction) {
@@ -92,10 +87,5 @@ public class GenerateDominateInfo implements Pass {
                 }
             }
         }
-    }
-
-    @Override
-    public void restart() {
-        throw new RuntimeException("GenerateDominateInfo can not restart");
     }
 }

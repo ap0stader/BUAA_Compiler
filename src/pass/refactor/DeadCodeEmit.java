@@ -9,7 +9,6 @@ import util.DoublyLinkedList;
 
 import java.util.HashSet;
 
-
 public class DeadCodeEmit implements Pass {
     private final IRModule irModule;
     private boolean finished = false;
@@ -74,10 +73,5 @@ public class DeadCodeEmit implements Pass {
                 }
             }
         }
-    }
-
-    @Override
-    public void restart() {
-        throw new RuntimeException("DeadCodeEmit can not restart");
     }
 }

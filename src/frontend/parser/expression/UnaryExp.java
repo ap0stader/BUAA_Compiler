@@ -2,10 +2,7 @@ package frontend.parser.expression;
 
 import frontend.lexer.Token;
 import frontend.lexer.TokenStream;
-import frontend.type.ASTNodeOption;
-import frontend.type.ASTNodeWithOption;
-import frontend.type.TokenType;
-import frontend.type.ErrorType;
+import frontend.type.*;
 
 import java.util.ArrayList;
 
@@ -31,7 +28,7 @@ public class UnaryExp extends ASTNodeWithOption<UnaryExp.UnaryExpOption> {
         } else if (stream.isNow(TokenType.LPARENT, TokenType.IDENFR, TokenType.INTCON, TokenType.CHRCON)) {
             return new UnaryExp(new UnaryExp_PrimaryExp(stream));
         } else {
-            throw new RuntimeException("When UnaryExp.parse(), unexpected token: " + stream.getNow());
+            throw new CatchableUnexpectedToken("When UnaryExp.parse(), unexpected token: " + stream.getNow());
         }
     }
 
@@ -73,7 +70,7 @@ public class UnaryExp extends ASTNodeWithOption<UnaryExp.UnaryExpOption> {
                 new Exp(stream);
                 stream.restore(checkpointID);
                 tryfuncRParams = new FuncRParams(stream);
-            } catch (RuntimeException e) {
+            } catch (CatchableUnexpectedToken e) {
                 // 尝试读取一次Exp，如果有RuntimeError并且和checkpoint的比较偏移为0，说明没有Exp，也就是没有funcRParams
                 if (stream.offset(checkpointID) == 0) {
                     tryfuncRParams = null;

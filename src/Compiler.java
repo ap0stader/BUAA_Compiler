@@ -1,5 +1,5 @@
 import IR.IRModule;
-import backend.Allocator;
+import backend.BasicAllocator;
 import backend.Generator;
 import backend.target.TargetModule;
 import frontend.visitor.Visitor;
@@ -18,6 +18,16 @@ import static java.lang.System.exit;
 
 public class Compiler {
     public static void main(String[] args) {
+        /*
+          Lexical Analysis: -L
+          Syntax Analysis: -S
+          Semantic Analysis: -E
+          Code Generation(LLVM IR): -L
+          Code Generation(MIPS): -M
+          Code Generation(MIPS, optimized): -O
+         */
+        // String[] fixedArgs = {"M"};
+        // Config.setConfigByArgs(fixedArgs);
         Config.setConfigByArgs(args);
         try {
             // 以源代码作为输入
@@ -31,6 +41,7 @@ public class Compiler {
             // 后端：生成目标代码
             backend(irModule);
         } catch (IOException e) {
+            //noinspection CallToPrintStackTrace
             e.printStackTrace();
         }
     }
@@ -100,8 +111,8 @@ public class Compiler {
         if (Config.dumpMIPSAssemblyBeforeAllocation) {
             DumpMIPSAssembly.dump(targetModule, Config.dumpMIPSAssemblyBeforeAllocationFileName);
         }
-        Allocator allocator = new Allocator(targetModule);
-        allocator.allocRegister();
+        BasicAllocator basicAllocator = new BasicAllocator(targetModule);
+        basicAllocator.allocRegister();
         if (Config.dumpMIPSAssemblyAfterAllocation) {
             DumpMIPSAssembly.dump(targetModule, Config.dumpMIPSAssemblyAfterAllocationFileName);
         }

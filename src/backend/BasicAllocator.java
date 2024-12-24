@@ -12,12 +12,12 @@ import util.DoublyLinkedList;
 
 import java.util.*;
 
-public class Allocator {
+public class BasicAllocator {
     private final TargetModule targetModule;
     private boolean finish = false;
     private final LinkedList<PhysicalRegister> tempRegisters;
 
-    public Allocator(TargetModule targetModule) {
+    public BasicAllocator(TargetModule targetModule) {
         this.targetModule = targetModule;
         this.tempRegisters = new LinkedList<>();
     }
@@ -52,7 +52,6 @@ public class Allocator {
     }
 
     private PhysicalRegister acquireTempPhysicalRegister(TargetFunction targetFunction) {
-        // TODO：没有处理耗尽的情况
         PhysicalRegister resultRegister = tempRegisters.poll();
         targetFunction.stackFrame.ensureSaveRegister(resultRegister);
         return resultRegister;
@@ -64,10 +63,7 @@ public class Allocator {
 
     private void allocBasicBlock(TargetBasicBlock targetBasicBlock) {
         TargetFunction targetFunction = targetBasicBlock.parent();
-        Iterator<DoublyLinkedList.Node<TargetInstruction>> instructionIterator
-                = targetBasicBlock.instructions().iterator();
-        while (instructionIterator.hasNext()) {
-            DoublyLinkedList.Node<TargetInstruction> instructionNode = instructionIterator.next();
+        for (DoublyLinkedList.Node<TargetInstruction> instructionNode : targetBasicBlock.instructions()) {
             TargetInstruction instruction = instructionNode.value();
             TreeSet<PhysicalRegister> acquiredPhysicalRegisters = new TreeSet<>();
             for (VirtualRegister useVirtualRegister : instruction.useVirtualRegisterSet()) {

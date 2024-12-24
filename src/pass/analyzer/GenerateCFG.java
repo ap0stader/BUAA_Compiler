@@ -9,7 +9,6 @@ import pass.Pass;
 
 public class GenerateCFG implements Pass {
     private final IRModule irModule;
-    private boolean finished = false;
 
     public GenerateCFG(IRModule irModule) {
         this.irModule = irModule;
@@ -17,15 +16,11 @@ public class GenerateCFG implements Pass {
 
     @Override
     public void run() {
-        if (finished) {
-            throw new RuntimeException("When GenerateCFG.run(), the pass is finished");
-        }
         for (IRFunction irFunction : irModule.functions()) {
             if (!irFunction.isLib()) {
                 this.generateFunctionCFG(irFunction);
             }
         }
-        this.finished = true;
     }
 
     private void generateFunctionCFG(IRFunction irFunction) {
@@ -43,10 +38,5 @@ public class GenerateCFG implements Pass {
                 }
             }
         }
-    }
-
-    @Override
-    public void restart() {
-        throw new RuntimeException("GenerateCFG can not restart");
     }
 }

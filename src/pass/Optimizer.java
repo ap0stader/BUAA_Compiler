@@ -5,21 +5,25 @@ import pass.analyzer.GenerateCFG;
 import pass.analyzer.GenerateDominateInfo;
 import pass.refactor.*;
 
+import java.util.ArrayList;
+
 public class Optimizer {
-    private final IRModule irModule;
+    private final ArrayList<Pass> passes;
 
     public Optimizer(IRModule irModule) {
-        this.irModule = irModule;
+        this.passes = new ArrayList<>();
+        this.passes.add(new RemoveInstructionAfterTerminator(irModule));
+        this.passes.add(new GenerateCFG(irModule));
+        this.passes.add(new RemoveUnreachableBasicBlock(irModule));
+        this.passes.add(new GenerateDominateInfo(irModule));
+        this.passes.add(new Mem2Reg(irModule));
+        this.passes.add(new CalculateConst(irModule));
+        this.passes.add(new DeadCodeEmit(irModule));
     }
 
     public void optimize() {
-        new RemoveInstructionAfterTerminator(irModule).run();
-        new GenerateCFG(irModule).run();
-        new RemoveUnreachableBasicBlock(irModule).run();
-        new GenerateDominateInfo(irModule).run();
-
-        new Mem2Reg(irModule).run();
-        new CalculateConst(irModule).run();
-        new DeadCodeEmit(irModule).run();
+        for (Pass pass : passes) {
+            pass.run();
+        }
     }
 }

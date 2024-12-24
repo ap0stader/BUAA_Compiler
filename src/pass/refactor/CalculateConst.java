@@ -20,7 +20,7 @@ public class CalculateConst implements Pass {
     @Override
     public void run() {
         if (finished) {
-            throw new RuntimeException("When DeadCodeEmit.run(), the pass is finished");
+            throw new RuntimeException("When CalculateConst.run(), the pass is finished");
         }
         for (IRFunction irFunction : irModule.functions()) {
             if (!irFunction.isLib()) {
@@ -97,10 +97,5 @@ public class CalculateConst implements Pass {
             }
         }
         return false;
-    }
-
-    @Override
-    public void restart() {
-        throw new RuntimeException("DeadCodeEmit can not restart");
     }
 }

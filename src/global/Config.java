@@ -26,6 +26,9 @@ public class Config {
     // 是否开启中端优化
     public static boolean enableMiddleOptimization = true;
 
+    // 是否开启后端优化
+    public static boolean enableBackendOptimization = true;
+
     /* 总共进行阶段数
        ==== 前端 ====
        1. 词法分析，生成TokenStream
@@ -131,6 +134,7 @@ public class Config {
                     dumpLLVMBeforeOptimized = false;
                     enableMiddleOptimization = false;
                     dumpLLVMAfterOptimized = true;
+                    enableBackendOptimization = false;
                     dumpMIPSAssemblyBeforeAllocation = true;
                     dumpMIPSAssemblyAfterAllocation = true;
                 }
@@ -140,6 +144,7 @@ public class Config {
                     dumpLLVMBeforeOptimized = true;
                     enableMiddleOptimization = true;
                     dumpLLVMAfterOptimized = true;
+                    enableBackendOptimization = true;
                     dumpMIPSAssemblyBeforeAllocation = true;
                     dumpMIPSAssemblyAfterAllocation = true;
                 }

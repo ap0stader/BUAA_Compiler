@@ -2,10 +2,7 @@ package frontend.parser.expression;
 
 import frontend.lexer.Token;
 import frontend.lexer.TokenStream;
-import frontend.type.ASTNodeOption;
-import frontend.type.ASTNodeWithOption;
-import frontend.type.TokenType;
-import frontend.type.ErrorType;
+import frontend.type.*;
 
 import java.util.ArrayList;
 
@@ -31,7 +28,7 @@ public class PrimaryExp extends ASTNodeWithOption<PrimaryExp.PrimaryExpOption> {
         } else if (stream.isNow(TokenType.CHRCON)) {
             return new PrimaryExp(new PrimaryExp_Character(stream));
         } else {
-            throw new RuntimeException("When PrimaryExp.parse(), unexpected token: " + stream.getNow());
+            throw new CatchableUnexpectedToken("When PrimaryExp.parse(), unexpected token: " + stream.getNow());
         }
     }
 
