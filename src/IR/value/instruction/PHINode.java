@@ -1,17 +1,17 @@
 package IR.value.instruction;
 
 import IR.IRValue;
-import IR.type.IntegerType;
+import IR.type.IRType;
 import IR.value.IRBasicBlock;
 import util.LLVMStrRegCounter;
 import util.Pair;
 
 import java.util.ArrayList;
 
-public class PHINode extends IRInstruction<IntegerType> {
-    public PHINode(IntegerType allocaType, IRBasicBlock parent) {
+public class PHINode extends IRInstruction<IRType> {
+    public PHINode(IRType allocaType, IRBasicBlock parent) {
+        // 不给super传入parent参数，这样就不会自动添加到尾部
         super(allocaType, null);
-        // 不传入参数，这样就不会自动添加到尾部
         this.setParent(parent);
         this.parent.pushInstruction(this);
     }

@@ -3,8 +3,8 @@ package pass.refactor;
 import IR.IRModule;
 import IR.IRUser;
 import IR.IRValue;
-import IR.type.IRType;
 import IR.type.IntegerType;
+import IR.type.PointerType;
 import IR.value.IRBasicBlock;
 import IR.value.IRFunction;
 import IR.value.constant.ConstantInt;
@@ -19,12 +19,12 @@ public class Mem2Reg implements Pass {
     private final IRModule irModule;
     private boolean finished = false;
 
-    private final HashSet<AllocaInst> localVariables;
+    private final HashSet<AllocaInst> allocaVariables;
     private final HashMap<PHINode, AllocaInst> phiMap;
 
     public Mem2Reg(IRModule irModule) {
         this.irModule = irModule;
-        this.localVariables = new HashSet<>();
+        this.allocaVariables = new HashSet<>();
         this.phiMap = new HashMap<>();
     }
 
@@ -35,7 +35,7 @@ public class Mem2Reg implements Pass {
         }
         for (IRFunction irFunction : irModule.functions()) {
             if (!irFunction.isLib()) {
-                this.localVariables.clear();
+                this.allocaVariables.clear();
                 this.phiMap.clear();
                 this.insertPhi(irFunction);
                 this.renameVariable(irFunction);
@@ -45,16 +45,21 @@ public class Mem2Reg implements Pass {
     }
 
     private void insertPhi(IRFunction irFunction) {
-        IRBasicBlock defBlock = irFunction.basicBlocks().get(1);
-        // 只处理局部非数组变量
-        for (DoublyLinkedList.Node<IRInstruction<?>> instructionNode : defBlock.instructions()) {
+        // argBlock
+        for (DoublyLinkedList.Node<IRInstruction<?>> instructionNode : irFunction.basicBlocks().get(0).instructions()) {
             if (instructionNode.value() instanceof AllocaInst allocaInst &&
-                    (IRType.isEqual(allocaInst.allocatedType(), IRType.getInt8Ty()) ||
-                            IRType.isEqual(allocaInst.allocatedType(), IRType.getInt32Ty()))) {
-                this.localVariables.add(allocaInst);
+                    (allocaInst.allocatedType() instanceof IntegerType || allocaInst.allocatedType() instanceof PointerType)) {
+                this.allocaVariables.add(allocaInst);
             }
         }
-        for (AllocaInst variable : this.localVariables) {
+        // defBlock
+        for (DoublyLinkedList.Node<IRInstruction<?>> instructionNode : irFunction.basicBlocks().get(1).instructions()) {
+            if (instructionNode.value() instanceof AllocaInst allocaInst &&
+                    allocaInst.allocatedType() instanceof IntegerType) {
+                this.allocaVariables.add(allocaInst);
+            }
+        }
+        for (AllocaInst variable : this.allocaVariables) {
             HashSet<IRBasicBlock> phiBasicBlocks = new HashSet<>();
             HashSet<IRBasicBlock> originDefBasicBlocks = new HashSet<>();
             LinkedList<IRBasicBlock> defBasicBlocksQueue = new LinkedList<>();
@@ -68,9 +73,7 @@ public class Mem2Reg implements Pass {
                 IRBasicBlock defBasicBlock = defBasicBlocksQueue.pop();
                 for (IRBasicBlock frontier : defBasicBlock.dominanceFrontiers()) {
                     if (!phiBasicBlocks.contains(frontier)) {
-                        // CAST 上方只处理局部非数组变量确保正确
-                        PHINode phiNode = new PHINode((IntegerType) variable.allocatedType(), frontier);
-                        this.phiMap.put(phiNode, variable);
+                        this.phiMap.put(new PHINode(variable.allocatedType(), frontier), variable);
                         phiBasicBlocks.add(frontier);
                         if (!originDefBasicBlocks.contains(frontier)) {
                             defBasicBlocksQueue.offer(frontier);
@@ -87,8 +90,7 @@ public class Mem2Reg implements Pass {
         irFunction.basicBlocks().forEach(block -> dfsVisit.put(block, false));
         // 对于未赋值就使用变量的值是不确定的，给0也是合理的
         HashMap<AllocaInst, IRValue<?>> defaultReachingDefs = new HashMap<>();
-        localVariables.forEach(variable -> defaultReachingDefs.put(variable, ConstantInt.ZERO_I32()));
-        // 跳过参数块和定义块开始处理
+        allocaVariables.forEach(variable -> defaultReachingDefs.put(variable, ConstantInt.ZERO_I32()));
         dfsStack.push(new Pair<>(irFunction.basicBlocks().get(0), defaultReachingDefs));
         dfsVisit.put(irFunction.basicBlocks().get(0), true);
         while (!dfsStack.isEmpty()) {
@@ -102,14 +104,14 @@ public class Mem2Reg implements Pass {
                     reachingDefs.put(this.phiMap.get(phiNode), phiNode);
                 } else if (instructionNode.value() instanceof StoreInst storeInst &&
                         storeInst.getPointerOperand() instanceof AllocaInst storeAllocaInst &&
-                        this.localVariables.contains(storeAllocaInst)) {
+                        this.allocaVariables.contains(storeAllocaInst)) {
                     reachingDefs.put(storeAllocaInst, storeInst.getValueOperand());
                     storeInst.dropAllOperands();
                     // StoreInst没有User，可以直接删除
                     instructionIterator.remove();
                 } else if (instructionNode.value() instanceof LoadInst loadInst &&
                         loadInst.getPointerOperand() instanceof AllocaInst loadAllocaInst &&
-                        this.localVariables.contains(loadAllocaInst)) {
+                        this.allocaVariables.contains(loadAllocaInst)) {
                     loadInst.replaceAllUsesWith(reachingDefs.get(loadAllocaInst));
                     loadInst.dropAllOperands();
                     // LoadInst的User已经被全部替换，可以直接删除
@@ -128,7 +130,7 @@ public class Mem2Reg implements Pass {
                 }
             }
         }
-        for (AllocaInst allocaInst : this.localVariables) {
+        for (AllocaInst allocaInst : this.allocaVariables) {
             allocaInst.eliminate();
         }
     }
