@@ -32,7 +32,7 @@ public class Binary extends TargetInstruction {
         SLT,
         SLE,
         // 除法优化
-        HIMUL,
+        HIMULT,
         HIMADD,
     }
 
@@ -148,7 +148,7 @@ public class Binary extends TargetInstruction {
                         "slt " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
                 case SLE ->
                         "sle " + destination.mipsStr() + ", " + registerSource.mipsStr() + ", " + operandSource.mipsStr();
-                case HIMUL -> "mult " + registerSource.mipsStr() + ", " + operandSource.mipsStr() + "\n\t" +
+                case HIMULT -> "mult " + registerSource.mipsStr() + ", " + operandSource.mipsStr() + "\n\t" +
                         "mfhi " + destination.mipsStr();
                 case HIMADD -> "mthi " + registerSource.mipsStr() + "\n\t" +
                         "madd " + registerSource.mipsStr() + ", " + operandSource.mipsStr() + "\n\t" +

@@ -359,6 +359,7 @@ public class Generator {
             } else if (irInstruction instanceof ReturnInst returnInst) {
                 this.transformReturnInst(returnInst, targetBasicBlock);
             } else if (irInstruction instanceof PHINode) {
+                //noinspection UnnecessaryContinue
                 continue;
             } else {
                 throw new RuntimeException("When transformIRBasicBlock(), the type of irInstruction is unsupported in a normal basic block");
@@ -374,21 +375,8 @@ public class Generator {
         }
     }
 
-    private static int tailZero(Integer i) {
-        int result = -1;
-        i = i >>> 1;
-        do {
-            i = i >>> 1;
-            result++;
-        }
-        while (i != 0);
-        return result;
-    }
-
     private void transformDivConst(VirtualRegister destinationRegister, TargetOperand registerSource,
                                    Integer divisor, TargetBasicBlock targetBasicBlock) {
-        // 相反
-        boolean isNegativeDivisor = divisor < 0;
         // 除-1和除1
         if (divisor == -1) {
             new Binary(targetBasicBlock, Binary.BinaryOs.SUB, destinationRegister, PhysicalRegister.ZERO, registerSource);
@@ -397,44 +385,70 @@ public class Generator {
             new Move(targetBasicBlock, destinationRegister, registerSource);
             return;
         }
+        // 除数取绝对值
+        boolean isNegativeDivisor = divisor < 0;
         divisor = Math.abs(divisor);
-        // dst = dividend / abs => dst = (dividend * n) >> shift
-        // nc = 2^31 - 2^31 % abs - 1
-        long nc = ((long) 1 << 31) - (((long) 1 << 31) % divisor) - 1;
-        long p = 32;
-        // 2^p > (2^31 - 2^31 % abs - 1) * (abs - 2^p % abs)
-        while (((long) 1 << p) <= nc * (divisor - ((long) 1 << p) % divisor)) {
-            p++;
-        }
-        // m = (2^p + abs - 2^p % abs) / abs
-        long m = ((((long) 1 << p) + (long) divisor - ((long) 1 << p) % divisor) / (long) divisor);
-        int n = (int) ((m << 32) >>> 32);
-        int shift = (int) (p - 32);
+        if ((divisor & (divisor - 1)) == 0) {
+            // 除数是2的幂次
+            int times = Integer.toBinaryString(divisor).length() - 1;
+            // 由于高级语言的除法是向0取整，但是移位运算使得除法是向下取整的，所以需要处理被除数
+            VirtualRegister sraRegister = targetBasicBlock.parent().addVirtualRegister();
+            new Binary(targetBasicBlock, Binary.BinaryOs.SRA, sraRegister, registerSource, new Immediate(31));
+            VirtualRegister srlRegister = targetBasicBlock.parent().addVirtualRegister();
+            new Binary(targetBasicBlock, Binary.BinaryOs.SRL, srlRegister, sraRegister, new Immediate(32 - times));
+            VirtualRegister addRegister = targetBasicBlock.parent().addVirtualRegister();
+            new Binary(targetBasicBlock, Binary.BinaryOs.ADD, addRegister, registerSource, srlRegister);
+            // 移位
+            new Binary(targetBasicBlock, Binary.BinaryOs.SRA, destinationRegister, addRegister, new Immediate(times));
+            // 除数是负数要取反
+            if (isNegativeDivisor) {
+                new Binary(targetBasicBlock, Binary.BinaryOs.SUB, destinationRegister, PhysicalRegister.ZERO, registerSource);
+            }
+        } else {
+            // 除数不是2的幂次
+            // destination = dividend / divisor
+            //             = (dividend * multiplier) >> shift
+            // multiplier和shift需要计算出
+            // nc = 2^31 - 2^31 % divisor - 1
+            long nc = (1L << 31) - ((1L << 31) % divisor) - 1;
+            // 2^p > (2^31 - 2^31 % divisor - 1) * (divisor - 2^p % divisor) = nc * (divisor - 2^p % divisor)
+            int p = 32;
+            while ((1L << p) <= nc * (divisor - (1L << p) % divisor)) {
+                p++;
+            }
+            // m = (2^p + divisor - 2^p % divisor) / divisor
+            long m = ((1L << p) + divisor - (1L << p) % divisor) / divisor;
+            // 得到multiplier和shift
+            int multiplier = (int) m;
+            int shift = p - 32;
 
-        VirtualRegister multDivisor = targetBasicBlock.parent().addVirtualRegister();
-        new Move(targetBasicBlock, multDivisor, new Immediate(n));
+            VirtualRegister multiplierRegister = targetBasicBlock.parent().addVirtualRegister();
+            new Move(targetBasicBlock, multiplierRegister, new Immediate(multiplier));
 
-        VirtualRegister multTemp = targetBasicBlock.parent().addVirtualRegister();
-        if (m >= 0x80000000L) {
-            // multTemp = dividend + (dividend * n)[63:32]
-            new Binary(targetBasicBlock, Binary.BinaryOs.HIMADD, multTemp, registerSource, multDivisor);
-        }
-        else {
-            // multTemp = (dividend * n)[63:32]
-            new Binary(targetBasicBlock, Binary.BinaryOs.HIMUL, multTemp, registerSource, multDivisor);
-        }
+            VirtualRegister multResultHIRegister = targetBasicBlock.parent().addVirtualRegister();
+            if (m >= 0x80000000L) {
+                // multResultHI = dividend + (dividend * multiplier)[63:32]
+                new Binary(targetBasicBlock, Binary.BinaryOs.HIMADD, multResultHIRegister, registerSource, multiplierRegister);
+            } else {
+                // multResultHI = (dividend * multiplier)[63:32]
+                new Binary(targetBasicBlock, Binary.BinaryOs.HIMULT, multResultHIRegister, registerSource, multiplierRegister);
+            }
 
-        // shiftShift = temp >> shift
-        VirtualRegister multShiftShift = targetBasicBlock.parent().addVirtualRegister();
-        new Binary(targetBasicBlock, Binary.BinaryOs.SRA, multShiftShift, multTemp, new Immediate(shift));
+            // multResultHIShift = multResultHI >> shift
+            VirtualRegister multResultHIShiftRegister = targetBasicBlock.parent().addVirtualRegister();
+            new Binary(targetBasicBlock, Binary.BinaryOs.SRA, multResultHIShiftRegister, multResultHIRegister, new Immediate(shift));
 
-        // dst = shiftShift + dividend >> 31
-        VirtualRegister multShift32 = targetBasicBlock.parent().addVirtualRegister();
-        new Binary(targetBasicBlock, Binary.BinaryOs.SRL, multShift32, registerSource, new Immediate(31));
-        new Binary(targetBasicBlock, Binary.BinaryOs.ADD, destinationRegister, multShiftShift, multShift32);
+            // dividendShift = dividend >> 31
+            VirtualRegister dividendShiftRegister = targetBasicBlock.parent().addVirtualRegister();
+            new Binary(targetBasicBlock, Binary.BinaryOs.SRA, dividendShiftRegister, registerSource, new Immediate(31));
 
-        if (isNegativeDivisor) {
-            new Binary(targetBasicBlock, Binary.BinaryOs.SUB, destinationRegister, PhysicalRegister.ZERO, registerSource);
+            if (isNegativeDivisor) {
+                // destination = dividendShift - multResultHIShift
+                new Binary(targetBasicBlock, Binary.BinaryOs.SUB, destinationRegister, dividendShiftRegister, multResultHIShiftRegister);
+            } else {
+                // destination = multResultHIShift - dividendShift
+                new Binary(targetBasicBlock, Binary.BinaryOs.SUB, destinationRegister, multResultHIShiftRegister, dividendShiftRegister);
+            }
         }
     }
 
@@ -611,6 +625,7 @@ public class Generator {
             // 加载参数
             new Load(targetBasicBlock, Load.SIZE.WORD, destinationRegister, this.valueToOperand(loadPointer));
             RegisterBaseAddress registerBaseAddress = new RegisterBaseAddress(destinationRegister, Immediate.ZERO());
+            // 登记定位的地址
             this.valueMap.put(loadInst, registerBaseAddress);
         } else {
             throw new RuntimeException("When transformLoadInst(), LoadInst try to load a IRValue whose referenceType is invalid. Got " + loadPointer);

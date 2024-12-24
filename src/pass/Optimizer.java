@@ -1,7 +1,6 @@
 package pass;
 
 import IR.IRModule;
-import global.Config;
 import pass.analyzer.GenerateCFG;
 import pass.analyzer.GenerateDominateInfo;
 import pass.refactor.*;
@@ -19,9 +18,8 @@ public class Optimizer {
         new RemoveUnreachableBasicBlock(irModule).run();
         new GenerateDominateInfo(irModule).run();
 
-        new CalculateConst(irModule).run();
-
         new Mem2Reg(irModule).run();
+        new CalculateConst(irModule).run();
         new DeadCodeEmit(irModule).run();
     }
 }

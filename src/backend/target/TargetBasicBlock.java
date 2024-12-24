@@ -1,6 +1,5 @@
 package backend.target;
 
-import IR.value.IRBasicBlock;
 import backend.instruction.TargetInstruction;
 import backend.oprand.Label;
 import util.DoublyLinkedList;
