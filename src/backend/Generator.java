@@ -139,6 +139,7 @@ public class Generator {
                         " is less than requirements.");
             }
             this.transformFunctionArgument(irFunction, targetFunction);
+            this.transformFunctionArgBlock(irFunction.basicBlocks().get(0), irFunction, targetFunction);
             this.transformFunctionDefBlock(irFunction.basicBlocks().get(1), irFunction, targetFunction);
             // 先创建好一个函数的所有的TargetBasicBlock
             Iterator<IRBasicBlock> basicBlockIterator;
@@ -187,6 +188,33 @@ public class Generator {
             } else if (arguments.get(i).type() instanceof PointerType) {
                 this.valueMap.put(arguments.get(i), new RegisterBaseAddress(newArgRegister, Immediate.ZERO()));
             }
+        }
+    }
+
+    private void transformFunctionArgBlock(IRBasicBlock argBlock, IRFunction irFunction, TargetFunction targetFunction) {
+        ArrayList<Argument> arguments = irFunction.arguments();
+        DoublyLinkedList<IRInstruction<?>> instructions = argBlock.instructions();
+        // argBlock的规范是 一条alloca指令配上一条将参数写入alloca地址
+        Iterator<DoublyLinkedList.Node<IRInstruction<?>>> argBlockIterator = instructions.iterator();
+        while (argBlockIterator.hasNext()) {
+            IRInstruction<?> irInstructionFirst = argBlockIterator.next().value();
+            if (irInstructionFirst instanceof AllocaInst allocaInst && argBlockIterator.hasNext()) {
+                IRInstruction<?> irInstructionSecond = argBlockIterator.next().value();
+                if (irInstructionSecond instanceof StoreInst storeInst
+                        // storeInst与allocaInst是搭配的
+                        && storeInst.getValueOperand() instanceof Argument argument
+                        && storeInst.getPointerOperand() == allocaInst) {
+                    int argumentNumber = arguments.indexOf(argument);
+                    this.valueMap.put(allocaInst, targetFunction.stackFrame.getInArgumentAddress(argumentNumber));
+                    // 该段argBlock正确结束
+                    continue;
+                }
+            } else if (irInstructionFirst instanceof BranchInst && !argBlockIterator.hasNext()) {
+                // argBlock正确结束
+                break;
+            }
+            // argBlock不符合约定
+            throw new RuntimeException("When transformFunctionArgBlock(), the argBlock of function " + irFunction.name() + " is invalid");
         }
     }
 
@@ -515,75 +543,59 @@ public class Generator {
             throw new RuntimeException("When transformGetElementPtrInst(), the GetElementPtrInst is invalid. " +
                     "Got " + getElementPtrInst);
         }
-        if (this.valueToOperand(pointerIRValue) instanceof LabelBaseAddress labelBaseAddress) {
-            // Label作为基地址 全局变量
-            LabelBaseAddress designatedLabelBaseAddress;
+        if (this.valueToOperand(pointerIRValue) instanceof TargetAddress<?, ?> pointerTargetAddress) {
+            TargetAddress<?, ?> designatedTargetAddress;
             if (this.valueToOperand(indexIRValue) instanceof Immediate immediateOffset) {
                 if (IRType.isEqual(elementIntegerType, IRType.getInt8Ty())) {
-                    // 全局变量 char 立即数偏移
-                    designatedLabelBaseAddress = labelBaseAddress.addImmediateOffset(immediateOffset);
+                    // char 立即数偏移
+                    designatedTargetAddress = pointerTargetAddress.addImmediateOffset(immediateOffset);
                 } else if (IRType.isEqual(elementIntegerType, IRType.getInt32Ty())) {
-                    // 全局变量 int  立即数偏移
-                    designatedLabelBaseAddress = labelBaseAddress.addImmediateOffset(immediateOffset.multiplyFour());
+                    // int  立即数偏移
+                    designatedTargetAddress = pointerTargetAddress.addImmediateOffset(immediateOffset.multiplyFour());
                 } else {
                     throw new RuntimeException("When transformGetElementPtrInst(), elementIntegerType is invalid. " +
                             "Got " + elementIntegerType);
                 }
             } else if (this.valueToOperand(indexIRValue) instanceof TargetRegister registerOffset) {
-                TargetRegister addressOffsetRegister;
-                if (IRType.isEqual(elementIntegerType, IRType.getInt8Ty())) {
-                    // 全局变量 char 寄存器偏移
-                    addressOffsetRegister = registerOffset;
-                } else if (IRType.isEqual(elementIntegerType, IRType.getInt32Ty())) {
-                    // 全局变量 int  寄存器偏移
-                    addressOffsetRegister = targetBasicBlock.parent().addTempVirtualRegister();
-                    new Binary(targetBasicBlock, Binary.BinaryOs.SLL, addressOffsetRegister, registerOffset, Immediate.TWO());
+                if (pointerTargetAddress instanceof LabelBaseAddress labelBaseAddress) {
+                    TargetRegister addressOffsetRegister;
+                    if (IRType.isEqual(elementIntegerType, IRType.getInt8Ty())) {
+                        // 全局变量 char 寄存器偏移
+                        addressOffsetRegister = registerOffset;
+                    } else if (IRType.isEqual(elementIntegerType, IRType.getInt32Ty())) {
+                        // 全局变量 int  寄存器偏移
+                        addressOffsetRegister = targetBasicBlock.parent().addTempVirtualRegister();
+                        new Binary(targetBasicBlock, Binary.BinaryOs.SLL, addressOffsetRegister, registerOffset, Immediate.TWO());
+                    } else {
+                        throw new RuntimeException("When transformGetElementPtrInst(), elementIntegerType is invalid. " +
+                                "Got " + elementIntegerType);
+                    }
+                    designatedTargetAddress = labelBaseAddress.addRegisterOffset(addressOffsetRegister);
+                } else if (this.valueToOperand(pointerIRValue) instanceof RegisterBaseAddress registerBaseAddress) {
+                    TargetRegister addressOffsetRegister;
+                    if (IRType.isEqual(elementIntegerType, IRType.getInt8Ty())) {
+                        // 局部变量 char 寄存器偏移
+                        addressOffsetRegister = registerOffset;
+                    } else if (IRType.isEqual(elementIntegerType, IRType.getInt32Ty())) {
+                        // 局部变量 int  寄存器偏移
+                        addressOffsetRegister = targetBasicBlock.parent().addTempVirtualRegister();
+                        new Binary(targetBasicBlock, Binary.BinaryOs.SLL, addressOffsetRegister, registerOffset, Immediate.TWO());
+                    } else {
+                        throw new RuntimeException("When transformGetElementPtrInst(), elementIntegerType is invalid. " +
+                                "Got " + elementIntegerType);
+                    }
+                    // 得到新的基地址寄存器
+                    VirtualRegister newBaseRegister = targetBasicBlock.parent().addTempVirtualRegister();
+                    new Binary(targetBasicBlock, Binary.BinaryOs.ADD, newBaseRegister, registerBaseAddress.base(), addressOffsetRegister);
+                    designatedTargetAddress = registerBaseAddress.replaceBaseRegister(newBaseRegister);
                 } else {
-                    throw new RuntimeException("When transformGetElementPtrInst(), elementIntegerType is invalid. " +
-                            "Got " + elementIntegerType);
+                    throw new RuntimeException("When transformGetElementPtrInst(), the operand of pointer of GetElementPtrInst is not a implemented TargetAddress");
                 }
-                designatedLabelBaseAddress = labelBaseAddress.addRegisterOffset(addressOffsetRegister);
             } else {
                 throw new RuntimeException("When transformGetElementPtrInst(), te operand of index of GetElementPtrInst is not an Immediate or a TargetRegister");
             }
             // 登记定位的地址
-            this.valueMap.put(getElementPtrInst, designatedLabelBaseAddress);
-        } else if (this.valueToOperand(pointerIRValue) instanceof RegisterBaseAddress registerBaseAddress) {
-            // Register作为基地址 局部变量
-            RegisterBaseAddress designatedRegisterBaseAddress;
-            if (this.valueToOperand(indexIRValue) instanceof Immediate immediateOffset) {
-                if (IRType.isEqual(elementIntegerType, IRType.getInt8Ty())) {
-                    // 局部变量 char 立即数偏移
-                    designatedRegisterBaseAddress = registerBaseAddress.addImmediateOffset(immediateOffset);
-                } else if (IRType.isEqual(elementIntegerType, IRType.getInt32Ty())) {
-                    // 局部变量 char 立即数偏移
-                    designatedRegisterBaseAddress = registerBaseAddress.addImmediateOffset(immediateOffset.multiplyFour());
-                } else {
-                    throw new RuntimeException("When transformGetElementPtrInst(), elementIntegerType is invalid. " +
-                            "Got " + elementIntegerType);
-                }
-            } else if (this.valueToOperand(indexIRValue) instanceof TargetRegister registerOffset) {
-                TargetRegister addressOffsetRegister;
-                if (IRType.isEqual(elementIntegerType, IRType.getInt8Ty())) {
-                    // 局部变量 char 寄存器偏移
-                    addressOffsetRegister = registerOffset;
-                } else if (IRType.isEqual(elementIntegerType, IRType.getInt32Ty())) {
-                    // 局部变量 int  寄存器偏移
-                    addressOffsetRegister = targetBasicBlock.parent().addTempVirtualRegister();
-                    new Binary(targetBasicBlock, Binary.BinaryOs.SLL, addressOffsetRegister, registerOffset, Immediate.TWO());
-                } else {
-                    throw new RuntimeException("When transformGetElementPtrInst(), elementIntegerType is invalid. " +
-                            "Got " + elementIntegerType);
-                }
-                // 得到新的基地址寄存器
-                VirtualRegister newBaseRegister = targetBasicBlock.parent().addTempVirtualRegister();
-                new Binary(targetBasicBlock, Binary.BinaryOs.ADD, newBaseRegister, registerBaseAddress.base(), addressOffsetRegister);
-                designatedRegisterBaseAddress = registerBaseAddress.replaceBaseRegister(newBaseRegister);
-            } else {
-                throw new RuntimeException("When transformGetElementPtrInst(), te operand of index of GetElementPtrInst is not an Immediate or a TargetRegister");
-            }
-            // 登记定位的地址
-            this.valueMap.put(getElementPtrInst, designatedRegisterBaseAddress);
+            this.valueMap.put(getElementPtrInst, designatedTargetAddress);
         } else {
             throw new RuntimeException("When transformGetElementPtrInst(), the operand of pointer of GetElementPtrInst is not a TargetAddress");
         }

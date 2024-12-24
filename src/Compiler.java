@@ -26,7 +26,7 @@ public class Compiler {
           Code Generation(MIPS): -M
           Code Generation(MIPS, optimized): -O
          */
-        // String[] fixedArgs = {"M"};
+        // String[] fixedArgs = {"-M"};
         // Config.setConfigByArgs(fixedArgs);
         Config.setConfigByArgs(args);
         try {
