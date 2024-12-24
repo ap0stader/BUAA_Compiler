@@ -92,9 +92,7 @@ public class Compiler {
         }
         // Stage4 中端优化
         Optimizer optimizer = new Optimizer(irModule);
-        if (Config.enableMiddleOptimization) {
-            optimizer.optimize();
-        }
+        optimizer.optimize();
         // [输出优化后的LLVM]
         if (Config.dumpLLVMAfterOptimized) {
             DumpLLVM.dump(irModule, Config.dumpLLVMAfterOptimizedFileName);

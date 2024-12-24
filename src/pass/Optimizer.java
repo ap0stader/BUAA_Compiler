@@ -1,6 +1,7 @@
 package pass;
 
 import IR.IRModule;
+import global.Config;
 import pass.analyzer.GenerateCFG;
 import pass.analyzer.GenerateDominateInfo;
 import pass.refactor.*;
@@ -14,11 +15,13 @@ public class Optimizer {
         this.passes = new ArrayList<>();
         this.passes.add(new RemoveInstructionAfterTerminator(irModule));
         this.passes.add(new GenerateCFG(irModule));
-        this.passes.add(new RemoveUnreachableBasicBlock(irModule));
-        this.passes.add(new GenerateDominateInfo(irModule));
-        this.passes.add(new Mem2Reg(irModule));
-        this.passes.add(new CalculateConst(irModule));
-        this.passes.add(new DeadCodeEmit(irModule));
+        if (Config.enableMiddleOptimization) {
+            this.passes.add(new RemoveUnreachableBasicBlock(irModule));
+            this.passes.add(new GenerateDominateInfo(irModule));
+            this.passes.add(new Mem2Reg(irModule));
+            this.passes.add(new CalculateConst(irModule));
+            this.passes.add(new DeadCodeEmit(irModule));
+        }
     }
 
     public void optimize() {
