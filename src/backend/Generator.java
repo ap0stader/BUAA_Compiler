@@ -273,22 +273,27 @@ public class Generator {
         HashMap<IRBasicBlock, LinkedList<Pair<VirtualRegister, TargetOperand>>> phiCopiesSequential = new HashMap<>();
         // 初始化
         irBasicBlock.predecessors().forEach((block -> phiCopiesSequential.put(block, new LinkedList<>())));
+        // 检查每个IRBasicBlock
         for (Map.Entry<IRBasicBlock, LinkedList<Pair<VirtualRegister, TargetOperand>>> phiCopyEntry : phiCopies.entrySet()) {
+            // 判断每个并行的Copy
             for (Pair<VirtualRegister, TargetOperand> phiCopyMove : phiCopyEntry.getValue()) {
                 if (!Objects.equals(phiCopyMove.key(), phiCopyMove.value())) {
-                    // MAYBE 如果Move起点终点相同可以消去
+                    // MAYBE 如果Copy的起点和终点相同可以消去
                     boolean crash = false;
+                    // 与其他的并行Copy判断
                     for (Pair<VirtualRegister, TargetOperand> otherPhiCopyMove : phiCopyEntry.getValue()) {
-                        if (Objects.equals(phiCopyMove.key(), otherPhiCopyMove.value())) {
-                            // 存在冲突
+                        if (Objects.equals(phiCopyMove.value(), otherPhiCopyMove.key())) {
+                            // 存在冲突，即对于当前Copy的来源，是另一个Copy的终点
                             crash = true;
                             break;
                         }
                     }
                     if (crash) {
                         VirtualRegister transitiveVirtualRegister = targetFunction.addTempVirtualRegister();
-                        // 增加临时Move
+                        // 增加临时Move，先将来源进行备份
                         phiCopiesSequential.get(phiCopyEntry.getKey()).push(new Pair<>(transitiveVirtualRegister, phiCopyMove.value()));
+                        // 再将备份进行写入
+                        // CAST 上方的相等保证正确
                         phiCopiesSequential.get(phiCopyEntry.getKey()).add(new Pair<>(phiCopyMove.key(), transitiveVirtualRegister));
                     } else {
                         // 直接采用当前Move
