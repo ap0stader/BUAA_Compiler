@@ -25,8 +25,6 @@ public class Move extends TargetInstruction {
     public void replaceDefVirtualRegister(PhysicalRegister physicalRegister, VirtualRegister virtualRegister) {
         if (Objects.equals(destination, virtualRegister)) {
             this.destination = physicalRegister;
-        } else {
-            throw new RuntimeException("When Move.replaceDefVirtualRegister(), the virtualRegister is not destination");
         }
     }
 
@@ -34,11 +32,10 @@ public class Move extends TargetInstruction {
     public void replaceUseVirtualRegister(PhysicalRegister physicalRegister, VirtualRegister virtualRegister) {
         if (Objects.equals(origin, virtualRegister)) {
             this.origin = physicalRegister;
-        } else if (origin instanceof TargetAddress<?, ?> addressOrigin
+        }
+        if (origin instanceof TargetAddress<?, ?> addressOrigin
                 && addressOrigin.useRegisterSet().contains(virtualRegister)) {
             this.origin = addressOrigin.replaceUseVirtualRegister(physicalRegister, virtualRegister);
-        } else {
-            throw new RuntimeException("When Move.replaceUseVirtualRegister(), the virtualRegister is not origin");
         }
     }
 

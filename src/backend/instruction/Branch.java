@@ -43,8 +43,6 @@ public class Branch extends TargetInstruction {
     public void replaceUseVirtualRegister(PhysicalRegister physicalRegister, VirtualRegister virtualRegister) {
         if (Objects.equals(cond, virtualRegister)) {
             this.cond = physicalRegister;
-        } else {
-            throw new RuntimeException("When Branch.replaceUseVirtualRegister(), the virtualRegister is not cond");
         }
     }
 

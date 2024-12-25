@@ -35,8 +35,6 @@ public class Load extends TargetInstruction {
     public void replaceDefVirtualRegister(PhysicalRegister physicalRegister, VirtualRegister virtualRegister) {
         if (Objects.equals(destination, virtualRegister)) {
             this.destination = physicalRegister;
-        } else {
-            throw new RuntimeException("When Load.replaceDefVirtualRegister(), the virtualRegister is not destination");
         }
     }
 
@@ -44,8 +42,6 @@ public class Load extends TargetInstruction {
     public void replaceUseVirtualRegister(PhysicalRegister physicalRegister, VirtualRegister virtualRegister) {
         if (this.address.useRegisterSet().contains(virtualRegister)) {
             this.address = this.address.replaceUseVirtualRegister(physicalRegister, virtualRegister);
-        } else {
-            throw new RuntimeException("When Load().replaceUseVirtualRegister(), the virtualRegister is not in address");
         }
     }
 

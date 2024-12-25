@@ -60,8 +60,6 @@ public class Binary extends TargetInstruction {
     public void replaceDefVirtualRegister(PhysicalRegister physicalRegister, VirtualRegister virtualRegister) {
         if (Objects.equals(destination, virtualRegister)) {
             this.destination = physicalRegister;
-        } else {
-            throw new RuntimeException("When Binary.replaceDefVirtualRegister(), the virtualRegister is not destination");
         }
     }
 

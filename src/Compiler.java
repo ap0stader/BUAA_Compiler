@@ -1,6 +1,7 @@
 import IR.IRModule;
 import backend.BasicAllocator;
 import backend.Generator;
+import backend.LinearScanAllocator;
 import backend.target.TargetModule;
 import frontend.visitor.Visitor;
 import global.Config;
@@ -109,8 +110,13 @@ public class Compiler {
         if (Config.dumpMIPSAssemblyBeforeAllocation) {
             DumpMIPSAssembly.dump(targetModule, Config.dumpMIPSAssemblyBeforeAllocationFileName);
         }
-        BasicAllocator basicAllocator = new BasicAllocator(targetModule);
-        basicAllocator.allocRegister();
+        if (Config.enableBackendOptimization) {
+            LinearScanAllocator linearScanAllocator = new LinearScanAllocator(targetModule);
+            linearScanAllocator.allocRegister();
+        } else {
+            BasicAllocator basicAllocator = new BasicAllocator(targetModule);
+            basicAllocator.allocRegister();
+        }
         if (Config.dumpMIPSAssemblyAfterAllocation) {
             DumpMIPSAssembly.dump(targetModule, Config.dumpMIPSAssemblyAfterAllocationFileName);
         }

@@ -123,6 +123,10 @@ public class DoublyLinkedList<T> implements Iterable<DoublyLinkedList.Node<T>> {
             return next;
         }
 
+        public DoublyLinkedList<T> parent() {
+            return parent;
+        }
+
         public void insertBefore(Node<T> next) {
             if (this.parent != null) {
                 throw new RuntimeException("When insertBefore(), the node is already inserted.");

@@ -181,7 +181,7 @@ public class Generator {
                 targetFunction.stackFrame.ensureSaveRegister(PhysicalRegister.argumentRegisterOfArgumentNumber(i));
             }
             // 为剩余参数登记对应的虚拟寄存器
-            VirtualRegister newArgRegister = new VirtualRegister();
+            VirtualRegister newArgRegister = new VirtualRegister(true);
             newArgRegister.setAddress(targetFunction.stackFrame.getInArgumentAddress(i));
             if (arguments.get(i).type() instanceof IntegerType) {
                 this.valueMap.put(arguments.get(i), newArgRegister);

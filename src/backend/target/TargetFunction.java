@@ -34,7 +34,7 @@ public class TargetFunction {
     }
 
     public VirtualRegister addTempVirtualRegister() {
-        VirtualRegister newRegister = new VirtualRegister();
+        VirtualRegister newRegister = new VirtualRegister(false);
         newRegister.setAddress(this.stackFrame.getTempVirtualRegisterAddress(newRegister));
         return newRegister;
     }

@@ -5,9 +5,11 @@ public final class VirtualRegister implements TargetRegister, Comparable<Virtual
 
     private final int number;
     private TargetAddress<?, ?> address = null;
+    private final boolean preDefined;
 
-    public VirtualRegister() {
+    public VirtualRegister(boolean preDefined) {
         this.number = counter++;
+        this.preDefined = preDefined;
     }
 
     public void setAddress(TargetAddress<?, ?> address) {
@@ -19,8 +21,12 @@ public final class VirtualRegister implements TargetRegister, Comparable<Virtual
     }
 
     public TargetAddress<?, ?> address() {
-        // WARNING address不应包含其他的VirtualRegister否则会导致替换失败
+        // WARNING address不应包含其他的VirtualRegister，否则会导致替换失败
         return address;
+    }
+
+    public boolean preDefined() {
+        return preDefined;
     }
 
     @Override
