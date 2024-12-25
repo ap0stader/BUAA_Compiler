@@ -5,7 +5,8 @@ import IR.value.IRBasicBlock;
 import IR.value.IRFunction;
 import pass.Pass;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.Objects;
 
 public class GenerateDominateInfo implements Pass {
     private final IRModule irModule;

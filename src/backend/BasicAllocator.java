@@ -10,7 +10,8 @@ import backend.target.TargetFunction;
 import backend.target.TargetModule;
 import util.DoublyLinkedList;
 
-import java.util.*;
+import java.util.LinkedList;
+import java.util.TreeSet;
 
 public class BasicAllocator {
     private final TargetModule targetModule;
@@ -26,7 +27,7 @@ public class BasicAllocator {
         this.dispatchRegisters.add(PhysicalRegister.V1);
     }
 
-    private PhysicalRegister acquireDispatchPhysicalRegister(TargetFunction targetFunction) {
+    private PhysicalRegister acquireDispatchPhysicalRegister() {
         PhysicalRegister resultRegister = this.dispatchRegisters.poll();
         if (resultRegister == null) {
             throw new RuntimeException("When acquireDispatchPhysicalRegister(), no more dispatch registers");
@@ -51,12 +52,11 @@ public class BasicAllocator {
     }
 
     private void allocBasicBlock(TargetBasicBlock targetBasicBlock) {
-        TargetFunction targetFunction = targetBasicBlock.parent();
         for (DoublyLinkedList.Node<TargetInstruction> instructionNode : targetBasicBlock.instructions()) {
             TargetInstruction instruction = instructionNode.value();
             TreeSet<PhysicalRegister> acquiredPhysicalRegisters = new TreeSet<>();
             for (VirtualRegister useVirtualRegister : instruction.useVirtualRegisterSet()) {
-                PhysicalRegister physicalRegister = this.acquireDispatchPhysicalRegister(targetFunction);
+                PhysicalRegister physicalRegister = this.acquireDispatchPhysicalRegister();
                 acquiredPhysicalRegisters.add(physicalRegister);
                 Load loadVirtualRegister = new Load(null, Load.SIZE.WORD,
                         physicalRegister, useVirtualRegister.address());
@@ -67,7 +67,7 @@ public class BasicAllocator {
             acquiredPhysicalRegisters.descendingSet().forEach(this::releaseDispatchPhysicalRegister);
             acquiredPhysicalRegisters.clear();
             for (VirtualRegister defVirtualRegister : instruction.defVirtualRegisterSet()) {
-                PhysicalRegister physicalRegister = this.acquireDispatchPhysicalRegister(targetFunction);
+                PhysicalRegister physicalRegister = this.acquireDispatchPhysicalRegister();
                 acquiredPhysicalRegisters.add(physicalRegister);
                 instruction.replaceDefVirtualRegister(physicalRegister, defVirtualRegister);
                 Store storeVirtualRegister = new Store(null, Store.SIZE.WORD,

@@ -30,7 +30,6 @@ public class Load extends TargetInstruction {
         }
     }
 
-
     @Override
     public void replaceDefVirtualRegister(PhysicalRegister physicalRegister, VirtualRegister virtualRegister) {
         if (Objects.equals(destination, virtualRegister)) {

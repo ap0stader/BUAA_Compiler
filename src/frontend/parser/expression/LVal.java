@@ -46,7 +46,6 @@ public class LVal implements ASTNode {
         return lbrackToken == null ? Type.BASIC : Type.ARRAY;
     }
 
-
     public Token ident() {
         return ident;
     }

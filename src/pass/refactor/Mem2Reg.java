@@ -13,7 +13,10 @@ import pass.Pass;
 import util.DoublyLinkedList;
 import util.Pair;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedList;
 
 public class Mem2Reg implements Pass {
     private final IRModule irModule;

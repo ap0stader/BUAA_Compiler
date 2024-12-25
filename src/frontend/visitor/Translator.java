@@ -130,7 +130,6 @@ class Translator {
         }
     }
 
-
     static SymbolType.Var getVarIRType(Token bType, Integer length) {
         if (bType.type() == TokenType.INTTK || bType.type() == TokenType.CHARTK) {
             if (length == null) {

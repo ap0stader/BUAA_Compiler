@@ -99,7 +99,6 @@ public class TargetDataObject {
         }
     }
 
-
     private static class DirectiveList extends Directive {
         private final ArrayList<Integer> values;
 

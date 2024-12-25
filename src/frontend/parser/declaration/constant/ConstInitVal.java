@@ -25,7 +25,6 @@ public class ConstInitVal implements ASTNode {
     // STRING
     private final Token stringConst;
 
-
     // ConstInitVal → ConstExp
     //              | '{' [ ConstExp { ',' ConstExp } ] '}'
     //              | StringConst

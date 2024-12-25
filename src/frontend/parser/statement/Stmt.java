@@ -404,7 +404,6 @@ public class Stmt extends ASTNodeWithOption<Stmt.StmtOption> implements BlockIte
         }
     }
 
-
     // Stmt → LVal '=' 'getchar' '(' ')' ';'
     public static class Stmt_LValGetchar implements StmtOption {
         private final LVal lVal;

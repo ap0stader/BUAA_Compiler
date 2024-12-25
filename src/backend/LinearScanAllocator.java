@@ -10,7 +10,10 @@ import backend.target.TargetFunction;
 import backend.target.TargetModule;
 import util.DoublyLinkedList;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedList;
 
 public class LinearScanAllocator {
     private final TargetModule targetModule;
@@ -116,10 +119,9 @@ public class LinearScanAllocator {
             }
         }
         // 参数的虚拟寄存器被设置了preDefined，认为preDefined是一次访问，所以不属于局部寄存器应当参与分配的范围
-        this.virtualRegisterAccessPlaces.forEach((virtualRegister, accessPlaces) -> {
-            this.virtualRegisterCrossBasicBlock.put(virtualRegister,
-                    virtualRegister.preDefined() || accessPlaces.stream().map(DoublyLinkedList.Node::parent).distinct().count() > 1);
-        });
+        this.virtualRegisterAccessPlaces.forEach((virtualRegister, accessPlaces) ->
+                this.virtualRegisterCrossBasicBlock.put(virtualRegister,
+                        virtualRegister.preDefined() || accessPlaces.stream().map(DoublyLinkedList.Node::parent).distinct().count() > 1));
     }
 
     private void addAccessPlace(VirtualRegister virtualRegister, DoublyLinkedList.Node<TargetInstruction> instructionNode) {
