@@ -49,6 +49,10 @@ public enum PhysicalRegister implements TargetRegister {
     // 返回地址，在保存之后可以被分配为临时变量寄存器
     RA(31, "ra");
 
+    public static final int DISPATCH_REGISTER_SIZE = 2;
+    public static final int TEMP_REGISTER_SIZE = 10;
+    public static final int SAVED_REGISTER_SIZE = 12;
+
     private final String name;
 
     PhysicalRegister(int number) {

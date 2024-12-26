@@ -34,7 +34,7 @@ public class TargetFunction {
     }
 
     public VirtualRegister addTempVirtualRegister() {
-        VirtualRegister newRegister = new VirtualRegister(false);
+        VirtualRegister newRegister = new VirtualRegister();
         newRegister.setAddress(this.stackFrame.getTempVirtualRegisterAddress(newRegister));
         return newRegister;
     }
@@ -82,10 +82,10 @@ public class TargetFunction {
             调用其他函数的参数（为$a0-$a3至少预留16字节，参数次序越大，地址越高）
             ================ 本级函数的$sp
         */
-        private final TreeSet<PhysicalRegister> savedArgumentRegisters = new TreeSet<>();
+        private final TreeSet<PhysicalRegister> prologueSavedArgumentRegisters = new TreeSet<>();
         private final TreeSet<VirtualRegister> tempVirtualRegisters = new TreeSet<>();
         private int allocaSize = 0;
-        private final TreeSet<PhysicalRegister> savedRegisters = new TreeSet<>();
+        private final TreeSet<PhysicalRegister> prologueSavedRegisters = new TreeSet<>();
         private int outArgumentSize = 4;
 
         private final static int REGISTER_BYTES = 4;
@@ -94,7 +94,7 @@ public class TargetFunction {
         private int size() {
             return this.tempVirtualRegisters.size() * REGISTER_BYTES +
                     this.allocaSize +
-                    this.savedRegisters.size() * REGISTER_BYTES +
+                    this.prologueSavedRegisters.size() * REGISTER_BYTES +
                     this.outArgumentSize * REGISTER_BYTES;
         }
 
@@ -132,7 +132,7 @@ public class TargetFunction {
                 if (tempVirtualRegisters.contains(this.register)) {
                     return new Immediate(tempVirtualRegisters.headSet(this.register).size() * REGISTER_BYTES +
                             allocaSize +
-                            savedRegisters.size() * REGISTER_BYTES +
+                            prologueSavedRegisters.size() * REGISTER_BYTES +
                             outArgumentSize * REGISTER_BYTES);
                 } else {
                     throw new RuntimeException("When TempVirtualRegisterOffset.calc(), the function " + label.name() +
@@ -159,7 +159,7 @@ public class TargetFunction {
             @Override
             public Immediate calc() {
                 return new Immediate(this.accumulateSizeBefore +
-                        savedRegisters.size() * REGISTER_BYTES +
+                        prologueSavedRegisters.size() * REGISTER_BYTES +
                         outArgumentSize * REGISTER_BYTES);
             }
 
@@ -181,8 +181,8 @@ public class TargetFunction {
 
             @Override
             public Immediate calc() {
-                if (savedRegisters.contains(this.register)) {
-                    return new Immediate(savedRegisters.headSet(this.register).size() * REGISTER_BYTES +
+                if (prologueSavedRegisters.contains(this.register)) {
+                    return new Immediate(prologueSavedRegisters.headSet(this.register).size() * REGISTER_BYTES +
                             outArgumentSize * REGISTER_BYTES);
                 } else {
                     throw new RuntimeException("When SavedRegisterOffset.calc(), function " + label.name() +
@@ -211,6 +211,17 @@ public class TargetFunction {
             return new RegisterBaseAddress(PhysicalRegister.SP, new InArgumentOffset(argumentNumber));
         }
 
+        // 确保函数序言保存了参数寄存器
+        public void ensurePrologueSaveArgumentRegister(PhysicalRegister register) {
+            if (register != null) {
+                if (PhysicalRegister.isArgumentRegister(register)) {
+                    this.prologueSavedArgumentRegisters.add(register);
+                } else {
+                    throw new RuntimeException("When ensurePrologueSaveArgumentRegister(), to save a non argument register " + register + ", call ensurePrologueSaveRegister() instead");
+                }
+            }
+        }
+
         // 获得临时变量虚拟寄存器的地址
         private RegisterBaseAddress getTempVirtualRegisterAddress(VirtualRegister virtualRegister) {
             this.tempVirtualRegisters.add(virtualRegister);
@@ -227,26 +238,22 @@ public class TargetFunction {
 
         // 获得保存寄存器的地址
         private RegisterBaseAddress getSavedRegisterAddress(PhysicalRegister savedRegister) {
-            if (PhysicalRegister.isArgumentRegister(savedRegister)) {
-                return new RegisterBaseAddress(PhysicalRegister.SP,
-                        new InArgumentOffset(PhysicalRegister.argumentNumberOfArgumentRegister(savedRegister)));
-            } else {
-                return new RegisterBaseAddress(PhysicalRegister.SP,
-                        new SavedRegisterOffset(savedRegister));
-            }
+            return new RegisterBaseAddress(PhysicalRegister.SP, new SavedRegisterOffset(savedRegister));
         }
 
-        // 确保保存了$ra寄存器
-        public void ensureSaveRA() {
-            this.ensureSaveRegister(PhysicalRegister.RA);
+        // 确保函数序言保存了$ra寄存器
+        public void ensurePrologueSaveRA() {
+            this.ensurePrologueSaveRegister(PhysicalRegister.RA);
         }
 
-        // 确保保存了寄存器
-        public void ensureSaveRegister(PhysicalRegister register) {
-            if (PhysicalRegister.isArgumentRegister(register)) {
-                this.savedArgumentRegisters.add(register);
-            } else if (register != null) {
-                this.savedRegisters.add(register);
+        // 确保函数序言保存了寄存器
+        public void ensurePrologueSaveRegister(PhysicalRegister register) {
+            if (register != null) {
+                if (PhysicalRegister.isArgumentRegister(register)) {
+                    throw new RuntimeException("When ensurePrologueSaveRegister(), to save an argument register " + register + ", call ensurePrologueSaveArgumentRegister() instead");
+                } else {
+                    this.prologueSavedRegisters.add(register);
+                }
             }
         }
 
@@ -264,15 +271,15 @@ public class TargetFunction {
             // 调整栈的大小
             sb.append("\t").append("# stack frame size ").append(this.size()).append(" bytes\n");
             sb.append("\t").append("addiu $sp, $sp, 0x").append(Integer.toHexString(-this.size()).toUpperCase()).append("\n");
-            // 保存需要保存的参数寄存器
-            for (PhysicalRegister savedArgumentRegister : this.savedArgumentRegisters) {
-                sb.append("\t").append("sw ").append(savedArgumentRegister.mipsStr()).append(", ")
-                        .append(this.getSavedRegisterAddress(savedArgumentRegister).mipsStr()).append("\n");
-            }
             // 保存需要使用的寄存器
-            for (PhysicalRegister savedRegister : this.savedRegisters.descendingSet()) {
+            for (PhysicalRegister savedRegister : this.prologueSavedRegisters.descendingSet()) {
                 sb.append("\t").append("sw ").append(savedRegister.mipsStr()).append(", ")
                         .append(this.getSavedRegisterAddress(savedRegister).mipsStr()).append("\n");
+            }
+            // 保存需要保存的参数寄存器
+            for (PhysicalRegister savedArgumentRegister : this.prologueSavedArgumentRegisters) {
+                sb.append("\t").append("sw ").append(savedArgumentRegister.mipsStr()).append(", ")
+                        .append(this.getInArgumentAddress(PhysicalRegister.argumentNumberOfArgumentRegister(savedArgumentRegister)).mipsStr()).append("\n");
             }
             return sb.toString();
         }
@@ -282,7 +289,7 @@ public class TargetFunction {
             StringBuilder sb = new StringBuilder();
             sb.append(labelEpilogue.mipsStr()).append(":\n");
             // 恢复被使用的寄存器
-            for (PhysicalRegister savedRegister : this.savedRegisters) {
+            for (PhysicalRegister savedRegister : this.prologueSavedRegisters) {
                 sb.append("\t").append("lw ").append(savedRegister.mipsStr()).append(", ")
                         .append(this.getSavedRegisterAddress(savedRegister).mipsStr()).append("\n");
             }

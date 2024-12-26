@@ -5,18 +5,32 @@ public final class VirtualRegister implements TargetRegister, Comparable<Virtual
 
     private final int number;
     private TargetAddress<?, ?> address = null;
-    private final boolean preDefined;
+    private final boolean isPreDefined;
+    private final PhysicalRegister preAllocation;
 
-    public VirtualRegister(boolean preDefined) {
+    public VirtualRegister() {
+        this.number = ++counter;
+        this.isPreDefined = false;
+        this.preAllocation = null;
+    }
+
+    public VirtualRegister(boolean isPreDefined) {
         this.number = counter++;
-        this.preDefined = preDefined;
+        this.isPreDefined = isPreDefined;
+        this.preAllocation = null;
+    }
+
+    public VirtualRegister(PhysicalRegister preAllocation) {
+        this.number = ++counter;
+        this.isPreDefined = true;
+        this.preAllocation = preAllocation;
     }
 
     public void setAddress(TargetAddress<?, ?> address) {
-        if (this.address == null) {
+        if (this.address == null && this.preAllocation == null) {
             this.address = address;
         } else {
-            throw new RuntimeException("When setAddress(), address has already been set");
+            throw new RuntimeException("When setAddress(), address has already been set or the VirtualRegister is preAllocated.");
         }
     }
 
@@ -25,8 +39,17 @@ public final class VirtualRegister implements TargetRegister, Comparable<Virtual
         return address;
     }
 
-    public boolean preDefined() {
-        return preDefined;
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
+    public boolean isPreDefined() {
+        return isPreDefined;
+    }
+
+    public boolean isPreAllocated() {
+        return preAllocation != null;
+    }
+
+    public PhysicalRegister preAllocation() {
+        return preAllocation;
     }
 
     @Override
@@ -36,7 +59,11 @@ public final class VirtualRegister implements TargetRegister, Comparable<Virtual
 
     @Override
     public String mipsStr() {
-        return "&vr" + this.number;
+        if (this.isPreAllocated()) {
+            return this.preAllocation.mipsStr();
+        } else {
+            return "&vr" + this.number;
+        }
     }
 
     @Override

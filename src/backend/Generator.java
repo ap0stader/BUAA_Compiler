@@ -176,13 +176,15 @@ public class Generator {
     private void transformFunctionArgument(IRFunction irFunction, TargetFunction targetFunction) {
         ArrayList<Argument> arguments = irFunction.arguments();
         for (int i = 0; i < arguments.size(); i++) {
+            VirtualRegister newArgRegister;
             if (PhysicalRegister.argumentRegisterOfArgumentNumber(i) != null) {
-                // 保存第0-3个参数对应的物理寄存器
-                targetFunction.stackFrame.ensureSaveRegister(PhysicalRegister.argumentRegisterOfArgumentNumber(i));
+                // 使用第0-3个参数对应的物理寄存器
+                newArgRegister = new VirtualRegister(PhysicalRegister.argumentRegisterOfArgumentNumber(i));
+            } else {
+                // 为剩余参数登记对应的虚拟寄存器
+                newArgRegister = new VirtualRegister(true);
+                newArgRegister.setAddress(targetFunction.stackFrame.getInArgumentAddress(i));
             }
-            // 为剩余参数登记对应的虚拟寄存器
-            VirtualRegister newArgRegister = new VirtualRegister(true);
-            newArgRegister.setAddress(targetFunction.stackFrame.getInArgumentAddress(i));
             if (arguments.get(i).type() instanceof IntegerType) {
                 this.valueMap.put(arguments.get(i), newArgRegister);
             } else if (arguments.get(i).type() instanceof PointerType) {
@@ -193,6 +195,12 @@ public class Generator {
 
     private void transformFunctionArgBlock(IRBasicBlock argBlock, IRFunction irFunction, TargetFunction targetFunction) {
         ArrayList<Argument> arguments = irFunction.arguments();
+        for (int i = 0; i < arguments.size(); i++) {
+            if (PhysicalRegister.argumentRegisterOfArgumentNumber(i) != null) {
+                // 保存第0-3个参数对应的物理寄存器
+                targetFunction.stackFrame.ensurePrologueSaveArgumentRegister(PhysicalRegister.argumentRegisterOfArgumentNumber(i));
+            }
+        }
         DoublyLinkedList<IRInstruction<?>> instructions = argBlock.instructions();
         // argBlock的规范是 一条alloca指令配上一条将参数写入alloca地址
         Iterator<DoublyLinkedList.Node<IRInstruction<?>>> argBlockIterator = instructions.iterator();
@@ -321,6 +329,8 @@ public class Generator {
                         new Move(transitiveBasicBlock, phyCopyMove.key(), phyCopyMove.value());
                     }
                     new Branch(transitiveBasicBlock, targetBasicBlock.label(), false);
+                    targetBasicBlock.predecessors().add(transitiveBasicBlock);
+                    transitiveBasicBlock.setTrueSuccessor(targetBasicBlock);
                     this.basicBlockBranchMap.get(targetPredecessorBlock).put(targetBasicBlock, transitiveBasicBlock);
                 } else {
                     this.basicBlockBranchMap.get(targetPredecessorBlock).put(targetBasicBlock, targetBasicBlock);
@@ -643,16 +653,28 @@ public class Generator {
     }
 
     private void transformCallInst(CallInst callInst, TargetBasicBlock targetBasicBlock) {
-        // 有函数调用，要保存$ra
-        targetBasicBlock.parent().stackFrame.ensureSaveRA();
         IRFunction calledIRFunction = callInst.getCalledFunction();
         // 处理参数
         for (int i = 0; i < callInst.getNumArgs(); i++) {
             if (PhysicalRegister.argumentRegisterOfArgumentNumber(i) != null) {
-                // 使用寄存器传递
-                new Move(targetBasicBlock,
-                        PhysicalRegister.argumentRegisterOfArgumentNumber(i),
-                        this.valueToOperand(callInst.getArgOperand(i)));
+                // 先将使用到的参数寄存器写回内存
+                // 虽然未经过Mem2Reg操作则不会直接使用到参数寄存器，但是保守都进行写回操作
+                new Store(targetBasicBlock, Store.SIZE.WORD, PhysicalRegister.argumentRegisterOfArgumentNumber(i),
+                        targetBasicBlock.parent().stackFrame.getInArgumentAddress(i));
+            }
+        }
+        for (int i = 0; i < callInst.getNumArgs(); i++) {
+            if (PhysicalRegister.argumentRegisterOfArgumentNumber(i) != null) {
+                PhysicalRegister argRegister = PhysicalRegister.argumentRegisterOfArgumentNumber(i);
+                if (this.valueToOperand(callInst.getArgOperand(i)) instanceof VirtualRegister argVirtualRegister &&
+                        argVirtualRegister.isPreAllocated() &&
+                        PhysicalRegister.isArgumentRegister(argVirtualRegister.preAllocation()) &&
+                        PhysicalRegister.argumentNumberOfArgumentRegister(argVirtualRegister.preAllocation()) < callInst.getNumArgs()) {
+                    new Load(targetBasicBlock, Load.SIZE.WORD, argRegister,
+                            targetBasicBlock.parent().stackFrame.getInArgumentAddress(PhysicalRegister.argumentNumberOfArgumentRegister(argVirtualRegister.preAllocation())));
+                } else {
+                    new Move(targetBasicBlock, argRegister, this.valueToOperand(callInst.getArgOperand(i)));
+                }
             } else {
                 // 使用内存传递
                 RegisterBaseAddress outArgumentAddress = targetBasicBlock.parent().stackFrame.getOutArgumentAddress(i);
@@ -678,6 +700,8 @@ public class Generator {
         if (calledIRFunction.isLib()) {
             new Syscall(targetBasicBlock, this.syscallMap.get(calledIRFunction));
         } else {
+            // jal要修改$ra，故要保存$ra
+            targetBasicBlock.parent().stackFrame.ensurePrologueSaveRA();
             new Branch(targetBasicBlock, this.valueToOperand(calledIRFunction), true);
         }
         if (callInst.type() instanceof IntegerType) {
@@ -688,6 +712,13 @@ public class Generator {
             throw new RuntimeException("When transformCallInst(), the return type of CallInst is invalid. " +
                     "Got " + callInst.type());
         }
+        for (int i = 0; i < callInst.getNumArgs(); i++) {
+            if (PhysicalRegister.argumentRegisterOfArgumentNumber(i) != null) {
+                // 使用寄存器传递的再将内存的值读回
+                new Load(targetBasicBlock, Load.SIZE.WORD, PhysicalRegister.argumentRegisterOfArgumentNumber(i),
+                        targetBasicBlock.parent().stackFrame.getInArgumentAddress(i));
+            }
+        }
     }
 
     private void transformBranchInst(BranchInst branchInst, TargetBasicBlock targetBasicBlock) {
@@ -697,7 +728,11 @@ public class Generator {
                 TargetBasicBlock trueSuccessor = this.basicBlockBranchMap.get(targetBasicBlock).get(this.basicBlockMap.get(branchInst.getTrueSuccessor()));
                 TargetBasicBlock falseSuccessor = this.basicBlockBranchMap.get(targetBasicBlock).get(this.basicBlockMap.get(branchInst.getFalseSuccessor()));
                 new Branch(targetBasicBlock, condRegister, trueSuccessor.label());
+                trueSuccessor.predecessors().add(targetBasicBlock);
+                targetBasicBlock.setTrueSuccessor(trueSuccessor);
                 new Branch(targetBasicBlock, falseSuccessor.label(), false);
+                falseSuccessor.predecessors().add(targetBasicBlock);
+                targetBasicBlock.setFalseSuccessor(falseSuccessor);
             } else {
                 throw new RuntimeException("When transformBranchInst(), the operand of cond of branchInst is not a TargetRegister");
             }
@@ -705,6 +740,8 @@ public class Generator {
             // 无条件跳转
             TargetBasicBlock successor = this.basicBlockBranchMap.get(targetBasicBlock).get(this.basicBlockMap.get(branchInst.getSuccessor()));
             new Branch(targetBasicBlock, successor.label(), false);
+            successor.predecessors().add(targetBasicBlock);
+            targetBasicBlock.setTrueSuccessor(successor);
         }
     }
 

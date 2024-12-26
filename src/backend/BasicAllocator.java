@@ -56,26 +56,34 @@ public class BasicAllocator {
             TargetInstruction instruction = instructionNode.value();
             TreeSet<PhysicalRegister> acquiredPhysicalRegisters = new TreeSet<>();
             for (VirtualRegister useVirtualRegister : instruction.useVirtualRegisterSet()) {
-                PhysicalRegister physicalRegister = this.acquireDispatchPhysicalRegister();
-                acquiredPhysicalRegisters.add(physicalRegister);
-                Load loadVirtualRegister = new Load(null, Load.SIZE.WORD,
-                        physicalRegister, useVirtualRegister.address());
-                loadVirtualRegister.listNode().insertBefore(instructionNode);
-                instruction.replaceUseVirtualRegister(physicalRegister, useVirtualRegister);
+                if (!useVirtualRegister.isPreAllocated()) {
+                    PhysicalRegister physicalRegister = this.acquireDispatchPhysicalRegister();
+                    acquiredPhysicalRegisters.add(physicalRegister);
+                    Load loadVirtualRegister = new Load(null, Load.SIZE.WORD,
+                            physicalRegister, useVirtualRegister.address());
+                    loadVirtualRegister.listNode().insertBefore(instructionNode);
+                    instruction.replaceUseVirtualRegister(physicalRegister, useVirtualRegister);
+                }
             }
             // 顺序申请，逆序释放
             acquiredPhysicalRegisters.descendingSet().forEach(this::releaseDispatchPhysicalRegister);
             acquiredPhysicalRegisters.clear();
             for (VirtualRegister defVirtualRegister : instruction.defVirtualRegisterSet()) {
-                PhysicalRegister physicalRegister = this.acquireDispatchPhysicalRegister();
-                acquiredPhysicalRegisters.add(physicalRegister);
-                instruction.replaceDefVirtualRegister(physicalRegister, defVirtualRegister);
-                Store storeVirtualRegister = new Store(null, Store.SIZE.WORD,
-                        physicalRegister, defVirtualRegister.address());
-                storeVirtualRegister.listNode().insertAfter(instructionNode);
+                if (!defVirtualRegister.isPreAllocated()) {
+                    PhysicalRegister physicalRegister = this.acquireDispatchPhysicalRegister();
+                    acquiredPhysicalRegisters.add(physicalRegister);
+                    instruction.replaceDefVirtualRegister(physicalRegister, defVirtualRegister);
+                    Store storeVirtualRegister = new Store(null, Store.SIZE.WORD,
+                            physicalRegister, defVirtualRegister.address());
+                    storeVirtualRegister.listNode().insertAfter(instructionNode);
+                }
             }
             // 顺序申请，逆序释放
             acquiredPhysicalRegisters.descendingSet().forEach(this::releaseDispatchPhysicalRegister);
+            if (this.dispatchRegisters.size() != PhysicalRegister.DISPATCH_REGISTER_SIZE) {
+                throw new IllegalStateException("When allocBasicBlock(), the size of dispatchRegisters is " + this.dispatchRegisters.size() +
+                        " after the allocation of instruction " + instruction);
+            }
         }
     }
 }
