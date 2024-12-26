@@ -14,7 +14,6 @@ public class IRFunction extends IRValue<FunctionType> {
     // 但是在Sysy中，Function不会与任何其他的Value构成足够称为User的关系（Argument和BasicBlock类似属于关系），故直接提升为Value的子类
 
     private final ArrayList<Argument> arguments;
-    // TODO 根据实际需要修改使用的类，必要时自己构建
     private final LinkedList<IRBasicBlock> basicBlocks;
     private final boolean isLib;
 

@@ -9,11 +9,10 @@ import backend.target.TargetBasicBlock;
 import backend.target.TargetFunction;
 import backend.target.TargetModule;
 import util.DoublyLinkedList;
+import util.Pair;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class LinearScanAllocator {
     private final TargetModule targetModule;
@@ -34,13 +33,17 @@ public class LinearScanAllocator {
     private final HashMap<TargetBasicBlock, HashSet<VirtualRegister>> basicBlockDefs;
     // 保存一个函数各基本块以基本块为单位进行活跃变量分析的活跃的虚拟寄存器
     private final HashMap<TargetBasicBlock, HashSet<VirtualRegister>> basicBlockLiveRegister;
-
     // 保存一个函数中跨越了基本块的虚拟寄存器
     private final HashSet<VirtualRegister> virtualRegisterCrossBasicBlock;
-    // 保存一个函数各非预定义虚拟寄存器的开始活跃基本块顺序号
-    private final HashMap<VirtualRegister, Integer> liveRegisterStartBasicBlockIndex;
-    // 保存一个函数各非与定义虚拟寄存器的结束活跃基本块顺序号
-    private final HashMap<VirtualRegister, Integer> liveRegisterEndBasicBlockIndex;
+
+    // 保存一个函数中指令的DFS顺序
+    private final ArrayList<TargetInstruction> instructionDFSOrder;
+    // 保存一个函数各指令以指令为单位进行活跃变量分析的活跃的虚拟寄存器
+    private final HashMap<TargetInstruction, HashSet<VirtualRegister>> instructionLiveRegister;
+    // 保存一个函数各非预定义的跨越基本块的虚拟寄存器的开始活跃指令顺序号
+    private final HashMap<VirtualRegister, Integer> liveRegisterStartInstructionIndex;
+    // 保存一个函数各非预定义的跨越基本块的虚拟寄存器的结束活跃指令顺序号
+    private final HashMap<VirtualRegister, Integer> liveRegisterEndInstructionIndex;
 
     // 保存一个函数中一条指令Use的虚拟寄存器使用的调度寄存器
     private final HashMap<TargetInstruction, HashSet<PhysicalRegister>> instructionUseUsedDispatchRegisters;
@@ -69,10 +72,12 @@ public class LinearScanAllocator {
         this.basicBlockUses = new HashMap<>();
         this.basicBlockDefs = new HashMap<>();
         this.basicBlockLiveRegister = new HashMap<>();
-
         this.virtualRegisterCrossBasicBlock = new HashSet<>();
-        this.liveRegisterStartBasicBlockIndex = new HashMap<>();
-        this.liveRegisterEndBasicBlockIndex = new HashMap<>();
+
+        this.instructionDFSOrder = new ArrayList<>();
+        this.instructionLiveRegister = new HashMap<>();
+        this.liveRegisterStartInstructionIndex = new HashMap<>();
+        this.liveRegisterEndInstructionIndex = new HashMap<>();
 
         this.instructionUseUsedDispatchRegisters = new HashMap<>();
 
@@ -120,20 +125,21 @@ public class LinearScanAllocator {
         // 对每一个函数，寄存器的占用状态要重置
         this.initSavedRegisters();
         this.nowFunction = targetFunction;
-        this.basicBlockDFSOrder.clear();
 
+        this.basicBlockDFSOrder.clear();
         this.basicBlockUses.clear();
         this.basicBlockDefs.clear();
         this.basicBlockLiveRegister.clear();
-
         this.virtualRegisterCrossBasicBlock.clear();
-        this.liveRegisterStartBasicBlockIndex.clear();
-        this.liveRegisterEndBasicBlockIndex.clear();
+
+        this.instructionDFSOrder.clear();
+        this.instructionLiveRegister.clear();
+        this.liveRegisterStartInstructionIndex.clear();
+        this.liveRegisterEndInstructionIndex.clear();
 
         this.instructionUseUsedDispatchRegisters.clear();
 
         this.allocationResults.clear();
-
         // 第一步：对基本块进行DFS生成基础信息，包括指令排序，基本块的Def和Use
         this.generateBasicInfo(targetFunction.basicBlocks().head().value());
         // 第二步：以基本块为单位进行活跃变量分析
@@ -152,6 +158,7 @@ public class LinearScanAllocator {
         HashSet<VirtualRegister> defVirtualRegisters = new HashSet<>();
         for (DoublyLinkedList.Node<TargetInstruction> instructionNode : targetBasicBlock.instructions()) {
             TargetInstruction instruction = instructionNode.value();
+            this.instructionDFSOrder.add(instruction);
             // 添加到基本块的Use和Def集合中，注意预定义虚拟寄存器不参与分析
             // 对于不跨越基本块的临时虚拟寄存器，都是先定义后进行使用的
             // 各类指令都是先Use寄存器，然后再Def寄存器的
@@ -198,26 +205,60 @@ public class LinearScanAllocator {
                     outVirtualRegisters.addAll(this.basicBlockLiveRegister.get(targetBasicBlock.falseSuccessor()));
                 }
                 // 计算in
-                // in[B] = use[B] + (out[B] - def[B]
+                // in[B] = use[B] + (out[B] - def[B])
                 HashSet<VirtualRegister> inVirtualRegisters = new HashSet<>(this.basicBlockUses.get(targetBasicBlock));
                 outVirtualRegisters.removeAll(this.basicBlockDefs.get(targetBasicBlock));
                 inVirtualRegisters.addAll(outVirtualRegisters);
                 // 检查是否有更新
                 if (!inVirtualRegisters.equals(this.basicBlockLiveRegister.get(targetBasicBlock))) {
                     this.basicBlockLiveRegister.put(targetBasicBlock, inVirtualRegisters);
+                    this.virtualRegisterCrossBasicBlock.addAll(inVirtualRegisters);
                     hasUpdates = true;
                 }
                 // 向前移动
                 nowTargetBasicBlockNode = nowTargetBasicBlockNode.pred();
             }
         } while (hasUpdates);
-        // 计算每个跨基本块活跃的虚拟寄存器的活跃区间
-        for (int i = 0; i < basicBlockDFSOrder.size(); i++) {
-            TargetBasicBlock targetBasicBlock = basicBlockDFSOrder.get(i);
-            for (VirtualRegister liveVirtualRegister : basicBlockLiveRegister.get(targetBasicBlock)) {
-                this.virtualRegisterCrossBasicBlock.add(liveVirtualRegister);
-                this.liveRegisterStartBasicBlockIndex.putIfAbsent(liveVirtualRegister, i);
-                this.liveRegisterEndBasicBlockIndex.put(liveVirtualRegister, i);
+        // 检查第一个基本块是否无活跃变量信息以初步检验计算结果是否正确
+        if (!this.basicBlockLiveRegister.get(this.basicBlockDFSOrder.get(0)).isEmpty()) {
+            throw new IllegalStateException("When generateLiveInfo(), the first basic block should not have live register info");
+        }
+        for (DoublyLinkedList.Node<TargetBasicBlock> targetBasicBlockNode : targetFunction.basicBlocks()) {
+            TargetBasicBlock targetBasicBlock = targetBasicBlockNode.value();
+            // 最后一个语句的out[S] = out[B]
+            HashSet<VirtualRegister> outVirtualRegisters = new HashSet<>();
+            if (targetBasicBlock.trueSuccessor() != null) {
+                outVirtualRegisters.addAll(this.basicBlockLiveRegister.get(targetBasicBlock.trueSuccessor()));
+            }
+            if (targetBasicBlock.falseSuccessor() != null) {
+                outVirtualRegisters.addAll(this.basicBlockLiveRegister.get(targetBasicBlock.falseSuccessor()));
+            }
+            DoublyLinkedList.Node<TargetInstruction> nowInstructionNode = targetBasicBlock.instructions().tail();
+            while (nowInstructionNode != null) {
+                TargetInstruction instruction = nowInstructionNode.value();
+                // 计算in
+                // in[S] = use[S] + (out[S] - def[S])
+                outVirtualRegisters.removeAll(instruction.defVirtualRegisterSet().stream()
+                        .filter((this.virtualRegisterCrossBasicBlock::contains)).collect(Collectors.toSet()));
+                HashSet<VirtualRegister> inVirtualRegisters = instruction.useVirtualRegisterSet().stream()
+                        .filter(this.virtualRegisterCrossBasicBlock::contains).collect(Collectors.toCollection(HashSet::new));
+                inVirtualRegisters.addAll(outVirtualRegisters);
+                this.instructionLiveRegister.put(instruction, inVirtualRegisters);
+                outVirtualRegisters = new HashSet<>(inVirtualRegisters);
+                // 向前移动
+                nowInstructionNode = nowInstructionNode.pred();
+            }
+        }
+        // 检查第一个指令是否无活跃变量信息以初步检验计算结果是否正确
+        if (!this.instructionLiveRegister.get(this.instructionDFSOrder.get(0)).isEmpty()) {
+            throw new IllegalStateException("When generateLiveInfo(), the first instruction should not have live register info");
+        }
+        // 计算每个跨越基本块活跃的虚拟寄存器的活跃区间
+        for (int i = 0; i < this.instructionDFSOrder.size(); i++) {
+            TargetInstruction instruction = this.instructionDFSOrder.get(i);
+            for (VirtualRegister liveVirtualRegister : this.instructionLiveRegister.get(instruction)) {
+                this.liveRegisterStartInstructionIndex.putIfAbsent(liveVirtualRegister, i);
+                this.liveRegisterEndInstructionIndex.put(liveVirtualRegister, i);
             }
         }
     }
@@ -293,6 +334,39 @@ public class LinearScanAllocator {
     }
 
     private void allocGlobalRegister() {
+        for (int i = 0; i < this.instructionDFSOrder.size(); i++) {
+            // 分配寄存器
+            // 筛选出开始活跃的寄存器
+            ArrayList<Pair<VirtualRegister, Integer>> nowStartVirtualRegisterEndPairs = new ArrayList<>();
+            for (Map.Entry<VirtualRegister, Integer> startEntry : this.liveRegisterStartInstructionIndex.entrySet()) {
+                VirtualRegister virtualRegister = startEntry.getKey();
+                Integer startIndex = startEntry.getValue();
+                if (startIndex == i) {
+                    nowStartVirtualRegisterEndPairs.add(new Pair<>(virtualRegister, this.liveRegisterEndInstructionIndex.get(virtualRegister)));
+                }
+            }
+            nowStartVirtualRegisterEndPairs.sort(Comparator.comparingInt(Pair::value));
+            for (Pair<VirtualRegister, Integer> nowStartVirtualRegisterEndInfo : nowStartVirtualRegisterEndPairs) {
+                VirtualRegister startVirtualRegister = nowStartVirtualRegisterEndInfo.key();
+                // 尝试分配全局寄存器
+                PhysicalRegister physicalRegister = this.acquireSavedPhysicalRegister();
+                if (physicalRegister != null) {
+                    // 分配到了全局寄存器，进行登记
+                    this.allocationResults.put(startVirtualRegister, physicalRegister);
+                }
+            }
+            // 筛选出之后不再活跃的寄存器
+            for (Map.Entry<VirtualRegister, Integer> endEntry : this.liveRegisterEndInstructionIndex.entrySet()) {
+                VirtualRegister endVirtualRegister = endEntry.getKey();
+                Integer endIndex = endEntry.getValue();
+                if (endIndex == i) {
+                    // 尝试释放
+                    if (this.allocationResults.containsKey(endVirtualRegister)) {
+                        this.releaseSavedPhysicalRegister(this.allocationResults.get(endVirtualRegister));
+                    }
+                }
+            }
+        }
         if (this.savedRegisters.size() != PhysicalRegister.SAVED_REGISTER_SIZE) {
             throw new IllegalStateException("When allocGlobalRegister(), the size of savedRegisters is " + this.savedRegisters.size() +
                     " after the allocation of TargetFunction " + nowFunction.label());
