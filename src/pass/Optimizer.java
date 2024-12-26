@@ -13,10 +13,15 @@ public class Optimizer {
 
     public Optimizer(IRModule irModule) {
         this.passes = new ArrayList<>();
+        // 必须消除每个基本块第一条终结指令之后的指令，这样才是正确的LLVM
         this.passes.add(new RemoveInstructionAfterTerminator(irModule));
+        // 后端的跳转依赖CFG信息工作
         this.passes.add(new GenerateCFG(irModule));
-        if (Config.enableMiddleOptimization) {
+        // 线性寄存器分配依赖于消除不可到达的基本块
+        if (Config.enableBackendOptimization || Config.enableMiddleOptimization) {
             this.passes.add(new RemoveUnreachableBasicBlock(irModule));
+        }
+        if (Config.enableMiddleOptimization) {
             this.passes.add(new GenerateDominateInfo(irModule));
             this.passes.add(new Mem2Reg(irModule));
             this.passes.add(new CalculateConst(irModule));
