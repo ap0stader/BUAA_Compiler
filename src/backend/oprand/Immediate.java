@@ -12,7 +12,7 @@ public record Immediate(Integer value) implements TargetOperand, TargetAddress.I
 
     // 翻译trunc时使用
     public static Immediate FF() {
-        return new Immediate(0x7f);
+        return new Immediate(0xff);
     }
 
     // 计算常数偏移地址时使用
