@@ -36,7 +36,6 @@ int intfunc(int number) {
     return number * number;
 }
 
-
 int main() {
     printf("22371345");
     int intc = 3;

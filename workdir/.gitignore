@@ -1,0 +1,8 @@
+*
+!.gitignore
+!clear.sh
+!libsysy.c
+!libsysy.h
+!run_llvm.sh
+!run_mips.sh
+!MARS.jar
