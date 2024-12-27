@@ -9,7 +9,7 @@ public final class VirtualRegister implements TargetRegister, Comparable<Virtual
     private final PhysicalRegister preAllocation;
 
     public VirtualRegister() {
-        this.number = ++counter;
+        this.number = counter++;
         this.isPreDefined = false;
         this.preAllocation = null;
     }
@@ -21,7 +21,7 @@ public final class VirtualRegister implements TargetRegister, Comparable<Virtual
     }
 
     public VirtualRegister(PhysicalRegister preAllocation) {
-        this.number = ++counter;
+        this.number = counter++;
         this.isPreDefined = true;
         this.preAllocation = preAllocation;
     }
